@@ -1,0 +1,10 @@
+# Python 3.11 or newer. Pinned so every run (and BankUnited's) uses the same versions.
+pandas==3.0.6
+numpy==2.4.6
+pyarrow==25.0.1
+duckdb==1.5.5
+scikit-learn==1.9.1
+requests==2.34.2
+openpyxl==3.1.5
+python-dotenv==1.2.3
+pytest==9.1.1

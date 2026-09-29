@@ -1,0 +1,2 @@
+series_id,cbsa_code,column,units,frequency,annualize,notes
+CHAR737URN,16740,fred_unemployment_rate_pct,percent,M,mean,"Monthly, not seasonally adjusted; Public Domain: Citation Requested; checked 2026-09-28"

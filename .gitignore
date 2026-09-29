@@ -1,4 +1,19 @@
-data/
+# Data: raw downloads and intermediate files stay on your machine
+data/raw/
+data/interim/
+
+# Safety net: no stray spreadsheets anywhere else in a public repo...
 *.csv
 *.xlsx
+# ...except the small files we commit on purpose
+!data/reference/*.csv
+!data/manifest.csv
+
+# Secrets (commit .env.example with variable names only)
 .env
+
+# Python / Jupyter
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+.pytest_cache/
