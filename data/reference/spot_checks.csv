@@ -1,1 +1,2 @@
 cbsa_code,year,column,expected,rel_tolerance,source_note
+16740,2021,cbp_establishments_count,67674,0.001,"Census County Business Patterns, 2021 MSA-level file cbp21msa.zip (https://www2.census.gov/programs-surveys/cbp/datasets/2021/cbp21msa.zip), row msa=16740 naics=------ (all-industry total), field EST=67674. Retrieved 2026-09-29."

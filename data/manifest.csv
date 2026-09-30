@@ -1,2 +1,11 @@
 source,file,url,pulled_at_utc,sha256,bytes,notes
+cbp,cbp/cbp15co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2015/cbp15co.zip,2026-09-30T02:31:34Z,161e80a9b5ad210043ba9ec75377180d419162e0d6cabca6e6b0102d69821464,15985142,"CBP county file, 2015"
+cbp,cbp/cbp16co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2016/cbp16co.zip,2026-09-30T02:31:35Z,94956a68c9eb033f2a1d2d014c6b6b93a669768cb1ead66c28eda83a18797da3,16004229,"CBP county file, 2016"
+cbp,cbp/cbp17co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2017/cbp17co.zip,2026-09-30T02:31:36Z,6a7f9e8314c28b8738ed50263bd4b031b3b11219417c448f759ab782ddf1b388,12813327,"CBP county file, 2017"
+cbp,cbp/cbp18co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2018/cbp18co.zip,2026-09-30T02:31:37Z,b0265feea47c08e92d8c344154ca8679ffcac3f8e3d1a5387a5d7fee8133b857,13460475,"CBP county file, 2018"
+cbp,cbp/cbp19co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2019/cbp19co.zip,2026-09-30T02:31:38Z,a75f31b5d0b76a0de3957d8289be0359cc4008015bbf492b40c664ccf6580966,11530594,"CBP county file, 2019"
+cbp,cbp/cbp20co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2020/cbp20co.zip,2026-09-30T02:31:39Z,3df8fb3409bc5ae5691cd145a45b26f58a29652c4dd4e62f8e709c23fab60e8d,11472306,"CBP county file, 2020"
+cbp,cbp/cbp21co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2021/cbp21co.zip,2026-09-30T02:31:40Z,d1d7c917aab46aed5ae7116068e0574cbcec97a722b136166fefa3ab9a9dc258,11545498,"CBP county file, 2021"
+cbp,cbp/cbp22co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2022/cbp22co.zip,2026-09-30T02:31:41Z,dcea1d9a7060cdb763c841d863163856ba8d5a50dce9056992bdeacd08ff99b4,13723814,"CBP county file, 2022"
+cbp,cbp/cbp23co.zip,https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23co.zip,2026-09-30T02:31:42Z,e9539e96ceb91608ad44ab1cfc651d7c1ff9b88bddfe7a8ff64134ccde6e9603,12919520,"CBP county file, 2023"
 omb_delineation,omb_delineation/list1_2023.xlsx,https://www2.census.gov/programs-surveys/metro-micro/geographies/reference-files/2023/delineation-files/list1_2023.xlsx,2026-09-29T20:14:11Z,952c4b1e78acbb54e6ec9412434b7602fedacbf021736351a63c181bdb753629,143798,"OMB delineation, vintage 2023"

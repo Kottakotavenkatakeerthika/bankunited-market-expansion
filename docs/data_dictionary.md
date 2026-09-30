@@ -22,6 +22,10 @@ Every column in `data/processed/` gets a row here, in the same pull request that
 | `cbsa_code` | string(5) | | Metro (CBSA) code | OMB delineation, List 1 | | |
 | `cbsa_title` | string | | Metro name | `data/reference/msa_universe.csv` | | |
 | `year` | int | | Year the measures describe | | | |
+| `cbp_establishments_count` | int | count | Number of business establishments, all industries, in the county/metro | Census County Business Patterns, county file field `EST` | | Summed from county to metro via crosswalk |
+| `cbp_employment_count` | int | count | Paid employment for the pay period including March 12, all industries | Census County Business Patterns, county file field `EMP` | | Summed from county to metro via crosswalk |
+| `cbp_first_quarter_payroll_usd` | numeric | usd | First-quarter payroll, all industries | Census County Business Patterns, county file field `QP1` (reported in $1,000s) | | Converted from thousands to whole dollars (×1,000), then summed county to metro via crosswalk |
+| `cbp_annual_payroll_usd` | numeric | usd | Annual payroll, all industries | Census County Business Patterns, county file field `AP` (reported in $1,000s) | | Converted from thousands to whole dollars (×1,000), then summed county to metro via crosswalk |
 
 ## bank_quarter: one row per bank per quarter
 
