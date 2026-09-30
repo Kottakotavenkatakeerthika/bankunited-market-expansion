@@ -26,8 +26,9 @@ Availability (Data Source Log, Bhavana, 2026-09-28):
 
 Verify before relying on these (not yet confirmed the way Census CBP was):
   - BEA table/line codes: CAINC1 line 1 (total personal income, $1,000s) and
-    CAGDP1 line 1 (all-industry GDP, current $1,000s). BEA offers far more
-    detail (income components, real GDP) if the pod wants it later.
+    CAGDP2 line 1 (all-industry GDP, current $1,000s). Not CAGDP1 line 1 or
+    CAGDP9, which are real GDP in chained 2017 dollars. BEA offers far more
+    detail (income components, GDP by industry) if the pod wants it later.
   - BLS QCEW: uses the "annual by area" bulk ZIP
     (https://www.bls.gov/cew/data/files/<YEAR>/csv/<YEAR>_annual_by_area.zip),
     one giant file per year covering every county, state, and MSA. Only
@@ -56,7 +57,7 @@ QCEW_LATEST_AVAILABLE_YEAR = 2025
 
 BEA_TABLES = {
     "cainc1": {"TableName": "CAINC1", "LineCode": "1"},   # total personal income, $1,000s
-    "cagdp1": {"TableName": "CAGDP1", "LineCode": "1"},   # all-industry GDP, current $1,000s
+    "cagdp2": {"TableName": "CAGDP2", "LineCode": "1"},   # all-industry GDP, current $1,000s
 }
 
 
@@ -147,7 +148,7 @@ def _parse_bea_table(path: Path, measure_name: str) -> pd.DataFrame:
 def _transform_bea(paths: list[Path], years: list[int]) -> Path:
     by_table = {path.stem: path for path in paths if path.parent.name == SOURCE_BEA}
     income = _parse_bea_table(by_table["cainc1"], "bea_personal_income_usd")
-    gdp = _parse_bea_table(by_table["cagdp1"], "bea_gdp_usd")
+    gdp = _parse_bea_table(by_table["cagdp2"], "bea_gdp_usd")
     county_level = income.merge(gdp, on=["county_fips", "year"], how="outer")
     county_level = county_level[county_level["year"].isin(years)]
 
