@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-10-05 03:54 UTC on commit `2728ed1`
+Run 2026-10-05 04:03 UTC on commit `4eacf62`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
