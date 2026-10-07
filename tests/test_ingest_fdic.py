@@ -106,18 +106,25 @@ def test_download_pulls_each_state_once_and_keeps_the_key_out_of_the_manifest(fd
     assert not manifest["url"].str.contains("SECRET").any()
     assert all(hit["api_key"] == "SECRET" for hit in fdic_api.hits)
 
+    assert all((config.RAW / "sod" / str(year) / ingest_fdic.NATIONAL_CHECK_FILE).exists() for year in (2022, 2023))
+
     calls = len(fdic_api.hits)
-    ingest_fdic.download([2022, 2023])  # everything cached: no requests at all
+    ingest_fdic.download([2022, 2023])  # everything cached and checked: no requests at all
     assert len(fdic_api.hits) == calls
 
 
-def test_unpublished_years_are_skipped_and_missing_states_are_flagged(fdic_api, monkeypatch, capsys):
+def test_unpublished_years_are_skipped(fdic_api, capsys):
+    paths = ingest_fdic.download([2022, 2024])
+    assert "skipping 2024" in capsys.readouterr().out
+    assert paths and all("/2022/" in p.as_posix() for p in paths)
+
+
+def test_a_national_count_mismatch_stops_the_build_even_on_a_rerun(fdic_api, monkeypatch):
     monkeypatch.setattr(ingest_fdic, "STATE_CODES", ["NC", "SC", "AL"])  # CT and OR left out
-    paths = ingest_fdic.download([2023, 2024])
-    out = capsys.readouterr().out
-    assert "skipping 2024" in out
-    assert "WARNING 2023: pulled 7 offices but FDIC reports 9" in out
-    assert all("/2023/" in p.as_posix() for p in paths)
+    for _ in range(2):  # the rerun finds the state files already downloaded and must still stop
+        with pytest.raises(RuntimeError, match="hold 7 offices but FDIC reports 9"):
+            ingest_fdic.download([2023])
+    assert not (config.RAW / "sod" / "2023" / ingest_fdic.NATIONAL_CHECK_FILE).exists()
 
 
 def test_transform_builds_metro_and_bank_tables(fdic_api, capsys):
@@ -128,6 +135,7 @@ def test_transform_builds_metro_and_bank_tables(fdic_api, capsys):
     charlotte = metro.loc[("16740", 2023)]
     assert charlotte["sod_deposits_usd"] == 400_000_000  # $1,000s -> dollars; empty deposits skipped
     assert charlotte["sod_main_office_deposits_usd"] == 300_000_000
+    # Branches: 3510's main office is full-service, so it counts; 9999's drive-through doesn't
     assert (charlotte["sod_offices_count"], charlotte["sod_branches_count"], charlotte["sod_institutions_count"]) == (5, 4, 3)
     assert metro.loc[("13820", 2023), "sod_deposits_usd"] == 50_000_000  # code 1073 read as county 01073
     assert metro.loc[("16740", 2022), "sod_deposits_usd"] == 310_000_000

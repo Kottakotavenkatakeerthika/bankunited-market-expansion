@@ -12,13 +12,16 @@ Source (checked 2026-10-04):
   - The API returns at most 10,000 rows per request, so each year is pulled one
     state at a time (raw/sod/<year>/<state>.json). No state comes close to
     10,000 offices; if one ever does, download() stops and says so. Each year's
-    rows are checked against the API's national count for that year.
+    state files must add up to the API's national office count, or the build
+    stops. A year that matches is recorded in raw/sod/<year>/national_check.json,
+    so later runs reuse it without asking FDIC again; until then every run checks.
   - API key: FDIC's docs call it optional, but current API clients report that
     requests without one are refused. Get a free key at https://api.data.gov/signup/
     and set FDIC_API_KEY in .env. fetch() keeps it out of the manifest.
   - Fields: YEAR, CERT, RSSDID, RSSDHCR (top regulatory holding company, 0 = none),
     NAMEFULL, NAMEHCR, BRNUM, UNINUMBR, BKMO (1 = main office), BRSERTYP (service
-    type: 11 = full-service brick and mortar, 12 = full-service retail office),
+    type: 11 = full-service brick and mortar, 12 = full-service retail office;
+    main offices carry one of these too, so they count as branches),
     STALPBR, STCNTYBR (branch state + county FIPS), DEPSUMBR (branch deposits,
     in $1,000s: converted to whole dollars), MSABR (FDIC's own metro code, used
     only as a cross-check on our crosswalk).
@@ -35,6 +38,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -64,7 +68,8 @@ STATE_CODES = [
     "PR", "VI", "GU", "AS", "MP", "FM", "MH", "PW",
 ]
 
-FULL_SERVICE_BRANCH_TYPES = [11, 12]  # brick and mortar, retail office
+FULL_SERVICE_BRANCH_TYPES = [11, 12]  # brick and mortar, retail office (main offices included)
+NATIONAL_CHECK_FILE = "national_check.json"  # written once a year's states match FDIC's national count
 
 KEY_HINT = ("FDIC's API may be refusing requests without a key: get a free one at "
             "https://api.data.gov/signup/ and set FDIC_API_KEY in .env")
@@ -144,27 +149,42 @@ def _pull_state(year: int, state: str, force: bool) -> Path:
 
 
 def download(years: list[int], force: bool = False) -> list[Path]:
-    """Pull each year's offices, one state per request, into data/raw/sod/<year>/<state>.json."""
+    """Pull each year's offices, one state per request, into data/raw/sod/<year>/<state>.json.
+
+    A year's state files must add up to FDIC's national office count, or the build stops.
+    A match is saved as <year>/national_check.json, so later runs reuse the year without
+    asking FDIC again. Until that file exists, every run checks again, including runs
+    that find the state files already downloaded.
+    """
     paths = []
     for year in years:
         folder = config.RAW / SOURCE / str(year)
-        complete = all((folder / f"{state}.json").exists() for state in STATE_CODES)
-        if complete and not force:
-            print(f"[sod] {year}: all {len(STATE_CODES)} state files already downloaded (force=True to pull again)")
-            paths += [folder / f"{state}.json" for state in STATE_CODES]
+        state_paths = [folder / f"{state}.json" for state in STATE_CODES]
+        record = folder / NATIONAL_CHECK_FILE
+        if record.exists() and not force and all(path.exists() for path in state_paths):
+            checked = json.loads(record.read_text(encoding="utf-8"))
+            print(f"[sod] {year}: {checked['offices']:,} offices, matched FDIC's national count "
+                  f"on {checked['checked_utc'][:10]} (force=True to pull again)")
+            paths += state_paths
             continue
 
         expected = _national_total(year)
         if expected == 0:
             print(f"[sod] skipping {year}: FDIC hasn't published the June 30, {year} survey")
             continue
-        year_paths = [_pull_state(year, state, force) for state in STATE_CODES]
+        year_paths = [path if path.exists() and not force else _pull_state(year, state, force)
+                      for state, path in zip(STATE_CODES, state_paths)]
         pulled = sum(_read_page(path)[1] for path in year_paths)
         if pulled != expected:
-            print(f"[sod] WARNING {year}: pulled {pulled:,} offices but FDIC reports {expected:,}; "
-                  "the rest are in a state code missing from STATE_CODES")
-        else:
-            print(f"[sod] {year}: {pulled:,} offices pulled, matching FDIC's national count")
+            raise RuntimeError(
+                f"[sod] {year}: the state files hold {pulled:,} offices but FDIC reports {expected:,} "
+                "nationally, so the build stops here. Either STATE_CODES is missing a state or "
+                "territory, or FDIC revised the year after these files were pulled: fix STATE_CODES, "
+                f"or delete {folder} and rerun to pull the year again.")
+        checked_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        record.write_text(json.dumps({"year": year, "offices": pulled, "checked_utc": checked_utc}),
+                          encoding="utf-8")
+        print(f"[sod] {year}: {pulled:,} offices, matching FDIC's national count")
         paths += year_paths
 
     if not paths:
