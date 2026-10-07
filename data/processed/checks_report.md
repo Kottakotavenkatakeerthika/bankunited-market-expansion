@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-10-05 04:03 UTC on commit `4eacf62`
+Run 2026-10-07 19:59 UTC on commit `dd0c6f4`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -36,6 +36,7 @@ Run 2026-10-05 04:03 UTC on commit `4eacf62`
 | msa_year | spot check: cra_small_business_loan_count for 16740 in 2023 | pass | built 76,874.00 vs published 76,874.00 FFIEC CRA 2023 aggregate flat file 23exp_aggr.zip (https://www.ffiec.gov/sites/default/files/data/cra/flat-files/23exp_aggr.zip, downloaded by hand), Table A1-1 (Small Business Loans by County - Originations): FFIEC's own MSA/MD Total row (Report Level 210, MSA/MD 16740 in columns 17-21), independent of our county-to-metro rollup. Sum of the three loan-count fields: <$100k 72961 + $100k-$250k 2031 + $250k-$1M 1882 = 76874. This file already assigns Anson County (37007) to MSA/MD 16740, so it matches the 2023 OMB delineation. Retrieved 2026-10-01. |
 | msa_year | spot check: cra_small_business_loan_amount_usd for 16740 in 2023 | pass | built 2,374,875,000.00 vs published 2,374,875,000.00 FFIEC CRA 2023 aggregate flat file 23exp_aggr.zip (https://www.ffiec.gov/sites/default/files/data/cra/flat-files/23exp_aggr.zip, downloaded by hand), Table A1-1 (Small Business Loans by County - Originations): FFIEC's own MSA/MD Total row (Report Level 210, MSA/MD 16740 in columns 17-21), independent of our county-to-metro rollup. Sum of the three loan-amount fields ($1,000s): <$100k 1008611 + $100k-$250k 343722 + $250k-$1M 1022542 = 2374875, x1,000 = 2374875000. This file already assigns Anson County (37007) to MSA/MD 16740, so it matches the 2023 OMB delineation. Retrieved 2026-10-01. |
 | msa_year | spot check: sod_deposits_usd for 16740 in 2024 | pass | built 457,313,881,000.00 vs published 457,314,000,000.00 FDIC State Profile, North Carolina, Fourth Quarter 2024 (https://www.fdic.gov/analysis/state-profiles/atlanta/nc.pdf), table 'Largest Deposit Markets (from 2024 Summary of Deposits)', row Charlotte-Concord-Gastonia, NC-SC: 50 institutions, deposits $457,314 million (x1,000,000). The South Carolina Q4 2024 profile lists the same row. FDIC rounds to the nearest $1 million, well inside the tolerance. The profile URL is replaced each quarter, so confirm against FDIC's Deposit Market Share report for MSA 16740, June 30, 2024 (BankFind Suite, Summary of Deposits). Retrieved 2026-10-04. |
+| msa_year | spot check: sod_institutions_count for 16740 in 2024 | pass | built 50.00 vs published 50.00 FDIC State Profile, North Carolina, Fourth Quarter 2024 (https://www.fdic.gov/analysis/state-profiles/atlanta/nc.pdf), table 'Largest Deposit Markets (from 2024 Summary of Deposits)', row Charlotte-Concord-Gastonia, NC-SC: 50 institutions. Same table and row as the sod_deposits_usd check. A count, so it must match exactly (tolerance 0). The profile URL is replaced each quarter, so confirm against FDIC's Deposit Market Share report for MSA 16740, June 30, 2024 (BankFind Suite, Summary of Deposits). Retrieved 2026-10-04. |
 | bank_msa_year | key columns present | pass |  |
 | bank_msa_year | no empty keys | pass |  |
 | bank_msa_year | one row per key | pass |  |
