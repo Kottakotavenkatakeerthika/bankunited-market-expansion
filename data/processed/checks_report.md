@@ -1,0 +1,48 @@
+# Data checks
+
+Run 2026-10-07 19:59 UTC on commit `dd0c6f4`
+
+| Table | Check | Result | Detail |
+|---|---|---|---|
+| msa_year | key columns present | pass |  |
+| msa_year | no empty keys | pass |  |
+| msa_year | one row per key | pass |  |
+| msa_year | cbsa_code is 5 digits | pass |  |
+| msa_year | every universe metro has every year | pass |  |
+| msa_year | bea_personal_income_usd >= 0 | pass |  |
+| msa_year | bea_gdp_usd >= 0 | pass |  |
+| msa_year | bls_labor_force_count >= 0 | pass |  |
+| msa_year | bls_employed_count >= 0 | pass |  |
+| msa_year | bls_unemployed_count >= 0 | pass |  |
+| msa_year | bls_unemployment_rate_pct within 0-100 | pass |  |
+| msa_year | bls_qcew_employment_count >= 0 | pass |  |
+| msa_year | bls_qcew_total_wages_usd >= 0 | pass |  |
+| msa_year | cbp_establishments_count >= 0 | pass |  |
+| msa_year | cbp_employment_count >= 0 | pass |  |
+| msa_year | cbp_first_quarter_payroll_usd >= 0 | pass |  |
+| msa_year | cbp_annual_payroll_usd >= 0 | pass |  |
+| msa_year | cra_small_business_loan_count >= 0 | pass |  |
+| msa_year | cra_small_business_loan_amount_usd >= 0 | pass |  |
+| msa_year | fred_unemployment_rate_pct within 0-100 | pass |  |
+| msa_year | sod_deposits_usd >= 0 | pass |  |
+| msa_year | sod_main_office_deposits_usd >= 0 | pass |  |
+| msa_year | sod_offices_count >= 0 | pass |  |
+| msa_year | sod_branches_count >= 0 | pass |  |
+| msa_year | sod_institutions_count >= 0 | pass |  |
+| msa_year | spot check: cbp_establishments_count for 16740 in 2023 | pass | built 71,411.00 vs published 71,411.00 Census County Business Patterns, 2023 MSA-level file cbp23msa.zip (https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23msa.zip), row msa=16740 naics=------ (all-industry total), field EST=71411. This file uses the 2023 OMB delineation (includes Anson County, 37007); the 2021 file (cbp21msa.zip, EST=67674) does not and falls short by exactly Anson's 380 establishments, so use 2022 or later. Retrieved 2026-10-01. |
+| msa_year | spot check: bea_gdp_usd for 16740 in 2023 | pass | built 259,146,518,000.00 vs published 255,666,417,000.00 BEA current-dollar GDP by metro area, as republished on FRED series NGMP16740 (https://fred.stlouisfed.org/series/NGMP16740, Total Gross Domestic Product for Charlotte-Concord-Gastonia, NC-SC (MSA), millions of dollars), observation 2023-01-01 value=255666.417 (x1,000,000). Series is discontinued, last updated 2024-12-04 (BEA December 2024 vintage); our pull is a later BEA revision, hence the 2% tolerance. The gap is a vintage difference, not a pipeline error: summing Charlotte's 11 counties from the same December 2024 release (lagdp1224.xlsx) gives $206.53B vs FRED's $206.55B metro figure (within 0.007%), and Mecklenburg alone was revised from $139.16B to $141.41B (+1.6%), matching the size of the overall gap. Both checks were done on real GDP (chained 2017 dollars), since that release only publishes real GDP by county; current-dollar revisions are assumed to be similar. Retrieved 2026-09-30. |
+| msa_year | spot check: bls_qcew_employment_count for 16740 in 2024 | pass | built 1,339,734.00 vs published 1,339,736.00 BLS QCEW 2024 annual-by-area file 2024_annual_by_area.zip (https://www.bls.gov/cew/data/files/2024/csv/2024_annual_by_area.zip), inner file '2024.annual C1674 Charlotte-Concord-Gastonia, NC-SC MSA.csv', row own_code=0 industry_code=10 (all ownerships, all industries), field annual_avg_emplvl=1339736. QCEW MSA files before 2024 use the pre-2023 delineation (no Anson County), so use 2024 or later. Retrieved 2026-09-30. |
+| msa_year | spot check: fred_unemployment_rate_pct for 16740 in 2024 | pass | built 3.70 vs published 3.70 FRED series CHAR737URN (https://fred.stlouisfed.org/series/CHAR737URN), annual average computed by FRED (API series/observations with frequency=a, aggregation_method=avg), observation 2024-01-01 value=3.7. FRED rounds to one decimal, so tolerance allows +/-0.05 points. Retrieved 2026-09-30. |
+| msa_year | spot check: cra_small_business_loan_count for 16740 in 2023 | pass | built 76,874.00 vs published 76,874.00 FFIEC CRA 2023 aggregate flat file 23exp_aggr.zip (https://www.ffiec.gov/sites/default/files/data/cra/flat-files/23exp_aggr.zip, downloaded by hand), Table A1-1 (Small Business Loans by County - Originations): FFIEC's own MSA/MD Total row (Report Level 210, MSA/MD 16740 in columns 17-21), independent of our county-to-metro rollup. Sum of the three loan-count fields: <$100k 72961 + $100k-$250k 2031 + $250k-$1M 1882 = 76874. This file already assigns Anson County (37007) to MSA/MD 16740, so it matches the 2023 OMB delineation. Retrieved 2026-10-01. |
+| msa_year | spot check: cra_small_business_loan_amount_usd for 16740 in 2023 | pass | built 2,374,875,000.00 vs published 2,374,875,000.00 FFIEC CRA 2023 aggregate flat file 23exp_aggr.zip (https://www.ffiec.gov/sites/default/files/data/cra/flat-files/23exp_aggr.zip, downloaded by hand), Table A1-1 (Small Business Loans by County - Originations): FFIEC's own MSA/MD Total row (Report Level 210, MSA/MD 16740 in columns 17-21), independent of our county-to-metro rollup. Sum of the three loan-amount fields ($1,000s): <$100k 1008611 + $100k-$250k 343722 + $250k-$1M 1022542 = 2374875, x1,000 = 2374875000. This file already assigns Anson County (37007) to MSA/MD 16740, so it matches the 2023 OMB delineation. Retrieved 2026-10-01. |
+| msa_year | spot check: sod_deposits_usd for 16740 in 2024 | pass | built 457,313,881,000.00 vs published 457,314,000,000.00 FDIC State Profile, North Carolina, Fourth Quarter 2024 (https://www.fdic.gov/analysis/state-profiles/atlanta/nc.pdf), table 'Largest Deposit Markets (from 2024 Summary of Deposits)', row Charlotte-Concord-Gastonia, NC-SC: 50 institutions, deposits $457,314 million (x1,000,000). The South Carolina Q4 2024 profile lists the same row. FDIC rounds to the nearest $1 million, well inside the tolerance. The profile URL is replaced each quarter, so confirm against FDIC's Deposit Market Share report for MSA 16740, June 30, 2024 (BankFind Suite, Summary of Deposits). Retrieved 2026-10-04. |
+| msa_year | spot check: sod_institutions_count for 16740 in 2024 | pass | built 50.00 vs published 50.00 FDIC State Profile, North Carolina, Fourth Quarter 2024 (https://www.fdic.gov/analysis/state-profiles/atlanta/nc.pdf), table 'Largest Deposit Markets (from 2024 Summary of Deposits)', row Charlotte-Concord-Gastonia, NC-SC: 50 institutions. Same table and row as the sod_deposits_usd check. A count, so it must match exactly (tolerance 0). The profile URL is replaced each quarter, so confirm against FDIC's Deposit Market Share report for MSA 16740, June 30, 2024 (BankFind Suite, Summary of Deposits). Retrieved 2026-10-04. |
+| bank_msa_year | key columns present | pass |  |
+| bank_msa_year | no empty keys | pass |  |
+| bank_msa_year | one row per key | pass |  |
+| bank_msa_year | cbsa_code is 5 digits | pass |  |
+| bank_msa_year | sod_deposits_usd >= 0 | pass |  |
+| bank_msa_year | sod_main_office_deposits_usd >= 0 | pass |  |
+| bank_msa_year | sod_offices_count >= 0 | pass |  |
+| bank_msa_year | sod_branches_count >= 0 | pass |  |
+| bank_msa_year | sod_deposit_share within 0-1 | pass |  |

@@ -66,5 +66,7 @@ FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 BEA_API_KEY = os.getenv("BEA_API_KEY", "")
 BLS_API_KEY = os.getenv("BLS_API_KEY", "")
 CENSUS_API_KEY = os.getenv("CENSUS_API_KEY", "")
+# FDIC BankFind API (Summary of Deposits). Free key: https://api.data.gov/signup/
+FDIC_API_KEY = os.getenv("FDIC_API_KEY", "")
 # SEC EDGAR refuses requests without a descriptive User-Agent (name and email).
 HTTP_USER_AGENT = os.getenv("HTTP_USER_AGENT", "BankUnited Pod, DSBA 6390, UNC Charlotte")
