@@ -96,3 +96,10 @@ def test_2025_is_skipped(pep_files, project, crosswalk_csv, capsys):
     out = build(pep_files, [2021, 2025], project, crosswalk_csv)
     assert sorted(out.index.get_level_values("year").unique()) == [2021]
     assert "skipping 2025" in capsys.readouterr().out
+
+
+def test_vintage_year_comes_from_the_source_file_and_is_not_summed(pep_files, project, crosswalk_csv):
+    out = build(pep_files, [2019, 2020, 2021], project, crosswalk_csv)
+    assert out.loc[("16740", 2019), "pep_vintage_year"] == 2020
+    assert out.loc[("16740", 2020), "pep_vintage_year"] == 2025
+    assert out.loc[("16740", 2021), "pep_vintage_year"] == 2025   # two counties, still 2025 and not 4050

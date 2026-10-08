@@ -19,6 +19,7 @@ Reading the numbers:
     its population but its four flow columns stay blank.
   - Vintage 2020 reports Connecticut under the old county codes (09001-09015), which
     the crosswalk does not map, so Connecticut metros are missing for 2015-2019.
+  - pep_vintage_year says which vintage a row came from: 2020 for 2015-2019, 2025 from 2020 on.
   - The _net columns can be negative. Missing values are never filled with 0.
 """
 from __future__ import annotations
@@ -51,6 +52,7 @@ NOTES = {
 # Which file each year is read from, and what that file calls natural change.
 OLD_YEARS = range(2015, 2020)
 NEW_YEARS = range(2020, 2025)
+VINTAGE_YEAR = {OLD_FILE: 2020, NEW_FILE: 2025}  # the vintage each file belongs to
 LATEST_YEAR = 2024
 NATURAL_PREFIX = {OLD_FILE: "NATURALINC", NEW_FILE: "NATURALCHG"}
 # 2020 in the new file: population only (its flows cover April-June 2020).
@@ -138,10 +140,12 @@ def transform(paths: list[Path], years: list[int]) -> list[Path]:
     for year in sorted(set(years) - set(wanted)):
         print(f"[pep] skipping {year}: this build stops at {LATEST_YEAR}")
     parts = []
+    vintage_by_year = {}
     for name, span in ((OLD_FILE, OLD_YEARS), (NEW_FILE, NEW_YEARS)):
         file_years = [y for y in wanted if y in span]
         if file_years:
             parts.append(_read_county_file(by_name[name], file_years))
+            vintage_by_year.update({year: VINTAGE_YEAR[name] for year in file_years})
     if not parts:
         raise ValueError(f"pep: none of the years {years} are covered by the PEP files")
     county_level = pd.concat(parts, ignore_index=True)
@@ -155,6 +159,8 @@ def transform(paths: list[Path], years: list[int]) -> list[Path]:
         by=("year",),
         metro_only=True,
     )
+    # Set from the file each year came from, not summed across counties.
+    metro_level["pep_vintage_year"] = metro_level["year"].map(vintage_by_year).astype("int64")
     return [write_interim(metro_level, SOURCE, "msa_year")]
 
 
