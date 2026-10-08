@@ -50,7 +50,7 @@ DELINEATION_URL = (
 )
 
 # Ingest modules run by run_pipeline, in this order: src/ingest_<name>.py
-SOURCES = ["census", "bea_bls", "cra", "fred", "fdic", "ffiec"]  # Bhavana's four, then Austin's two
+SOURCES = ["census", "cre", "bea_bls", "cra", "fred", "fdic", "ffiec"]  # Bhavana's four, then Austin's two
 
 # Processed tables and their keys. build_panel joins every
 # data/interim/<table>/<source>.parquet into data/processed/<table>.parquet.
