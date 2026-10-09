@@ -58,13 +58,13 @@ def test_2020_keeps_population_but_blanks_all_flows(pep_files, project, crosswal
     row = build(pep_files, [2019, 2020], project, crosswalk_csv).loc[("16740", 2020)]
     assert row["pep_population_count"] == 1090 + 310
     flows = ["pep_natural_change_net", "pep_domestic_migration_net",
-             "pep_international_migration_net", "pep_net_migration_net"]
+             "pep_international_migration_net", "pep_migration_net"]
     assert row[flows].isna().all()
 
 
 def test_negative_flows_are_kept_as_negatives(pep_files, project, crosswalk_csv):
     row = build(pep_files, [2021], project, crosswalk_csv).loc[("16740", 2021)]
-    assert row["pep_net_migration_net"] == -15 + -2
+    assert row["pep_migration_net"] == -15 + -2
     assert row["pep_domestic_migration_net"] == -20 + -3
     assert pd.read_parquet(project["INTERIM"] / "msa_year" / "pep.parquet")["pep_natural_change_net"].min() < 0
     assert build(pep_files, [2021], project, crosswalk_csv)["pep_natural_change_net"].notna().all()

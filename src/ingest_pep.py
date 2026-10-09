@@ -63,7 +63,7 @@ VALUE_COLUMNS = [
     "pep_natural_change_net",
     "pep_domestic_migration_net",
     "pep_international_migration_net",
-    "pep_net_migration_net",
+    "pep_migration_net",
     "pep_counties_reported_count",
 ]
 
@@ -106,7 +106,7 @@ def _read_county_file(path: Path, years: list[int]) -> pd.DataFrame:
             "pep_natural_change_net": number(f"{natural}{year}") if has_flows else float("nan"),
             "pep_domestic_migration_net": number(f"DOMESTICMIG{year}") if has_flows else float("nan"),
             "pep_international_migration_net": number(f"INTERNATIONALMIG{year}") if has_flows else float("nan"),
-            "pep_net_migration_net": number(f"NETMIG{year}") if has_flows else float("nan"),
+            "pep_migration_net": number(f"NETMIG{year}") if has_flows else float("nan"),
         }))
     return pd.concat(frames, ignore_index=True)
 
