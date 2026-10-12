@@ -67,12 +67,12 @@ Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of e
 | `call_total_assets_usd` | numeric | usd | Total assets at quarter end: everything the bank owns, including cash, loans, securities and premises, but not off-balance-sheet items | `ASSET` (reported in $1,000s) | | ×1,000 |
 | `call_total_deposits_usd` | numeric | usd | Total deposits, including deposits in foreign offices | `DEP` (reported in $1,000s) | | ×1,000 |
 | `call_domestic_deposits_usd` | numeric | usd | Deposits held in domestic offices | `DEPDOM` (reported in $1,000s) | | ×1,000 |
-| `call_insured_deposits_usd` | numeric | usd | Estimated insured deposits | `DEPINS` (reported in $1,000s) | | ×1,000 |
+| `call_insured_deposits_usd_net` | numeric | usd_net | Estimated insured deposits. Kept as published, so one bank-quarter through June 2026 is negative, which looks like a filing error | `DEPINS` (reported in $1,000s) | | ×1,000 |
 | `call_core_deposits_usd` | numeric | usd | Core deposits | `COREDEP` (reported in $1,000s) | | ×1,000 |
 | `call_brokered_deposits_usd` | numeric | usd | Brokered deposits | `BRO` (reported in $1,000s) | | ×1,000 |
 | `call_total_loans_usd` | numeric | usd | Total loans and leases, before the allowance for credit losses | `LNLSGR` (reported in $1,000s) | | ×1,000 |
 | `call_net_loans_usd` | numeric | usd | Loans and leases net of the allowance | `LNLSNET` (reported in $1,000s) | | ×1,000 |
-| `call_loan_loss_allowance_usd` | numeric | usd | Allowance for loan and lease losses (allowance for credit losses on loans under CECL) | `LNATRES` (reported in $1,000s) | | ×1,000 |
+| `call_loan_loss_allowance_usd_net` | numeric | usd_net | Allowance for loan and lease losses (allowance for credit losses on loans under CECL). CECL allows a negative allowance in limited cases, such as expected recoveries; four bank-quarters through June 2026 are negative | `LNATRES` (reported in $1,000s) | | ×1,000 |
 | `call_real_estate_loans_usd` | numeric | usd | Loans secured by real estate | `LNRE` (reported in $1,000s) | | ×1,000 |
 | `call_construction_loans_usd` | numeric | usd | Construction and land development loans | `LNRECONS` (reported in $1,000s) | | ×1,000 |
 | `call_nonfarm_nonres_loans_usd` | numeric | usd | Loans secured by nonfarm nonresidential properties (commercial real estate), owner-occupied and other | `LNRENRES` (reported in $1,000s) | | ×1,000 |
@@ -89,7 +89,7 @@ Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of e
 | `call_equity_capital_usd_net` | numeric | usd_net | Total equity capital: preferred and common stock, surplus and undivided profits. Negative only for an insolvent bank | `EQ` (reported in $1,000s) | | ×1,000 |
 | `call_quarter_net_interest_income_usd_net` | numeric | usd_net | Net interest income earned in the quarter alone | `NIMQ` (reported in $1,000s) | | ×1,000 |
 | `call_quarter_noninterest_income_usd_net` | numeric | usd_net | Total noninterest income earned in the quarter alone; can be negative, for example from trading losses | `NONIIQ` (reported in $1,000s) | | ×1,000 |
-| `call_quarter_noninterest_expense_usd` | numeric | usd | Total noninterest expense in the quarter alone | `NONIXQ` (reported in $1,000s) | | ×1,000 |
+| `call_quarter_noninterest_expense_usd_net` | numeric | usd_net | Total noninterest expense in the quarter alone. Banks report year to date, so the quarter's figure can be negative when a bank reverses expenses booked earlier in the year; 152 bank-quarters through June 2026 are | `NONIXQ` (reported in $1,000s) | | ×1,000 |
 | `call_quarter_net_income_usd_net` | numeric | usd_net | Net income in the quarter alone; negative for a loss | `NETINCQ` (reported in $1,000s) | | ×1,000 |
 | `call_quarter_net_charge_offs_usd_net` | numeric | usd_net | Loan and lease charge-offs net of recoveries in the quarter alone; negative when recoveries are larger | `NTLNLSQ` (reported in $1,000s) | | ×1,000 |
 | `call_ytd_credit_loss_provision_usd_net` | numeric | usd_net | Provision for credit losses, year to date (FDIC publishes no quarterly version); negative when a bank releases reserves | `ELNATR` (reported in $1,000s) | | ×1,000 |

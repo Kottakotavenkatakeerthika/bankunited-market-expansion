@@ -94,7 +94,8 @@ REQUIRED_FIELDS = ["CERT", "REPDTE", "RSSDID"]
 
 # FDIC field -> our column. The column's suffix sets the unit:
 #   _usd       reported in $1,000s, converted to whole dollars, never negative
-#   _usd_net   the same, but can be negative (net income, equity, charge-offs net of recoveries)
+#   _usd_net   the same, but can be negative (net income, equity, charge-offs net of recoveries,
+#              and three fields FDIC publishes negative values for: see the dictionary)
 #   _ratio     a percent exactly as FDIC publishes it; can be negative or above 100
 #   _count     a count
 CALL_FIELDS = {
@@ -102,12 +103,12 @@ CALL_FIELDS = {
     "ASSET": "call_total_assets_usd",
     "DEP": "call_total_deposits_usd",
     "DEPDOM": "call_domestic_deposits_usd",
-    "DEPINS": "call_insured_deposits_usd",
+    "DEPINS": "call_insured_deposits_usd_net",
     "COREDEP": "call_core_deposits_usd",
     "BRO": "call_brokered_deposits_usd",
     "LNLSGR": "call_total_loans_usd",
     "LNLSNET": "call_net_loans_usd",
-    "LNATRES": "call_loan_loss_allowance_usd",
+    "LNATRES": "call_loan_loss_allowance_usd_net",
     "LNRE": "call_real_estate_loans_usd",
     "LNRECONS": "call_construction_loans_usd",
     "LNRENRES": "call_nonfarm_nonres_loans_usd",
@@ -125,7 +126,7 @@ CALL_FIELDS = {
     # Income for the quarter alone
     "NIMQ": "call_quarter_net_interest_income_usd_net",
     "NONIIQ": "call_quarter_noninterest_income_usd_net",
-    "NONIXQ": "call_quarter_noninterest_expense_usd",
+    "NONIXQ": "call_quarter_noninterest_expense_usd_net",
     "NETINCQ": "call_quarter_net_income_usd_net",
     "NTLNLSQ": "call_quarter_net_charge_offs_usd_net",
     # Year to date (FDIC has no quarterly version)
