@@ -3,7 +3,6 @@
 Outputs:
   data/interim/bank_quarter/call.parquet        keys: rssd_id, quarter_end       measures: call_*
   data/interim/bank_msa_year/cra_bank.parquet   keys: rssd_id, cbsa_code, year   measures: cra_bank_*
-                                                (not built yet: only Call Reports run so far)
 
 Call Reports (checked 2026-10-12):
   - FDIC BankFind Suite API, financials endpoint: https://api.fdic.gov/banks/financials
@@ -27,20 +26,50 @@ Call Reports (checked 2026-10-12):
     date. Ratios are FDIC's own, in percent; the ytd_ ones are year to date.
   - CALL_FIELDS lists every field we keep. To add one, add a line there and a
     row in docs/data_dictionary.md.
+
+Small-business lending by bank (checked 2026-10-12 against FFIEC's 2015 and 2024
+Disclosure and Transmittal specs, <YY>FlatDiscSpecs.pdf and <YY>FlatTransSpecs.pdf
+in the folder below; the layouts are the same in both years):
+  - Download: https://www.ffiec.gov/sites/default/files/data/cra/flat-files/
+    <YY>exp_discl.zip (each lender's lending by county) and <YY>exp_trans.zip
+    (each lender's name and RSSD ID). The original files, not the revised ones
+    FFIEC posted later, so they match the aggregate files src/ingest_cra.py uses.
+  - Disclosure: fixed width, 145 characters, Table ID in columns 1-5. We use
+    Table D1-1 (Small Business Loans by County - Originations), County Total rows
+    (Report Level 40). Columns used (1-indexed, inclusive): Respondent ID 6-15,
+    Agency Code 16, Activity Year 17-20, State 23-24, County 25-27, Report Level
+    43-45, then count/amount pairs: under $100k (46-55/56-65), $100k-$250k
+    (66-75/76-85), $250k-$1M (86-95/96-105), and loans to businesses with revenues
+    under $1M (106-115/116-125). Amounts are in $1,000s. Affiliate loans
+    (126-145) are left out, as the aggregate tables leave them out.
+  - Transmittal: 152 characters. Respondent ID 1-10, Agency Code 11, Activity
+    Year 12-15, Respondent Name 16-45, ID_RSSD 133-142.
+  - Each lender gets its RSSD ID from the transmittal (Respondent ID + Agency
+    Code + year), so it lines up with SOD and Call Reports. Lending by a lender
+    without one still counts in metro totals and shares.
+  - Every lender's lending, summed by metro, must match Bhavana's all-lender
+    totals in data/interim/msa_year/cra.parquet (when that file exists) within
+    RECONCILE_TOLERANCE, or the build stops.
+  - Only CRA reporters are in these files: banks above the CRA small-bank asset
+    threshold, which rises with inflation each year. Smaller banks are missing,
+    not 0.
 """
 from __future__ import annotations
 
 import json
 import re
 import time
+import zipfile
 from datetime import date
 from pathlib import Path
 
 import pandas as pd
 
 from src import config
+from src.crosswalk import counties_to_cbsa
+from src.ingest_cra import CRA_LATEST_AVAILABLE_YEAR
 from src.ingest_fdic import KEY_HINT
-from src.utils import fetch, normalize_code, redact_url, write_interim
+from src.utils import fetch, normalize_code, redact_url, standardize_keys, write_interim
 
 SOURCE_CALL = "call"
 SOURCE_CRA_BANK = "cra_bank"
@@ -316,18 +345,268 @@ def transform_call(paths: list[Path], years: list[int]) -> Path:
     return write_interim(banks, SOURCE_CALL, "bank_quarter")
 
 
+# --------------------------------------------------------------- small-business lending by bank
+CRA_URL = "https://www.ffiec.gov/sites/default/files/data/cra/flat-files/"
+SMALL_BUSINESS_ORIGINATIONS = "D1-1"  # Small Business Loans by County - Originations
+COUNTY_TOTAL = 40  # Report Level of a lender's total in one county
+RECONCILE_TOLERANCE = 0.02  # largest relative gap allowed against ingest_cra.py's metro totals
+
+# 1-indexed, inclusive positions from FFIEC's specs, as 0-indexed Python slices
+DISCLOSURE = {
+    "table_id": (0, 5),
+    "respondent_id": (5, 15),
+    "agency_code": (15, 16),
+    "year": (16, 20),
+    "state": (22, 24),
+    "county": (24, 27),
+    "report_level": (42, 45),
+    "count_under_100k": (45, 55),
+    "amount_under_100k": (55, 65),
+    "count_100k_250k": (65, 75),
+    "amount_100k_250k": (75, 85),
+    "count_250k_1m": (85, 95),
+    "amount_250k_1m": (95, 105),
+    "count_revenue_under_1m": (105, 115),
+    "amount_revenue_under_1m": (115, 125),
+}
+TRANSMITTAL = {
+    "respondent_id": (0, 10),
+    "agency_code": (10, 11),
+    "year": (11, 15),
+    "lender_name": (15, 45),
+    "rssd_id": (132, 142),
+}
+MEASURES = ["loan_count", "loan_amount_usd", "revenue_under_1m_loan_count", "revenue_under_1m_loan_amount_usd"]
+LENDER = ["respondent_id", "agency_code", "year"]
+
+
+def download_cra_bank(years: list[int], force: bool = False) -> list[Path]:
+    """Pull each year's disclosure and transmittal files into data/raw/cra_bank/."""
+    paths = []
+    for year in years:
+        if year > CRA_LATEST_AVAILABLE_YEAR:
+            print(f"[cra_bank] skipping {year}: CRA hasn't published past {CRA_LATEST_AVAILABLE_YEAR} yet")
+            continue
+        yy = f"{year % 100:02d}"
+        for kind, what in (("discl", "disclosure flat file (each lender's lending by county)"),
+                           ("trans", "transmittal sheet (lender names and RSSD IDs)")):
+            filename = f"{yy}exp_{kind}.zip"
+            paths.append(fetch(CRA_URL + filename, SOURCE_CRA_BANK, filename=filename, force=force,
+                               notes=f"FFIEC CRA {what}, {year}"))
+    return paths
+
+
+def _file_year(path: Path, kind: str) -> int:
+    match = re.fullmatch(rf"(\d{{2}})exp_{kind}\.zip", Path(path).name)
+    if not match:
+        raise ValueError(f"Can't tell what year {Path(path).name} is for; expected <YY>exp_{kind}.zip")
+    return 2000 + int(match.group(1))
+
+
+def _lines(path: Path):
+    """Every line of every file inside a zip, as bytes without the line ending."""
+    with zipfile.ZipFile(path) as archive:
+        members = [name for name in archive.namelist() if not name.endswith("/")]
+        if not members:
+            raise ValueError(f"No file found inside {Path(path).name}")
+        for member in members:
+            with archive.open(member) as handle:
+                for line in handle:
+                    yield line.rstrip(b"\r\n")
+
+
+def _cut(line: str, layout: dict, name: str) -> str:
+    start, end = layout[name]
+    return line[start:end]
+
+
+def _respondent(text: str) -> str:
+    """Respondent IDs are zero-padded in both files; compare them without the padding."""
+    return text.strip().lstrip("0") or "0"
+
+
+def _read_disclosure(path: Path) -> pd.DataFrame:
+    """County Total rows of Table D1-1: each lender's small-business originations, county by county."""
+    year = _file_year(path, "discl")
+    prefix = SMALL_BUSINESS_ORIGINATIONS.encode()
+    rows, unplaced = [], 0
+    for raw in _lines(path):
+        if not raw.startswith(prefix):  # cheap filter first: most of the file is other tables
+            continue
+        line = raw.decode("latin-1")
+        if _cut(line, DISCLOSURE, "table_id").strip() != SMALL_BUSINESS_ORIGINATIONS:
+            continue
+        level = _cut(line, DISCLOSURE, "report_level").strip()
+        if not level.isdigit() or int(level) != COUNTY_TOTAL:  # blank = a detail row, not a total
+            continue
+        if len(line) < DISCLOSURE["amount_revenue_under_1m"][1]:
+            raise ValueError(f"{path.name}: a D1-1 row is only {len(line)} characters; has the layout changed?")
+        if _cut(line, DISCLOSURE, "year") != str(year):
+            raise ValueError(f"{path.name} holds rows for {_cut(line, DISCLOSURE, 'year')!r}; expected {year}")
+        state, county = _cut(line, DISCLOSURE, "state").strip(), _cut(line, DISCLOSURE, "county").strip()
+        if not (state.isdigit() and county.isdigit()):
+            unplaced += 1
+            continue
+
+        def number(name: str) -> int:
+            try:
+                return int(_cut(line, DISCLOSURE, name))
+            except ValueError:
+                raise ValueError(f"{path.name}: {name} isn't a number in row {line[:45]!r}") from None
+
+        rows.append({
+            "respondent_id": _respondent(_cut(line, DISCLOSURE, "respondent_id")),
+            "agency_code": _cut(line, DISCLOSURE, "agency_code").strip(),
+            "year": year,
+            "county_fips": state.zfill(2) + county.zfill(3),
+            "loan_count": number("count_under_100k") + number("count_100k_250k") + number("count_250k_1m"),
+            "loan_amount_usd": 1000 * (number("amount_under_100k") + number("amount_100k_250k")
+                                       + number("amount_250k_1m")),
+            "revenue_under_1m_loan_count": number("count_revenue_under_1m"),
+            "revenue_under_1m_loan_amount_usd": 1000 * number("amount_revenue_under_1m"),
+        })
+    if not rows:
+        raise ValueError(f"{path.name}: no County Total rows (Report Level {COUNTY_TOTAL}) in table "
+                         f"{SMALL_BUSINESS_ORIGINATIONS}; has the file layout changed?")
+    if unplaced:
+        print(f"[cra_bank] {year}: left out {unplaced:,} county totals that have no state and county code")
+    return pd.DataFrame(rows)
+
+
+def _read_transmittal(path: Path) -> pd.DataFrame:
+    """Each lender's name and RSSD ID that year, one row per Respondent ID + Agency Code."""
+    year = _file_year(path, "trans")
+    rows = []
+    for raw in _lines(path):
+        line = raw.decode("latin-1")
+        if not line.strip():
+            continue
+        if len(line) < TRANSMITTAL["rssd_id"][1]:
+            raise ValueError(f"{path.name}: a row is only {len(line)} characters, too short to hold ID_RSSD; "
+                             "has the layout changed?")
+        if _cut(line, TRANSMITTAL, "year") != str(year):
+            raise ValueError(f"{path.name} holds rows for {_cut(line, TRANSMITTAL, 'year')!r}; expected {year}")
+        rssd = _cut(line, TRANSMITTAL, "rssd_id").strip()
+        rows.append({
+            "respondent_id": _respondent(_cut(line, TRANSMITTAL, "respondent_id")),
+            "agency_code": _cut(line, TRANSMITTAL, "agency_code").strip(),
+            "year": year,
+            "lender_name": _cut(line, TRANSMITTAL, "lender_name").strip() or pd.NA,
+            "rssd_id": str(int(rssd)) if rssd.isdigit() and int(rssd) > 0 else pd.NA,
+        })
+    lenders = pd.DataFrame(rows).drop_duplicates()
+    repeated = lenders.duplicated(LENDER, keep=False)
+    if repeated.any():
+        example = lenders.loc[repeated, LENDER].head(3).to_dict("records")
+        raise ValueError(f"{path.name}: lenders listed twice with different details, e.g. {example}")
+    return lenders
+
+
+def build_cra_bank_tables(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Lender x county rows (rssd_id may be empty) -> (every lender by metro, bank_msa_year)."""
+    for year, group in data.groupby("year"):
+        unmatched = group.loc[group["rssd_id"].isna(), "loan_amount_usd"].sum()
+        print(f"[cra_bank] {year}: {len(group[LENDER].drop_duplicates()):,} lenders, "
+              f"{1 - unmatched / max(group['loan_amount_usd'].sum(), 1):.1%} of the dollars matched to an RSSD ID")
+    metro_all = counties_to_cbsa(data, MEASURES, by=("year",))  # every lender, matched or not
+
+    banked = data.dropna(subset=["rssd_id"])
+    bank = counties_to_cbsa(banked, MEASURES, by=("rssd_id", "year"))
+    names = banked.groupby(["rssd_id", "year"], as_index=False)["lender_name"].first()  # first non-empty
+    bank = bank.merge(names, on=["rssd_id", "year"], how="left", validate="many_to_one")
+    totals = metro_all[["cbsa_code", "year", "loan_amount_usd"]].rename(columns={"loan_amount_usd": "metro_usd"})
+    bank = bank.merge(totals, on=["cbsa_code", "year"], how="left", validate="many_to_one")
+    bank["share"] = (bank["loan_amount_usd"] / bank.pop("metro_usd").where(lambda s: s > 0)).astype("float64")
+
+    bank = bank.rename(columns={
+        "lender_name": "cra_bank_lender_name",
+        "loan_count": "cra_bank_small_business_loan_count",
+        "loan_amount_usd": "cra_bank_small_business_loan_amount_usd",
+        "revenue_under_1m_loan_count": "cra_bank_revenue_under_1m_loan_count",
+        "revenue_under_1m_loan_amount_usd": "cra_bank_revenue_under_1m_loan_amount_usd",
+        "share": "cra_bank_small_business_amount_share",
+    })
+    for column in ("cra_bank_small_business_loan_count", "cra_bank_revenue_under_1m_loan_count"):
+        bank[column] = bank[column].astype("int64")
+    bank["cra_bank_lender_name"] = bank["cra_bank_lender_name"].astype("string")
+    columns = ["rssd_id", "cbsa_code", "year", "cra_bank_lender_name", "cra_bank_small_business_loan_count",
+               "cra_bank_small_business_loan_amount_usd", "cra_bank_revenue_under_1m_loan_count",
+               "cra_bank_revenue_under_1m_loan_amount_usd", "cra_bank_small_business_amount_share"]
+    return metro_all, bank[columns]
+
+
+def _reconcile(metro_all: pd.DataFrame) -> None:
+    """Every lender's lending, summed by metro, must match ingest_cra.py's all-lender totals."""
+    path = config.INTERIM / "msa_year" / "cra.parquet"
+    pairs = {"loan_count": "cra_small_business_loan_count",
+             "loan_amount_usd": "cra_small_business_loan_amount_usd"}
+    if not path.exists():
+        print("[cra_bank] not reconciled: data/interim/msa_year/cra.parquet isn't built yet "
+              "(run the cra source first)")
+        return
+    theirs = standardize_keys(pd.read_parquet(path))
+    if not set(pairs.values()) <= set(theirs.columns):
+        print(f"[cra_bank] not reconciled: cra.parquet no longer has {sorted(pairs.values())}; update _reconcile()")
+        return
+    theirs = theirs.loc[theirs["year"].isin(metro_all["year"].unique()), ["cbsa_code", "year", *pairs.values()]]
+    both = metro_all[["cbsa_code", "year", *pairs]].merge(theirs, on=["cbsa_code", "year"], how="outer")
+    off = pd.Series(False, index=both.index)
+    worst = 0.0
+    for ours, published in pairs.items():
+        gap = ((both[ours].fillna(0) - both[published].fillna(0)).abs()
+               / both[published].fillna(0).abs().clip(lower=1)).astype("float64")
+        worst = max(worst, float(gap.max()) if len(gap) else 0.0)
+        off |= gap > RECONCILE_TOLERANCE
+    if off.any():
+        example = both.loc[off].head(3).to_dict("records")
+        raise RuntimeError(
+            f"[cra_bank] every lender's lending doesn't add up to ingest_cra.py's metro totals for "
+            f"{int(off.sum()):,} metro-years (more than {RECONCILE_TOLERANCE:.0%} apart), e.g. {example}. "
+            "The build stops so a misread column can't reach the tables. Check that both read the same "
+            f"FFIEC release and that table {SMALL_BUSINESS_ORIGINATIONS} and Report Level {COUNTY_TOTAL} "
+            "still mean what the docstring says.")
+    print(f"[cra_bank] every lender's lending adds up to ingest_cra.py's metro totals for "
+          f"{len(both):,} metro-years (largest gap {worst:.2%})")
+
+
+def transform_cra_bank(paths: list[Path], years: list[int]) -> Path:
+    """Lender x county rows -> bank x metro x year; save bank_msa_year with write_interim()."""
+    disclosures = sorted(p for p in paths if p.name.endswith("exp_discl.zip") and _file_year(p, "discl") in years)
+    transmittals = {_file_year(p, "trans"): p for p in paths if p.name.endswith("exp_trans.zip")}
+    if not disclosures:
+        raise ValueError("cra_bank: no disclosure files to transform; did download() run first?")
+    missing = sorted({_file_year(p, "discl") for p in disclosures} - set(transmittals))
+    if missing:
+        raise ValueError(f"cra_bank: no transmittal file for {missing}, so those lenders can't get RSSD IDs")
+
+    lending = pd.concat([_read_disclosure(path) for path in disclosures], ignore_index=True)
+    lenders = pd.concat([_read_transmittal(transmittals[year]) for year in sorted(lending["year"].unique())],
+                        ignore_index=True)
+    data = lending.merge(lenders, on=LENDER, how="left", validate="many_to_one")
+    metro_all, bank = build_cra_bank_tables(data)
+    _reconcile(metro_all)
+    return write_interim(bank, SOURCE_CRA_BANK, "bank_msa_year")
+
+
 # --------------------------------------------------------------- interface
 def download(years: list[int], force: bool = False) -> list[Path]:
-    """Pull Call Report quarters into data/raw/call/. Small-business lending isn't built yet."""
-    return download_call(years, force=force)
+    """Pull Call Report quarters into data/raw/call/ and CRA lender files into data/raw/cra_bank/."""
+    return download_call(years, force=force) + download_cra_bank(years, force=force)
 
 
 def transform(paths: list[Path], years: list[int]) -> list[Path]:
-    """Save bank_quarter with write_interim(df, SOURCE_CALL, ...)."""
-    call_paths = [Path(path) for path in paths if Path(path).parent.name == SOURCE_CALL]
-    if not call_paths:
+    """Save bank_quarter (SOURCE_CALL) and bank_msa_year (SOURCE_CRA_BANK) with write_interim()."""
+    paths = [Path(path) for path in paths]
+    call_paths = [path for path in paths if path.parent.name == SOURCE_CALL]
+    cra_paths = [path for path in paths if path.parent.name == SOURCE_CRA_BANK]
+    if not call_paths and not cra_paths:
         raise ValueError("ffiec: no raw files to transform; did download() run first?")
-    return [transform_call(call_paths, years)]
+    outputs = []
+    if call_paths:
+        outputs.append(transform_call(call_paths, years))
+    if cra_paths:
+        outputs.append(transform_cra_bank(cra_paths, years))
+    return outputs
 
 
 def run(years: list[int] | None = None, force: bool = False) -> list[Path]:
