@@ -266,12 +266,16 @@ CRA_FILES = {
 
 
 class FakeFFIEC(BaseHTTPRequestHandler):
+    refuse = False  # the real site answers scripted downloads with 403
+    hits = 0
+
     def log_message(self, *args):
         pass
 
     def do_GET(self):
-        body = CRA_FILES.get(urlparse(self.path).path.rsplit("/", 1)[-1])
-        self.send_response(200 if body else 404)
+        type(self).hits += 1
+        body = None if self.refuse else CRA_FILES.get(urlparse(self.path).path.rsplit("/", 1)[-1])
+        self.send_response(403 if self.refuse else 200 if body else 404)
         self.end_headers()
         if body:
             self.wfile.write(body)
@@ -281,11 +285,13 @@ class FakeFFIEC(BaseHTTPRequestHandler):
 def ffiec_site(project, crosswalk_csv, monkeypatch):
     monkeypatch.setenv("NO_PROXY", "127.0.0.1,localhost")
     monkeypatch.setenv("no_proxy", "127.0.0.1,localhost")
+    FakeFFIEC.refuse = False
+    FakeFFIEC.hits = 0
     server = ThreadingHTTPServer(("127.0.0.1", 0), FakeFFIEC)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     monkeypatch.setattr(ingest_ffiec, "CRA_URL", f"http://127.0.0.1:{server.server_address[1]}/flat-files/")
     monkeypatch.setattr(ingest_ffiec, "CRA_LATEST_AVAILABLE_YEAR", 2023)
-    yield
+    yield FakeFFIEC
     server.shutdown()
 
 
@@ -313,7 +319,7 @@ def test_cra_lending_rolls_lenders_up_to_banks_by_metro(ffiec_site, capsys):
     ingest_ffiec.transform(ingest_ffiec.download_cra_bank([2022, 2023]), [2022, 2023])
     out = capsys.readouterr().out
     assert "2023: 3 lenders, 95.4% of the dollars matched to an RSSD ID" in out  # 1 - 0.2M / 4.36M
-    assert "adds up to ingest_cra.py's metro totals for 3 metro-years" in out
+    assert "within 2% for 3 of 3 metro-years; every year's total is within 0.00%" in out
 
     bank = pd.read_parquet(config.INTERIM / "bank_msa_year" / "cra_bank.parquet").set_index(["rssd_id", "cbsa_code", "year"])
     assert len(bank) == 4  # the lender without an RSSD ID and the micropolitan county are left out
@@ -333,9 +339,49 @@ def test_cra_lending_rolls_lenders_up_to_banks_by_metro(ffiec_site, capsys):
 
 
 def test_cra_lending_that_doesnt_add_up_stops_the_build(ffiec_site):
-    bhavanas_totals(amount_2023_charlotte=4_000_000)
-    with pytest.raises(RuntimeError, match="doesn't add up to ingest_cra.py's metro totals for 1 metro-years"):
+    bhavanas_totals(amount_2023_charlotte=4_000_000)  # 1 of 3 metro-years off is far more than 1%
+    with pytest.raises(RuntimeError, match="1 of 3 metro-years are more than 2% apart"):
         ingest_ffiec.transform(ingest_ffiec.download_cra_bank([2022, 2023]), [2022, 2023])
+
+
+def test_an_isolated_gap_is_printed_not_fatal(ffiec_site, monkeypatch, capsys):
+    # With hundreds of metros a single gap is a tiny share; loosen both limits to model that here
+    monkeypatch.setattr(ingest_ffiec, "RECONCILE_MAX_OFF_SHARE", 0.5)
+    monkeypatch.setattr(ingest_ffiec, "RECONCILE_YEAR_TOLERANCE", 0.5)
+    bhavanas_totals(amount_2023_charlotte=3_300_000)
+    ingest_ffiec.transform(ingest_ffiec.download_cra_bank([2022, 2023]), [2022, 2023])
+    out = capsys.readouterr().out
+    assert "warning: 16740 in 2023: lenders add up to 27 loans and $3,100,000, vs 27 and $3,300,000" in out
+    assert "(+0.0% loans, -6.1% dollars)" in out
+    assert "within 2% for 2 of 3 metro-years" in out
+    assert (config.INTERIM / "bank_msa_year" / "cra_bank.parquet").exists()
+
+
+def test_a_year_total_that_doesnt_add_up_stops_the_build(ffiec_site, monkeypatch):
+    monkeypatch.setattr(ingest_ffiec, "RECONCILE_MAX_OFF_SHARE", 0.5)  # the metro gap alone would pass
+    bhavanas_totals(amount_2023_charlotte=3_300_000)  # but 2023's total is 4.4% off
+    with pytest.raises(RuntimeError, match=r"these years' totals are off: \{2023: '4.44%'\}"):
+        ingest_ffiec.transform(ingest_ffiec.download_cra_bank([2022, 2023]), [2022, 2023])
+
+
+def test_a_refused_download_explains_downloading_by_hand(ffiec_site):
+    ffiec_site.refuse = True
+    with pytest.raises(RuntimeError, match="403 .*FFIEC refuses scripted downloads"):
+        ingest_ffiec.download_cra_bank([2023])
+
+
+def test_files_downloaded_by_hand_are_logged_without_asking_ffiec(ffiec_site):
+    ffiec_site.refuse = True  # any request would fail
+    folder = config.RAW / "cra_bank"
+    folder.mkdir(parents=True)
+    for name, body in CRA_FILES.items():
+        (folder / name).write_bytes(body)
+    paths = ingest_ffiec.download_cra_bank([2022, 2023])
+    assert len(paths) == 4 and ffiec_site.hits == 0
+    manifest = read_manifest()
+    assert len(manifest) == 4 and manifest["notes"].str.endswith("downloaded by hand").all()
+    ingest_ffiec.download_cra_bank([2022, 2023])  # already logged: no second row per file
+    assert len(read_manifest()) == 4
 
 
 def test_cra_lending_without_bhavanas_totals_says_it_wasnt_reconciled(ffiec_site, capsys):

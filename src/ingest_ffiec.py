@@ -34,6 +34,9 @@ in the folder below; the layouts are the same in both years):
     <YY>exp_discl.zip (each lender's lending by county) and <YY>exp_trans.zip
     (each lender's name and RSSD ID). The original files, not the revised ones
     FFIEC posted later, so they match the aggregate files src/ingest_cra.py uses.
+    FFIEC answers scripted downloads with 403 Forbidden, so download the files in
+    a browser and save them in raw/cra_bank/. The next run logs any file it
+    finds there that the manifest doesn't list yet.
   - Disclosure: fixed width, 145 characters, Table ID in columns 1-5. We use
     Table D1-1 (Small Business Loans by County - Originations), County Total rows
     (Report Level 40). Columns used (1-indexed, inclusive): Respondent ID 6-15,
@@ -47,9 +50,14 @@ in the folder below; the layouts are the same in both years):
   - Each lender gets its RSSD ID from the transmittal (Respondent ID + Agency
     Code + year), so it lines up with SOD and Call Reports. Lending by a lender
     without one still counts in metro totals and shares.
-  - Every lender's lending, summed by metro, must match Bhavana's all-lender
-    totals in data/interim/msa_year/cra.parquet (when that file exists) within
-    RECONCILE_TOLERANCE, or the build stops.
+  - Every lender's lending, summed by metro, is checked against Bhavana's
+    all-lender totals in data/interim/msa_year/cra.parquet (when that file
+    exists). A misread column or report level would throw off most metros and
+    every year's total, so the build stops if more than RECONCILE_MAX_OFF_SHARE
+    of metro-years are more than RECONCILE_TOLERANCE apart, or if any year's
+    total across all metros is more than RECONCILE_YEAR_TOLERANCE apart.
+    Isolated gaps are printed instead. FFIEC's own 2015 files have two: Oklahoma
+    City (36420) and Tulsa (46140) add up 4-6% below the aggregate totals.
   - Only CRA reporters are in these files: banks above the CRA small-bank asset
     threshold, which rises with inflation each year. Smaller banks are missing,
     not 0.
@@ -69,7 +77,8 @@ from src import config
 from src.crosswalk import counties_to_cbsa
 from src.ingest_cra import CRA_LATEST_AVAILABLE_YEAR
 from src.ingest_fdic import KEY_HINT
-from src.utils import fetch, normalize_code, redact_url, standardize_keys, write_interim
+from src.utils import (fetch, normalize_code, read_manifest, redact_url, register_local_file, standardize_keys,
+                       write_interim)
 
 SOURCE_CALL = "call"
 SOURCE_CRA_BANK = "cra_bank"
@@ -349,7 +358,9 @@ def transform_call(paths: list[Path], years: list[int]) -> Path:
 CRA_URL = "https://www.ffiec.gov/sites/default/files/data/cra/flat-files/"
 SMALL_BUSINESS_ORIGINATIONS = "D1-1"  # Small Business Loans by County - Originations
 COUNTY_TOTAL = 40  # Report Level of a lender's total in one county
-RECONCILE_TOLERANCE = 0.02  # largest relative gap allowed against ingest_cra.py's metro totals
+RECONCILE_TOLERANCE = 0.02  # a metro-year this far from ingest_cra.py's total counts as off
+RECONCILE_MAX_OFF_SHARE = 0.01  # the build stops if more than this share of metro-years is off
+RECONCILE_YEAR_TOLERANCE = 0.005  # ...or if any year's total across all metros is this far off
 
 # 1-indexed, inclusive positions from FFIEC's specs, as 0-indexed Python slices
 DISCLOSURE = {
@@ -380,8 +391,19 @@ MEASURES = ["loan_count", "loan_amount_usd", "revenue_under_1m_loan_count", "rev
 LENDER = ["respondent_id", "agency_code", "year"]
 
 
+def _in_manifest(path: Path, source: str) -> bool:
+    relative = Path(path).resolve().relative_to(config.RAW.resolve()).as_posix()
+    manifest = read_manifest()
+    return bool(((manifest["source"] == source) & (manifest["file"] == relative)).any())
+
+
 def download_cra_bank(years: list[int], force: bool = False) -> list[Path]:
-    """Pull each year's disclosure and transmittal files into data/raw/cra_bank/."""
+    """Pull each year's disclosure and transmittal files into data/raw/cra_bank/.
+
+    FFIEC refuses scripted downloads (403), so the files usually arrive by hand.
+    A file already in raw/cra_bank/ that the manifest doesn't list is logged as
+    downloaded by hand.
+    """
     paths = []
     for year in years:
         if year > CRA_LATEST_AVAILABLE_YEAR:
@@ -391,8 +413,19 @@ def download_cra_bank(years: list[int], force: bool = False) -> list[Path]:
         for kind, what in (("discl", "disclosure flat file (each lender's lending by county)"),
                            ("trans", "transmittal sheet (lender names and RSSD IDs)")):
             filename = f"{yy}exp_{kind}.zip"
-            paths.append(fetch(CRA_URL + filename, SOURCE_CRA_BANK, filename=filename, force=force,
-                               notes=f"FFIEC CRA {what}, {year}"))
+            url, notes = CRA_URL + filename, f"FFIEC CRA {what}, {year}"
+            path = config.RAW / SOURCE_CRA_BANK / filename
+            if path.exists() and not force and not _in_manifest(path, SOURCE_CRA_BANK):
+                register_local_file(path, SOURCE_CRA_BANK, url=url, notes=f"{notes}, downloaded by hand")
+            try:
+                paths.append(fetch(url, SOURCE_CRA_BANK, filename=filename, force=force, notes=notes))
+            except RuntimeError as error:
+                if not re.match(r"\[fetch\] 403 ", str(error)):
+                    raise
+                raise RuntimeError(
+                    f"{error}. FFIEC refuses scripted downloads: open that link (and the other "
+                    "<YY>exp_discl.zip and <YY>exp_trans.zip files you need) in a browser, save the files in "
+                    f"{config.RAW / SOURCE_CRA_BANK}, and rerun. The run logs them in the manifest.") from None
     return paths
 
 
@@ -536,7 +569,7 @@ def build_cra_bank_tables(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
 
 
 def _reconcile(metro_all: pd.DataFrame) -> None:
-    """Every lender's lending, summed by metro, must match ingest_cra.py's all-lender totals."""
+    """Check every lender's lending, summed by metro, against ingest_cra.py's all-lender totals."""
     path = config.INTERIM / "msa_year" / "cra.parquet"
     pairs = {"loan_count": "cra_small_business_loan_count",
              "loan_amount_usd": "cra_small_business_loan_amount_usd"}
@@ -550,23 +583,32 @@ def _reconcile(metro_all: pd.DataFrame) -> None:
         return
     theirs = theirs.loc[theirs["year"].isin(metro_all["year"].unique()), ["cbsa_code", "year", *pairs.values()]]
     both = metro_all[["cbsa_code", "year", *pairs]].merge(theirs, on=["cbsa_code", "year"], how="outer")
-    off = pd.Series(False, index=both.index)
-    worst = 0.0
-    for ours, published in pairs.items():
-        gap = ((both[ours].fillna(0) - both[published].fillna(0)).abs()
-               / both[published].fillna(0).abs().clip(lower=1)).astype("float64")
-        worst = max(worst, float(gap.max()) if len(gap) else 0.0)
-        off |= gap > RECONCILE_TOLERANCE
-    if off.any():
-        example = both.loc[off].head(3).to_dict("records")
+    both = both.fillna({column: 0 for column in [*pairs, *pairs.values()]})
+
+    def gaps(frame: pd.DataFrame) -> pd.DataFrame:
+        return pd.DataFrame({ours: ((frame[ours] - frame[published]) / frame[published].abs().clip(lower=1))
+                             .astype("float64") for ours, published in pairs.items()})
+
+    metro_gaps = gaps(both)
+    off = both.join(metro_gaps.add_suffix("_gap")).loc[metro_gaps.abs().max(axis=1) > RECONCILE_TOLERANCE]
+    year_gaps = gaps(both.groupby("year")[[*pairs, *pairs.values()]].sum()).abs().max(axis=1)
+    bad_years = {int(year): f"{gap:.2%}" for year, gap in year_gaps.items() if gap > RECONCILE_YEAR_TOLERANCE}
+    if len(off) > RECONCILE_MAX_OFF_SHARE * len(both) or bad_years:
+        example = off[["cbsa_code", "year", *pairs, *pairs.values()]].head(3).to_dict("records")
         raise RuntimeError(
-            f"[cra_bank] every lender's lending doesn't add up to ingest_cra.py's metro totals for "
-            f"{int(off.sum()):,} metro-years (more than {RECONCILE_TOLERANCE:.0%} apart), e.g. {example}. "
-            "The build stops so a misread column can't reach the tables. Check that both read the same "
-            f"FFIEC release and that table {SMALL_BUSINESS_ORIGINATIONS} and Report Level {COUNTY_TOTAL} "
-            "still mean what the docstring says.")
-    print(f"[cra_bank] every lender's lending adds up to ingest_cra.py's metro totals for "
-          f"{len(both):,} metro-years (largest gap {worst:.2%})")
+            f"[cra_bank] lenders' lending doesn't add up to ingest_cra.py's metro totals: {len(off):,} of "
+            f"{len(both):,} metro-years are more than {RECONCILE_TOLERANCE:.0%} apart (e.g. {example})"
+            + (f", and these years' totals are off: {bad_years}" if bad_years else "")
+            + ". Gaps this widespread point to a misread column, so the build stops. Check that both read "
+              f"the same FFIEC release and that table {SMALL_BUSINESS_ORIGINATIONS} and Report Level "
+              f"{COUNTY_TOTAL} still mean what the docstring says.")
+    for row in off.itertuples():
+        print(f"[cra_bank] warning: {row.cbsa_code} in {row.year}: lenders add up to "
+              f"{row.loan_count:,.0f} loans and ${row.loan_amount_usd:,.0f}, vs {row.cra_small_business_loan_count:,.0f} "
+              f"and ${row.cra_small_business_loan_amount_usd:,.0f} in ingest_cra.py's totals "
+              f"({row.loan_count_gap:+.1%} loans, {row.loan_amount_usd_gap:+.1%} dollars)")
+    print(f"[cra_bank] lenders add up to ingest_cra.py's totals within {RECONCILE_TOLERANCE:.0%} for "
+          f"{len(both) - len(off):,} of {len(both):,} metro-years; every year's total is within {year_gaps.max():.2%}")
 
 
 def transform_cra_bank(paths: list[Path], years: list[int]) -> Path:
