@@ -20,6 +20,7 @@ def project(tmp_path, monkeypatch):
         "MSA_UNIVERSE": data / "reference" / "msa_universe.csv",
         "FRED_SERIES": data / "reference" / "fred_series.csv",
         "SPOT_CHECKS": data / "reference" / "spot_checks.csv",
+        "BANK_SPOT_CHECKS": data / "reference" / "bank_spot_checks.csv",
     }
     for name, value in paths.items():
         monkeypatch.setattr(config, name, value)

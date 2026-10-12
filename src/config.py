@@ -33,6 +33,7 @@ COUNTY_CBSA_XWALK = REFERENCE / "county_cbsa_xwalk.csv"
 MSA_UNIVERSE = REFERENCE / "msa_universe.csv"
 FRED_SERIES = REFERENCE / "fred_series.csv"
 SPOT_CHECKS = REFERENCE / "spot_checks.csv"
+BANK_SPOT_CHECKS = REFERENCE / "bank_spot_checks.csv"  # published bank figures, e.g. from a UBPR
 
 # --- Decisions to confirm with the pod --------------------------------------
 # Panel years. The Charlotte back-test needs years from before BankUnited entered.
