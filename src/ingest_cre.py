@@ -21,6 +21,10 @@ A QCEW row with disclosure_code N is suppressed: its employment and wages are sh
 missing, so they are set to NaN; its establishment count is still published and is kept.
 cre_<industry>_qcew_fallback_counties_count is how many of the metro's counties had their
 establishments from QCEW. Only counties in the crosswalk's metros are read from QCEW.
+cre_<industry>_source says where an industry's values come from, per metro-year: "CBP" (every value from
+CBP), "QCEW" (every value from QCEW, as in all of 2024), "CBP+QCEW" (a mix, for any measure in any county,
+including employment and payroll filled where CBP withheld them) or empty (no value at all). It is set per
+county and measure from the same fill logic, then collapsed to the metro.
 Caution: QCEW counts differently from CBP (for Charlotte 2023, about 11% higher on real estate
 establishments, 38% on nonresidential construction establishments and 19% on payroll), and 2024 is QCEW
 only, so a change from 2023 to 2024 is partly a change of source, not growth.
@@ -77,6 +81,8 @@ COUNTY_AREA_RE = re.compile(r"^\d{2}(?!000)\d{3}$")  # 5-digit county codes, not
 MEASURES = ("establishments_count", "employment_count", "payroll_usd")
 ALL_INDUSTRY_NAICS = "------"
 WITHHELD_FLAGS = {"D", "S"}  # D: withheld to avoid disclosure; S: withheld, doesn't meet publication standards
+
+SOURCE_LABELS = {(True, False): "CBP", (False, True): "QCEW", (True, True): "CBP+QCEW"}
 
 VALUE_COLUMNS = [
     f"{SOURCE}_{industry}_{measure}"
@@ -221,9 +227,13 @@ def _fill_from_qcew(cbp: pd.DataFrame, qcew: pd.DataFrame) -> pd.DataFrame:
         for measure in MEASURES:
             col = f"{prefix}_{measure}"
             q = merged[f"{col}__qcew"] if f"{col}__qcew" in merged.columns else pd.Series(float("nan"), index=merged.index)
+            merged[f"{col}__cbp"] = merged[col].notna()
             merged[f"{col}__filled"] = merged[col].isna() & q.notna()
             merged[col] = merged[col].fillna(q)
         merged[f"{prefix}_qcew_fallback_counties_count"] = merged[f"{prefix}_establishments_count__filled"].astype(int)
+        # Per county: how many of the three measures came from each source (summed to the metro, then labelled).
+        merged[f"{prefix}_n_cbp"] = sum(merged[f"{prefix}_{m}__cbp"].astype(int) for m in MEASURES)
+        merged[f"{prefix}_n_qcew"] = sum(merged[f"{prefix}_{m}__filled"].astype(int) for m in MEASURES)
         merged[f"{prefix}_counties_reported_count"] = merged[f"{prefix}_counties_reported_count"].fillna(0).astype(int)
         merged[f"{industry}_absent"] = merged[f"{industry}_absent"].fillna(True).astype(bool)
         merged[f"{industry}_withheld"] = merged[f"{industry}_withheld"].fillna(False).astype(bool)
@@ -271,13 +281,19 @@ def transform(paths: list[Path], years: list[int]) -> list[Path]:
               f"still missing {still['establishments_count']:,} / {still['employment_count']:,} / "
               f"{still['payroll_usd']:,} (left missing, never 0)")
 
+    helper_columns = [f"{SOURCE}_{industry}_n_{origin}" for industry in INDUSTRIES for origin in ("cbp", "qcew")]
     metro_level = counties_to_cbsa(
         county_level,
-        value_cols=VALUE_COLUMNS,
+        value_cols=[*VALUE_COLUMNS, *helper_columns],
         county_col="county_fips",
         by=("year",),
         metro_only=True,
     )
+    for industry in INDUSTRIES:
+        prefix = f"{SOURCE}_{industry}"
+        used = zip(metro_level[f"{prefix}_n_cbp"].fillna(0) > 0, metro_level[f"{prefix}_n_qcew"].fillna(0) > 0)
+        metro_level[f"{prefix}_source"] = pd.Series([SOURCE_LABELS.get(pair) for pair in used], dtype="string")
+    metro_level = metro_level.drop(columns=helper_columns)
     output_path = write_interim(metro_level, SOURCE, "msa_year")
     return [output_path]
 

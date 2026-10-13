@@ -272,3 +272,56 @@ def test_2024_is_built_from_qcew_alone_and_needs_its_file(project, crosswalk_csv
     ingest_cre.run(years=[2023, 2024])  # the whole module, not just download()
     out = pd.read_parquet(project["INTERIM"] / "msa_year" / "cre.parquet")
     assert sorted(out["year"].unique().tolist()) == [2023, 2024]
+
+
+def test_source_is_cbp_when_every_value_comes_from_cbp(project, crosswalk_csv):
+    cbp = write_cbp_zip(project, 2023, [
+        total("37119"), row("37119", REAL_ESTATE, est=10, emp=50, ap=2000),
+    ])
+    qcew = write_qcew_zip(project, 2023, {"37119": [qcew_row("37119", "531", 99, 999, 9_999_999)]})
+    ingest_cre.transform([cbp, qcew], [2023])
+    assert metro_row(project, 2023, "16740")["cre_real_estate_source"] == "CBP"
+
+
+def test_source_is_qcew_when_every_value_comes_from_qcew(project, crosswalk_csv):
+    qcew = write_qcew_zip(project, 2024, {
+        "37119": [qcew_row("37119", "531", 12, 60, 3_000_000), qcew_row("37119", "2362", 4, 25, 1_000_000)],
+    })
+    ingest_cre.transform([qcew], [2024])
+    charlotte = metro_row(project, 2024, "16740")
+    assert charlotte["cre_real_estate_source"] == "QCEW"
+    assert charlotte["cre_nonres_construction_source"] == "QCEW"
+
+
+def test_source_is_mixed_when_only_withheld_employment_and_payroll_come_from_qcew(project, crosswalk_csv):
+    cbp = write_cbp_zip(project, 2016, [
+        total("37119"), withheld("37119", REAL_ESTATE, est=10),  # EST from CBP; EMP and AP withheld
+    ], old_format=True)
+    qcew = write_qcew_zip(project, 2016, {"37119": [qcew_row("37119", "531", 99, 70, 4_000_000)]})
+    ingest_cre.transform([cbp, qcew], [2016])
+    charlotte = metro_row(project, 2016, "16740")
+    assert charlotte["cre_real_estate_qcew_fallback_counties_count"] == 0   # establishments are CBP's
+    assert charlotte["cre_real_estate_source"] == "CBP+QCEW"                # but employment and payroll are not
+
+
+def test_source_is_mixed_when_counties_differ(project, crosswalk_csv):
+    cbp = write_cbp_zip(project, 2023, [
+        total("37119"), row("37119", REAL_ESTATE, est=10, emp=50, ap=2000),
+        total("45091"),  # York has no CBP row
+    ])
+    qcew = write_qcew_zip(project, 2023, {"45091": [qcew_row("45091", "531", 6, 30, 800_000)]})
+    ingest_cre.transform([cbp, qcew], [2023])
+    assert metro_row(project, 2023, "16740")["cre_real_estate_source"] == "CBP+QCEW"
+
+
+def test_source_is_empty_when_an_industry_has_no_value(project, crosswalk_csv):
+    cbp = write_cbp_zip(project, 2023, [
+        total("01073"),  # Birmingham exists but neither source has real estate or construction
+        total("37119"), row("37119", REAL_ESTATE, est=10, emp=50, ap=2000),
+    ])
+    qcew = write_qcew_zip(project, 2023, {"37119": [qcew_row("37119", "531", 5, 20, 900)]})
+    ingest_cre.transform([cbp, qcew], [2023])
+    birmingham = metro_row(project, 2023, "13820")
+    assert pd.isna(birmingham["cre_real_estate_source"])
+    assert pd.isna(birmingham["cre_nonres_construction_source"])
+    assert pd.isna(metro_row(project, 2023, "16740")["cre_nonres_construction_source"])  # no construction anywhere
