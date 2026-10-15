@@ -1,3 +1,7 @@
 rssd_id,quarter_end,column,expected,rel_tolerance,source_note
 3938186,2026-06-30,call_total_assets_usd,34864976000,0.001,"FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, ASSET 34864976 ($000s), retrieved 2026-10-12"
 3938186,2026-06-30,call_leverage_ratio,9.43,0.005,"FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, RBC1AAJ 9.4266, retrieved 2026-10-12"
+3938186,2026-06-30,call_noninterest_bearing_deposits_usd,10145045000,0.001,"FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, DEPNI 10145045 ($000s), retrieved 2026-10-15"
+3938186,2026-06-30,call_ci_loans_over_1m_usd,4490674000,0.001,"FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630: LNCI 4702937 - LNCINUS 2980 - LNCI4 209283 = 4490674 ($000s), retrieved 2026-10-15"
+3938186,2026-06-30,call_nonfarm_nonres_loans_over_1m_usd,6670334000,0.001,"FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630: LNRENRES 6879810 - LNRENR4 209476 = 6670334 ($000s), retrieved 2026-10-15"
+470032,2026-06-30,call_ci_loans_1m_or_less_usd,20093000,0.001,"FDIC BankFind API /financials, Community Spirit Bank (CERT 50), an FFIEC 051 filer, REPDTE 20260630, LNCI4 20093 ($000s), retrieved 2026-10-15. Checks that June values from semiannual Part II reporters are kept"

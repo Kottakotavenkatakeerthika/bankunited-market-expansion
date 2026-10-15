@@ -21,6 +21,7 @@ def bank(repdte, cert, rssd, hc="0", hc_name="", name=None, **values):
            "NAMEFULL": f"Bank {cert}" if name is None else name,
            "NAME": f"BANK {cert}", "NAMEHCR": hc_name, "STALP": "NC"}
     row.update({field: 10 for field in ingest_ffiec.CALL_FIELDS})  # FDIC returns every field it knows
+    row.update({"LNCINUS": 0, "CALLFORM": 41})  # a domestic lender on the FFIEC 041; FDIC sends the form as a number
     row.update(values)
     return row
 
@@ -66,7 +67,8 @@ class FakeFinancials(BaseHTTPRequestHandler):
         start = int(query.get("offset", 0))
         page = rows[start:start + int(query.get("limit", 10))]
         page = [{key: value for key, value in row.items() if key in fields} for row in page]  # unknown names dropped
-        body = json.dumps({"meta": {"total": len(rows)}, "totals": {"count": len(rows)},
+        echo = {key: query[key] for key in ("filters", "fields", "limit") if key in query}  # FDIC echoes the request
+        body = json.dumps({"meta": {"total": len(rows), "parameters": echo}, "totals": {"count": len(rows)},
                            "data": [{"data": row, "score": 0} for row in page]}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -200,6 +202,95 @@ def test_bank_spot_checks_compare_with_published_figures(fdic_api):
     assert checks.run_checks()
     pd.DataFrame({**spec, "expected": [2_100_000_000]}).to_csv(config.BANK_SPOT_CHECKS, index=False)
     assert not checks.run_checks()
+
+
+SMALL = {"LNCI4": 0, "LNCI4N": 0, "LNRENR4": 0, "LNRENR4N": 0}  # how FDIC shows Part II when it isn't reported
+
+
+def test_small_loans_are_left_empty_where_the_form_doesnt_report_them(fdic_api, capsys):
+    fdic_api.rows = [
+        # FFIEC 051 filer: no Part II in September (FDIC shows 0s); reported in December
+        bank("20230930", 1, 501, CALLFORM=51, LNCI=500, LNCINUS=None, LNRENRES=300, **SMALL),
+        bank("20231231", 1, 501, CALLFORM=51, LNCI=500, LNCINUS=None, LNRENRES=300,
+             LNCI4=120, LNCI4N=30, LNRENR4=100, LNRENR4N=5),
+        # An FFIEC 051 filer that reports Part II in September anyway keeps its values
+        bank("20230930", 5, 505, CALLFORM=51, LNCI=100, LNCINUS=None, LNRENRES=0,
+             LNCI4=40, LNCI4N=3, LNRENR4=0, LNRENR4N=0),
+        # FFIEC 041 filers report every quarter, so a September 0 is a real 0
+        bank("20230930", 2, 502, CALLFORM=41, LNCI=800, LNCINUS=50, LNRENRES=0, **SMALL),
+        # FFIEC 002 filer (an insured branch of a foreign bank): no Part II and no deposit breakdown
+        bank("20231231", 3, 503, CALLFORM=2, LNCI=900, LNCINUS=200, DEPNI=None, DEPNIDOM=None, **SMALL),
+        # FFIEC 031 filer whose small CRE loans exceed its CRE loans: a filing inconsistency
+        bank("20231231", 4, 504, CALLFORM=31, LNCI=1_000, LNCINUS=100, LNCI4=50, LNCI4N=4,
+             LNRENRES=400, LNRENR4=450, LNRENR4N=9),
+    ]
+    call_reports_only([2023])
+    out = capsys.readouterr().out
+    assert "1 bank-quarters report more call_nonfarm_nonres_loans_1m_or_less_usd" in out
+    assert "1 FFIEC 051 bank-quarters in March or September report Part II anyway" in out
+    rows = pd.read_parquet(config.INTERIM / "bank_quarter" / "call.parquet").set_index(["rssd_id", "quarter_end"])
+    small = ["call_ci_loans_1m_or_less_usd", "call_ci_loans_1m_or_less_count",
+             "call_nonfarm_nonres_loans_1m_or_less_usd", "call_nonfarm_nonres_loans_1m_or_less_count"]
+    over = ["call_ci_loans_over_1m_usd", "call_nonfarm_nonres_loans_over_1m_usd"]
+
+    september_051 = rows.loc[("501", pd.Timestamp("2023-09-30"))]
+    assert september_051["call_report_form"] == "051"
+    assert september_051[small + over].isna().all()
+    assert september_051["call_ci_loans_usd"] == 500_000  # the totals stay
+
+    december_051 = rows.loc[("501", pd.Timestamp("2023-12-31"))]
+    assert december_051["call_ci_loans_1m_or_less_count"] == 30
+    assert december_051["call_ci_loans_over_1m_usd"] == 380_000  # no non-U.S. split on the 051: counts as 0
+
+    reported_anyway = rows.loc[("505", pd.Timestamp("2023-09-30"))]
+    assert reported_anyway["call_ci_loans_1m_or_less_usd"] == 40_000
+    assert reported_anyway["call_ci_loans_over_1m_usd"] == 60_000
+    assert december_051["call_nonfarm_nonres_loans_over_1m_usd"] == 200_000
+
+    september_041 = rows.loc[("502", pd.Timestamp("2023-09-30"))]
+    assert september_041["call_ci_loans_1m_or_less_usd"] == 0
+    assert september_041["call_ci_loans_over_1m_usd"] == 750_000  # 800 - 50 to non-U.S. addressees - 0 small
+
+    branch = rows.loc[("503", pd.Timestamp("2023-12-31"))]
+    assert branch["call_report_form"] == "002"
+    assert branch[small + over + ["call_noninterest_bearing_deposits_usd"]].isna().all()
+
+    filer_031 = rows.loc[("504", pd.Timestamp("2023-12-31"))]
+    assert filer_031["call_ci_loans_over_1m_usd"] == 850_000
+    assert filer_031["call_nonfarm_nonres_loans_1m_or_less_usd"] == 450_000  # kept as published
+    assert pd.isna(filer_031["call_nonfarm_nonres_loans_over_1m_usd"])  # would be negative
+
+    build_panel.build_all()
+    assert checks.run_checks()
+
+
+def test_a_saved_quarter_asked_without_a_new_field_is_pulled_again(fdic_api, monkeypatch, capsys):
+    ingest_ffiec.download_call([2023])
+    monkeypatch.setitem(ingest_ffiec.CALL_FIELDS, "NEWFLD", "call_new_field_usd")
+    fdic_api.rows = [{**row, "NEWFLD": 5} for row in BANKS]
+    fdic_api.hits = []
+    ingest_ffiec.download_call([2023])
+    pulls = [hit["filters"] for hit in fdic_api.hits if hit.get("limit") == str(ingest_ffiec.PAGE_SIZE)]
+    assert "REPDTE:20230630" in pulls  # old enough to reuse, but saved before NEWFLD was asked for
+    assert "2023-06-30: the saved copy wasn't asked for NEWFLD; pulling it again" in capsys.readouterr().out
+
+    fdic_api.hits = []
+    ingest_ffiec.download_call([2023])  # now it has been asked for: reused again
+    assert "REPDTE:20230630" not in {hit["filters"] for hit in fdic_api.hits}
+
+
+def test_fields_missing_from_uses_the_echoed_request_or_the_returned_fields(tmp_path):
+    asked = ingest_ffiec._requested_fields()
+    echoed = tmp_path / "echoed.json"
+    echoed.write_text(json.dumps({"meta": {"total": 0, "parameters": {"fields": ",".join(asked)}}, "data": []}))
+    assert ingest_ffiec._fields_missing_from(echoed) == []
+    returned = tmp_path / "returned.json"
+    row = {field: 1 for field in asked if field != "LNCI4"}
+    returned.write_text(json.dumps({"meta": {"total": 1}, "data": [{"data": row}]}))
+    assert ingest_ffiec._fields_missing_from(returned) == ["LNCI4"]
+    broken = tmp_path / "broken.json"
+    broken.write_text("not json")
+    assert ingest_ffiec._fields_missing_from(broken) == asked
 
 
 # --------------------------------------------------------------- small-business lending by bank
