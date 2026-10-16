@@ -41,9 +41,10 @@ Call Reports (checked 2026-10-12):
     in 2026 Q1); 214 bank-quarters from 2017 to 2023 reported anyway and are
     kept. FFIEC 002 filers (insured U.S. branches of foreign banks) don't report
     it at all, yet FDIC shows 0 in June and December. Those zeros mean "not
-    reported", so they are left empty, as are the over-$1M amounts built on them. FFIEC 031 filers report Part II for domestic offices
-    while their C&I total includes foreign offices, so their C&I over $1M
-    includes any C&I booked abroad.
+    reported", so they are left empty, as are the over-$1M amounts built on
+    them. FFIEC 031 filers report Part II for domestic offices while their C&I
+    total includes foreign offices, so their C&I over $1M includes any C&I to
+    U.S. addressees booked in foreign offices.
 
 Small-business lending by bank (checked 2026-10-12 against FFIEC's 2015 and 2024
 Disclosure and Transmittal specs, <YY>FlatDiscSpecs.pdf and <YY>FlatTransSpecs.pdf

@@ -241,11 +241,11 @@ def test_small_loans_are_left_empty_where_the_form_doesnt_report_them(fdic_api, 
     december_051 = rows.loc[("501", pd.Timestamp("2023-12-31"))]
     assert december_051["call_ci_loans_1m_or_less_count"] == 30
     assert december_051["call_ci_loans_over_1m_usd"] == 380_000  # no non-U.S. split on the 051: counts as 0
+    assert december_051["call_nonfarm_nonres_loans_over_1m_usd"] == 200_000
 
     reported_anyway = rows.loc[("505", pd.Timestamp("2023-09-30"))]
     assert reported_anyway["call_ci_loans_1m_or_less_usd"] == 40_000
     assert reported_anyway["call_ci_loans_over_1m_usd"] == 60_000
-    assert december_051["call_nonfarm_nonres_loans_over_1m_usd"] == 200_000
 
     september_041 = rows.loc[("502", pd.Timestamp("2023-09-30"))]
     assert september_041["call_ci_loans_1m_or_less_usd"] == 0
