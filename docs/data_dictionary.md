@@ -1,12 +1,13 @@
 # Data Dictionary
 
-Every column in `data/processed/` gets a row here, in the same pull request that adds it.
+Every column in `data/processed/` gets exactly one row here, in the same pull request that adds it. The checks read this file on every build: a processed column with no row, or with two, fails the build, and so does a value that doesn't fit its row's Type. A row for a column that isn't built yet only raises a warning, so a column can be documented before it's built.
 
 ## Conventions
 
 - **Keys.** `cbsa_code` and `county_fips` are 5-character strings with leading zeros kept (`01073`, not `1073`). `year` is the year a measure describes, not the year it was released. `quarter_end` is the last day of the quarter. `rssd_id` is the FFIEC RSSD ID, stored as a string.
 - **Geography.** Every year uses one OMB delineation vintage (`DELINEATION_VINTAGE` in `src/config.py`). Counties map to metros through `data/reference/county_cbsa_xwalk.csv`.
 - **Column names.** `<source>_<measure>` in snake_case, e.g. `cbp_establishments_count`, `sod_deposits_usd`.
+- **Type** is what the checks hold every value to: `int` (whole numbers; a column stored as decimals passes if every value is whole), `numeric` (any number), `string`, `string(N)` (text exactly N characters long, such as `cbsa_code`) or `date`. Missing values aren't checked.
 - **Units go in the suffix**, and the automatic checks rely on them:
   - `_count`: a count, must be 0 or more
   - `_usd`: whole dollars (convert from thousands at ingest), must be 0 or more
@@ -17,6 +18,41 @@ Every column in `data/processed/` gets a row here, in the same pull request that
   - `_net`: a signed amount that can be negative, such as net migration or natural change. No range check is applied.
 - **Missing means missing.** Leave a value empty when the source doesn't report it. Never fill with 0.
 - **Released** is when the source published the value. The Charlotte back-test can only use values released before the decision date it simulates.
+
+## Tables and keys
+
+| Table | One row per | Key | Coverage |
+|---|---|---|---|
+| `msa_year` | metro and year | `cbsa_code`, `year` | Every metro in `data/reference/msa_universe.csv` (393), 2015–2024 |
+| `bank_quarter` | bank and quarter | `rssd_id`, `quarter_end` | Every FDIC-insured bank with an RSSD ID, 2015 Q1 through the latest quarter FDIC has published |
+| `bank_msa_year` | bank, metro and year | `rssd_id`, `cbsa_code`, `year` | Every bank with an office (SOD) or small business lending (CRA) in a metro, 2015–2024 |
+
+Key columns are never empty and never repeat; the checks fail the build otherwise.
+
+How the tables join:
+
+- **A bank in a metro, next to the metro's economy:** `bank_msa_year` to `msa_year` on `cbsa_code` and `year`.
+- **A bank's metro footprint, next to its financials:** `bank_msa_year` to `bank_quarter` on `rssd_id`, with one quarter of `year`. The June 30 quarter matches the SOD survey date, and the December 31 quarter closes the calendar year the CRA loans cover.
+- **Organizations:** affiliated banks share `call_top_holder_rssd_id` in `bank_quarter` and `sod_top_holder_rssd_id` in `bank_msa_year`. Group by it to treat them as one competitor.
+
+```mermaid
+erDiagram
+    msa_year ||--o{ bank_msa_year : "cbsa_code, year"
+    bank_quarter }o--o{ bank_msa_year : "rssd_id, one quarter of year"
+    msa_year {
+        string cbsa_code PK
+        int year PK
+    }
+    bank_quarter {
+        string rssd_id PK
+        date quarter_end PK
+    }
+    bank_msa_year {
+        string rssd_id PK
+        string cbsa_code PK
+        int year PK
+    }
+```
 
 ## msa_year: one row per metro per year
 

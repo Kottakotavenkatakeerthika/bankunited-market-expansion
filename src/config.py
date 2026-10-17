@@ -34,6 +34,7 @@ MSA_UNIVERSE = REFERENCE / "msa_universe.csv"
 FRED_SERIES = REFERENCE / "fred_series.csv"
 SPOT_CHECKS = REFERENCE / "spot_checks.csv"
 BANK_SPOT_CHECKS = REFERENCE / "bank_spot_checks.csv"  # published bank figures, e.g. from a UBPR
+DATA_DICTIONARY = ROOT / "docs" / "data_dictionary.md"  # the checks hold every processed column to it
 
 # --- Decisions to confirm with the pod --------------------------------------
 # Panel years. The Charlotte back-test needs years from before BankUnited entered.
