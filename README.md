@@ -67,7 +67,7 @@ Each `src/ingest_<name>.py` has a `download()` and a `transform()` to fill in:
 
 1. `download()` pulls raw files with `fetch(url, SOURCE)`, or logs a file you downloaded by hand with `register_local_file()`. Either way the file lands in the manifest.
 2. `transform()` reads the raw files, maps counties to metros with `counties_to_cbsa()`, and saves with `write_interim(df, SOURCE, "msa_year")`. `write_interim()` rejects missing or repeated keys and badly named columns.
-3. Name measure columns `<source>_<measure>` and end them with a unit suffix: `_count`, `_usd` (whole dollars), `_pct`, or `_share`. The checks use these suffixes.
+3. Name measure columns `<source>_<measure>` and end them with a unit suffix: `_count`, `_usd` (whole dollars), `_pct`, or `_share`. The checks use these suffixes. Two more aren't range-checked: `_ratio` for a percent kept as published that can be negative or above 100, and `_usd_net` for dollars that can be negative.
 4. Add every new column to `docs/data_dictionary.md`.
 
 ## Versioning the data
