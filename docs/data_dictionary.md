@@ -74,7 +74,7 @@ The Connecticut limitation above applies to SOD too; the SOD ingest prints how m
 
 ## bank_quarter: one row per bank per quarter
 
-Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of each insured institution's Call Report (field definitions: `https://api.fdic.gov/banks/docs/risview_properties.yaml`). Quarters run from 2015 through the latest quarter FDIC has published, past the msa_year panel's last year, so peer comparisons can use current figures. **Released** for every row: Call Reports are due 30 days after quarter end (35 for some banks with foreign offices), and FDIC updates a quarter when banks amend it; the ingest pulls quarters that ended in the last 200 days again on every run to pick that up.
+Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of each insured institution's Call Report (field definitions: `https://api.fdic.gov/banks/docs/risview_properties.yaml`). Quarters run from 2015 through the latest quarter FDIC has published, past the msa_year panel's last year, so peer comparisons can use current figures. **Released** for every row: Call Reports are due 30 days after quarter end (35 for banks with more than one foreign office, per [FDIC FIL-10-2026](https://www.fdic.gov/news/financial-institution-letters/2026/consolidated-reports-condition-and-income-first-quarter)), and FDIC updates a quarter when banks amend it; the ingest pulls quarters that ended in the last 200 days again on every run to pick that up.
 
 | Column | Type | Unit | Definition | Source and field | Released | Transformation |
 |---|---|---|---|---|---|---|
