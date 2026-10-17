@@ -7,6 +7,7 @@ what was tested" for the weekly Integration & Delivery Updates.
 
 Column-name suffixes drive the range checks (see docs/data_dictionary.md):
 _count and _usd must be >= 0, _pct must be 0-100, _share must be 0-1.
+_net: can be negative; no range check.
 Published figures to compare against go in data/reference/spot_checks.csv.
 """
 from __future__ import annotations
