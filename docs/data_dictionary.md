@@ -15,7 +15,12 @@ Every column in `data/processed/` gets a row here, in the same pull request that
   - `_ratio`: a ratio published as a percent (1.25 means 1.25%), kept exactly as the source publishes it. It can be negative or above 100, as return on assets or loans-to-deposits can, so no range check is applied
   - `_share`: a fraction from 0 to 1
 - **Missing means missing.** Leave a value empty when the source doesn't report it. Never fill with 0.
-- **Released** is when the source published the value. The Charlotte back-test can only use values released before the decision date it simulates.
+- **Released** is when the source published the value. The Charlotte back-test can only use values released before the decision date it simulates. `data/reference/release_dates.csv` dates the first release of every source, dataset and year the tables read, with one row per `source`, `dataset`, `year`, `quarter_end` (Call Reports only) and `release_type` (`initial`, `revised` or `final`; QCEW's preliminary annual averages count as `initial`). A year counts as available from its earliest `release_date`. The tables hold the latest revised values, so the back-test uses revised numbers on first-release timing.
+  - FRED and LAUS get one `initial` row per year, the date that year's values first came out; their spring revisions get no rows.
+  - PEP gets an `initial` row per year from the vintage that first published it (Vintage 2015 through 2024), plus `revised` rows for the three files the table reads: the 2010-2020 intercensal file (2015-2019 population), Vintage 2020 (2015-2019 flows) and Vintage 2025 (2020 on).
+  - Call Reports are dated at `quarter_end` plus 35 days. Reports are due 30 days after the report date, 35 for institutions with more than one foreign office ([FDIC FIL-10-2026](https://www.fdic.gov/news/financial-institution-letters/2026/consolidated-reports-condition-and-income-first-quarter)). Amended filings get no rows.
+  - Where no first-release date turned up, the row carries the earliest date the data can be shown to have been public, and its note says it is an upper bound.
+  - CRE columns have no rows of their own: they read the same CBP county files and QCEW files as the `cbp` and `bls` rows. Bank-level CRA (`cra_bank`) shares the dates of the aggregate CRA release.
 
 ## msa_year: one row per metro per year
 
