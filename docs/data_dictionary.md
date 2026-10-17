@@ -10,7 +10,9 @@ Every column in `data/processed/` gets a row here, in the same pull request that
 - **Units go in the suffix**, and the automatic checks rely on them:
   - `_count`: a count, must be 0 or more
   - `_usd`: whole dollars (convert from thousands at ingest), must be 0 or more
+  - `_usd_net`: whole dollars that can be negative, such as net income or charge-offs net of recoveries. No range check is applied
   - `_pct`: a percentage from 0 to 100
+  - `_ratio`: a ratio published as a percent (1.25 means 1.25%), kept exactly as the source publishes it. It can be negative or above 100, as return on assets or loans-to-deposits can, so no range check is applied
   - `_share`: a fraction from 0 to 1
 - **Missing means missing.** Leave a value empty when the source doesn't report it. Never fill with 0.
 - **Released** is when the source published the value. The Charlotte back-test can only use values released before the decision date it simulates.
@@ -51,10 +53,62 @@ The Connecticut limitation above applies to SOD too; the SOD ingest prints how m
 
 ## bank_quarter: one row per bank per quarter
 
+Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of each insured institution's Call Report (field definitions: `https://api.fdic.gov/banks/risview_properties.yaml`). Quarters run from 2015 through the latest quarter FDIC has published, past the msa_year panel's last year, so peer comparisons can use current figures. **Released** for every row: Call Reports are due 30 days after quarter end (35 for some banks with foreign offices), and FDIC updates a quarter when banks amend it; the ingest pulls quarters that ended in the last 200 days again on every run to pick that up.
+
 | Column | Type | Unit | Definition | Source and field | Released | Transformation |
 |---|---|---|---|---|---|---|
-| `rssd_id` | string | | FFIEC RSSD ID | Call Report `IDRSSD` | | |
-| `quarter_end` | date | | Last day of the report quarter | | | |
+| `rssd_id` | string | | FFIEC RSSD ID of the bank | `RSSDID` | | Rows without one (FDIC writes 0) are left out |
+| `quarter_end` | date | | Last day of the report quarter | `REPDTE` (YYYYMMDD) | | |
+| `call_cert` | string | | FDIC certificate number | `CERT` | | |
+| `call_bank_name` | string | | Institution name that quarter | `NAMEFULL`, else `NAME` | | |
+| `call_state` | string | | Two-letter postal code of the state where the bank is headquartered | `STALP` | | |
+| `call_top_holder_rssd_id` | string | | RSSD ID of the bank's top regulatory holding company, or the bank's own `rssd_id` if it has none. Group by this column to treat affiliated banks as one organization | `RSSDHCR` (0 means no holding company) | | Falls back to `rssd_id` when `RSSDHCR` is 0 or empty |
+| `call_top_holder_name` | string | | Name of that holding company, or the bank's name | `NAMEHCR`, else the bank's name | | |
+| `call_total_assets_usd` | numeric | usd | Total assets at quarter end: everything the bank owns, including cash, loans, securities and premises, but not off-balance-sheet items | `ASSET` (reported in $1,000s) | | ×1,000 |
+| `call_total_deposits_usd` | numeric | usd | Total deposits, including deposits in foreign offices | `DEP` (reported in $1,000s) | | ×1,000 |
+| `call_domestic_deposits_usd` | numeric | usd | Deposits held in domestic offices | `DEPDOM` (reported in $1,000s) | | ×1,000 |
+| `call_insured_deposits_usd_net` | numeric | usd_net | Estimated insured deposits. Kept as published, so one bank-quarter through June 2026 is negative, which looks like a filing error | `DEPINS` (reported in $1,000s) | | ×1,000 |
+| `call_core_deposits_usd` | numeric | usd | Core deposits | `COREDEP` (reported in $1,000s) | | ×1,000 |
+| `call_brokered_deposits_usd` | numeric | usd | Brokered deposits | `BRO` (reported in $1,000s) | | ×1,000 |
+| `call_total_loans_usd` | numeric | usd | Total loans and leases, before the allowance for credit losses | `LNLSGR` (reported in $1,000s) | | ×1,000 |
+| `call_net_loans_usd` | numeric | usd | Loans and leases net of the allowance | `LNLSNET` (reported in $1,000s) | | ×1,000 |
+| `call_loan_loss_allowance_usd_net` | numeric | usd_net | Allowance for loan and lease losses (allowance for credit losses on loans under CECL). CECL allows a negative allowance in limited cases, such as expected recoveries; four bank-quarters through June 2026 are negative | `LNATRES` (reported in $1,000s) | | ×1,000 |
+| `call_real_estate_loans_usd` | numeric | usd | Loans secured by real estate | `LNRE` (reported in $1,000s) | | ×1,000 |
+| `call_construction_loans_usd` | numeric | usd | Construction and land development loans | `LNRECONS` (reported in $1,000s) | | ×1,000 |
+| `call_nonfarm_nonres_loans_usd` | numeric | usd | Loans secured by nonfarm nonresidential properties (commercial real estate), owner-occupied and other | `LNRENRES` (reported in $1,000s) | | ×1,000 |
+| `call_owner_occupied_nonres_loans_usd` | numeric | usd | The owner-occupied part of `call_nonfarm_nonres_loans_usd` | `LNRENROW` (reported in $1,000s) | | ×1,000 |
+| `call_other_nonres_loans_usd` | numeric | usd | The other (non-owner-occupied) part of `call_nonfarm_nonres_loans_usd` | `LNRENROT` (reported in $1,000s) | | ×1,000 |
+| `call_multifamily_loans_usd` | numeric | usd | Loans secured by multifamily residential properties | `LNREMULT` (reported in $1,000s) | | ×1,000 |
+| `call_residential_1_4_family_loans_usd` | numeric | usd | Loans secured by 1-4 family residential properties | `LNRERES` (reported in $1,000s) | | ×1,000 |
+| `call_farmland_loans_usd` | numeric | usd | Loans secured by farmland | `LNREAG` (reported in $1,000s) | | ×1,000 |
+| `call_ci_loans_usd` | numeric | usd | Commercial and industrial loans | `LNCI` (reported in $1,000s) | | ×1,000 |
+| `call_agricultural_loans_usd` | numeric | usd | Agricultural production loans | `LNAG` (reported in $1,000s) | | ×1,000 |
+| `call_consumer_loans_usd` | numeric | usd | Loans to individuals (consumer loans) | `LNCON` (reported in $1,000s) | | ×1,000 |
+| `call_securities_usd` | numeric | usd | Total securities | `SC` (reported in $1,000s) | | ×1,000 |
+| `call_noncurrent_loans_usd` | numeric | usd | Noncurrent loans and leases | `NCLNLS` (reported in $1,000s) | | ×1,000 |
+| `call_equity_capital_usd_net` | numeric | usd_net | Total equity capital: preferred and common stock, surplus and undivided profits. Negative only for an insolvent bank | `EQ` (reported in $1,000s) | | ×1,000 |
+| `call_quarter_net_interest_income_usd_net` | numeric | usd_net | Net interest income earned in the quarter alone | `NIMQ` (reported in $1,000s) | | ×1,000 |
+| `call_quarter_noninterest_income_usd_net` | numeric | usd_net | Total noninterest income earned in the quarter alone; can be negative, for example from trading losses | `NONIIQ` (reported in $1,000s) | | ×1,000 |
+| `call_quarter_noninterest_expense_usd_net` | numeric | usd_net | Total noninterest expense in the quarter alone. Banks report year to date, so the quarter's figure can be negative when a bank reverses expenses booked earlier in the year; 152 bank-quarters through June 2026 are | `NONIXQ` (reported in $1,000s) | | ×1,000 |
+| `call_quarter_net_income_usd_net` | numeric | usd_net | Net income in the quarter alone; negative for a loss | `NETINCQ` (reported in $1,000s) | | ×1,000 |
+| `call_quarter_net_charge_offs_usd_net` | numeric | usd_net | Loan and lease charge-offs net of recoveries in the quarter alone; negative when recoveries are larger | `NTLNLSQ` (reported in $1,000s) | | ×1,000 |
+| `call_ytd_credit_loss_provision_usd_net` | numeric | usd_net | Provision for credit losses, year to date (FDIC publishes no quarterly version); negative when a bank releases reserves | `ELNATR` (reported in $1,000s) | | ×1,000 |
+| `call_employees_count` | int | count | Full-time-equivalent employees at quarter end | `NUMEMP` | | |
+| `call_domestic_offices_count` | int | count | Domestic offices, headquarters included | `OFFDOM` | | |
+| `call_ytd_return_on_assets_ratio` | numeric | ratio | Net income after taxes, year to date and annualized, as a percent of average total assets | `ROA` | | As published |
+| `call_ytd_return_on_equity_ratio` | numeric | ratio | Net income, year to date and annualized, as a percent of average equity. FDIC leaves it empty when retained earnings are negative | `ROE` | | As published |
+| `call_ytd_net_interest_margin_ratio` | numeric | ratio | Net interest margin, year to date | `NIMY` | | As published |
+| `call_ytd_efficiency_ratio` | numeric | ratio | Efficiency ratio, year to date: noninterest expense relative to revenue (lower is more efficient) | `EEFFR` | | As published |
+| `call_ytd_net_charge_off_ratio` | numeric | ratio | Net charge-offs as a percent of loans and leases, year to date | `NTLNLSR` | | As published |
+| `call_leverage_ratio` | numeric | ratio | Leverage ratio used for prompt corrective action: tier 1 capital as a percent of average total assets | `RBC1AAJ` | | As published |
+| `call_cet1_ratio` | numeric | ratio | Common equity tier 1 capital ratio. Empty for banks that elected the community bank leverage ratio, which don't report risk-based ratios | `IDT1CER` | | As published |
+| `call_total_risk_based_capital_ratio` | numeric | ratio | Total risk-based capital ratio used for prompt corrective action. Empty for community bank leverage ratio banks too | `RBCRWAJ` | | As published |
+| `call_loans_to_deposits_ratio` | numeric | ratio | Net loans and leases as a percent of deposits; above 100 when loans exceed deposits | `LNLSDEPR` | | As published |
+| `call_noncurrent_loans_ratio` | numeric | ratio | Noncurrent loans and leases as a percent of gross loans and leases | `NCLNLSR` | | As published |
+
+**Note: banks, not organizations.** Each row is one FDIC-insured bank or savings institution. Holding companies don't file Call Reports; sum over `call_top_holder_rssd_id` for an organization's banks combined. Owner: Austin. Added 2026-10-12.
+
+**To check against a bank's published figures**, add a row to `data/reference/bank_spot_checks.csv` (`rssd_id`, `quarter_end`, `column`, `expected` in the column's own unit, `rel_tolerance`, `source_note`), for example a figure from the bank's UBPR. The checks compare it on every build.
 
 ## bank_msa_year: one row per bank per metro per year
 
