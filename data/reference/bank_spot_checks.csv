@@ -1,1 +1,3 @@
 rssd_id,quarter_end,column,expected,rel_tolerance,source_note
+3938186,2026-06-30,call_total_assets_usd,34864976000,0.001,"FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, ASSET 34864976 ($000s), retrieved 2026-10-12"
+3938186,2026-06-30,call_leverage_ratio,9.43,0.005,"FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, RBC1AAJ 9.4266, retrieved 2026-10-12"
