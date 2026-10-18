@@ -6,7 +6,7 @@ Outputs:
 
 Call Reports (checked 2026-10-12):
   - FDIC BankFind Suite API, financials endpoint: https://api.fdic.gov/banks/financials
-    Field definitions: https://api.fdic.gov/banks/risview_properties.yaml
+    Field definitions: https://api.fdic.gov/banks/docs/risview_properties.yaml
   - FDIC posts every insured institution's Call Report with the FFIEC 031, 041
     and 051 forms already lined up, so this uses the API instead of the CDR bulk
     files an earlier draft of this file suggested: no hand downloads, the monthly
@@ -25,7 +25,26 @@ Call Reports (checked 2026-10-12):
     fields), except the credit loss provision, which FDIC only publishes year to
     date. Ratios are FDIC's own, in percent; the ytd_ ones are year to date.
   - CALL_FIELDS lists every field we keep. To add one, add a line there and a
-    row in docs/data_dictionary.md.
+    row in docs/data_dictionary.md. The next run pulls again any saved quarter
+    that was requested without it (FDIC echoes the requested fields in each
+    response), so nothing needs moving aside by hand.
+  - Loans over $1M (checked 2026-10-15): Schedule RC-C Part II reports C&I and
+    nonfarm nonresidential loans with original amounts of $1M or less (FDIC's
+    LNCI4 and LNRENR4, counts in LNCI4N and LNRENR4N). The total minus that part
+    is the balance of loans over $1M. Part II counts C&I loans to U.S.
+    addressees only (Part I item 4.a), so C&I to non-U.S. addressees (LNCINUS)
+    comes out of the total first; FDIC leaves LNCINUS empty for banks whose form
+    doesn't split C&I that way (all FFIEC 051 filers), and their Part II covers
+    all their C&I, so it counts as 0 there. CALLFORM says which form a bank filed:
+    FFIEC 051 filers have to report Part II only for June and December, and
+    FDIC shows 0 for those that skip March and September (3,239 banks with loans
+    in 2026 Q1); 214 bank-quarters from 2017 to 2023 reported anyway and are
+    kept. FFIEC 002 filers (insured U.S. branches of foreign banks) don't report
+    it at all, yet FDIC shows 0 in June and December. Those zeros mean "not
+    reported", so they are left empty, as are the over-$1M amounts built on
+    them. FFIEC 031 filers report Part II for domestic offices while their C&I
+    total includes foreign offices, so their C&I over $1M includes any C&I to
+    U.S. addressees booked in foreign offices.
 
 Small-business lending by bank (checked 2026-10-12 against FFIEC's 2015 and 2024
 Disclosure and Transmittal specs, <YY>FlatDiscSpecs.pdf and <YY>FlatTransSpecs.pdf
@@ -89,7 +108,7 @@ PAGE_SIZE = 10_000  # the API's maximum rows per request
 PAUSE_SECONDS = 0.5  # between live requests, to stay well under FDIC's rate limits
 RECENT_DAYS = 200  # quarters that ended this recently are pulled again on every run
 
-ID_FIELDS = ["CERT", "REPDTE", "RSSDID", "RSSDHCR", "NAMEFULL", "NAME", "NAMEHCR", "STALP"]
+ID_FIELDS = ["CERT", "REPDTE", "RSSDID", "RSSDHCR", "NAMEFULL", "NAME", "NAMEHCR", "STALP", "CALLFORM"]
 REQUIRED_FIELDS = ["CERT", "REPDTE", "RSSDID"]
 
 # FDIC field -> our column. The column's suffix sets the unit:
@@ -106,6 +125,8 @@ CALL_FIELDS = {
     "DEPINS": "call_insured_deposits_usd_net",
     "COREDEP": "call_core_deposits_usd",
     "BRO": "call_brokered_deposits_usd",
+    "DEPNI": "call_noninterest_bearing_deposits_usd",
+    "DEPNIDOM": "call_domestic_noninterest_bearing_deposits_usd",
     "LNLSGR": "call_total_loans_usd",
     "LNLSNET": "call_net_loans_usd",
     "LNATRES": "call_loan_loss_allowance_usd_net",
@@ -118,11 +139,17 @@ CALL_FIELDS = {
     "LNRERES": "call_residential_1_4_family_loans_usd",
     "LNREAG": "call_farmland_loans_usd",
     "LNCI": "call_ci_loans_usd",
+    "LNCINUS": "call_ci_loans_non_us_addressees_usd",
     "LNAG": "call_agricultural_loans_usd",
     "LNCON": "call_consumer_loans_usd",
     "SC": "call_securities_usd",
     "NCLNLS": "call_noncurrent_loans_usd",
     "EQ": "call_equity_capital_usd_net",
+    # Loans to small businesses (Schedule RC-C Part II): original amounts of $1M or less
+    "LNCI4": "call_ci_loans_1m_or_less_usd",
+    "LNCI4N": "call_ci_loans_1m_or_less_count",
+    "LNRENR4": "call_nonfarm_nonres_loans_1m_or_less_usd",
+    "LNRENR4N": "call_nonfarm_nonres_loans_1m_or_less_count",
     # Income for the quarter alone
     "NIMQ": "call_quarter_net_interest_income_usd_net",
     "NONIIQ": "call_quarter_noninterest_income_usd_net",
@@ -148,6 +175,19 @@ CALL_FIELDS = {
     "NCLNLSR": "call_noncurrent_loans_ratio",
 }
 UNIT_SUFFIXES = ("_usd_net", "_usd", "_ratio", "_count")  # longest first: _usd_net also ends in _net
+
+# Schedule RC-C Part II, by form (see the docstring)
+SMALL_LOAN_FIELDS = ["LNCI4", "LNCI4N", "LNRENR4", "LNRENR4N"]
+SEMIANNUAL_PART_II_FORM = "051"  # reports Part II for June and December only
+NO_PART_II_FORM = "002"  # insured U.S. branches of foreign banks: no Part II at all
+# Loans over $1M. Column -> (total, the part of the total outside Part II's scope or None,
+# Part II's loans of $1M or less)
+OVER_1M = {
+    "call_ci_loans_over_1m_usd": (
+        "call_ci_loans_usd", "call_ci_loans_non_us_addressees_usd", "call_ci_loans_1m_or_less_usd"),
+    "call_nonfarm_nonres_loans_over_1m_usd": (
+        "call_nonfarm_nonres_loans_usd", None, "call_nonfarm_nonres_loans_1m_or_less_usd"),
+}
 
 
 def _unit(column: str) -> str:
@@ -217,10 +257,33 @@ def _published_count(stamp: str) -> int:
         raise RuntimeError(f"[call] unexpected response for {stamp}: {response.text[:200]!r}") from None
 
 
+def _requested_fields() -> list[str]:
+    return ID_FIELDS + list(CALL_FIELDS)
+
+
+def _fields_missing_from(path: Path) -> list[str]:
+    """Fields we ask for now that weren't asked for when this quarter was saved.
+
+    FDIC echoes the request in meta.parameters.fields. A response without that echo
+    is judged by the fields it returned instead; one that can't be read counts as
+    missing everything, so it's pulled again.
+    """
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        asked = ((payload.get("meta") or {}).get("parameters") or {}).get("fields")
+        if asked:
+            had = set(str(asked).split(","))
+        else:
+            had = set().union(*(set(item.get("data", item)) for item in payload.get("data") or []))
+    except (ValueError, TypeError, AttributeError):
+        return _requested_fields()
+    return [field for field in _requested_fields() if field not in had]
+
+
 def _pull_quarter(stamp: str) -> Path:
     """Download one quarter (replacing any earlier copy) and make sure it holds every bank FDIC counts."""
     params = {**_base_params(), "filters": f"REPDTE:{stamp}",
-              "fields": ",".join(ID_FIELDS + list(CALL_FIELDS)),
+              "fields": ",".join(_requested_fields()),
               "limit": PAGE_SIZE, "offset": 0, "sort_by": "CERT", "sort_order": "ASC"}
     quarter = f"{stamp[:4]}-{stamp[4:6]}-{stamp[6:]}"
     try:
@@ -250,8 +313,11 @@ def download_call(years: list[int], force: bool = False) -> list[Path]:
         path = config.RAW / SOURCE_CALL / f"{stamp}.json"
         recent = (through - quarter).days <= RECENT_DAYS
         if path.exists() and not force and not recent:
-            paths.append(path)  # checked against FDIC's count when it was pulled
-            continue
+            missing = _fields_missing_from(path)
+            if not missing:
+                paths.append(path)  # checked against FDIC's count when it was pulled
+                continue
+            print(f"[call] {quarter}: the saved copy wasn't asked for {', '.join(missing)}; pulling it again")
         if _published_count(stamp) == 0:
             if path.exists():
                 print(f"[call] FDIC returned no banks for {quarter} this time; keeping the copy pulled earlier")
@@ -310,6 +376,7 @@ def build_bank_quarter(raw: pd.DataFrame) -> pd.DataFrame:
         "call_cert": no_zero(normalize_code(raw["CERT"])),
         "call_bank_name": text(raw["NAMEFULL"]).fillna(text(raw["NAME"])),
         "call_state": text(raw["STALP"]),
+        "call_report_form": normalize_code(raw["CALLFORM"], width=3),  # FFIEC 031, 041, 051 or 002
     })
     # A bank with no holding company is its own top holder, so grouping by this column never drops a bank
     banks["call_top_holder_rssd_id"] = no_zero(normalize_code(raw["RSSDHCR"])).fillna(banks["rssd_id"])
@@ -329,6 +396,7 @@ def build_bank_quarter(raw: pd.DataFrame) -> pd.DataFrame:
             except (TypeError, ValueError):  # a fractional count: keep it as published
                 pass
         banks[column] = values
+    banks = _add_over_1m(_blank_unreported_small_loans(banks))
 
     no_id = banks["rssd_id"].isna()
     if no_id.any():
@@ -343,6 +411,39 @@ def build_bank_quarter(raw: pd.DataFrame) -> pd.DataFrame:
         example = banks.loc[clash, ["rssd_id", "quarter_end"]].head(3).astype(str).to_dict("records")
         raise ValueError(f"call: {int(clash.sum())} rows share RSSD ID + quarter with different values, e.g. {example}")
     return banks.reset_index(drop=True)
+
+
+def _blank_unreported_small_loans(banks: pd.DataFrame) -> pd.DataFrame:
+    """Empty the Part II columns where the bank didn't report Part II that quarter.
+
+    FDIC shows 0 there, which would read as "no small loans" and put every loan over $1M.
+    An FFIEC 051 filer that reported in March or September anyway keeps its values.
+    """
+    columns = [CALL_FIELDS[field] for field in SMALL_LOAN_FIELDS]
+    form = banks["call_report_form"]
+    off_quarter = form.eq(SEMIANNUAL_PART_II_FORM).fillna(False) & banks["quarter_end"].dt.month.isin([3, 9])
+    reported = banks[columns].fillna(0).ne(0).any(axis=1)
+    unexpected = off_quarter & reported
+    if unexpected.any():
+        print(f"[call] {int(unexpected.sum()):,} FFIEC 051 bank-quarters in March or September report Part II "
+              "anyway (it's required only for June and December); kept")
+    blank = form.eq(NO_PART_II_FORM).fillna(False) | (off_quarter & ~reported)
+    for column in columns:
+        banks[column] = banks[column].mask(blank)
+    return banks
+
+
+def _add_over_1m(banks: pd.DataFrame) -> pd.DataFrame:
+    """Loans over $1M: the total, less any part outside Part II's scope, less Part II's $1M or less."""
+    for column, (total, outside, small) in OVER_1M.items():
+        in_scope = banks[total] - (banks[outside].fillna(0) if outside else 0)  # empty = form doesn't split it
+        over = in_scope - banks[small]
+        negative = over < 0
+        if negative.any():
+            print(f"[call] {int(negative.sum()):,} bank-quarters report more {small} than the loans it's part "
+                  f"of; {column} left empty there")
+        banks[column] = over.mask(negative)
+    return banks
 
 
 def transform_call(paths: list[Path], years: list[int]) -> Path:

@@ -74,7 +74,7 @@ The Connecticut limitation above applies to SOD too; the SOD ingest prints how m
 
 ## bank_quarter: one row per bank per quarter
 
-Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of each insured institution's Call Report (field definitions: `https://api.fdic.gov/banks/risview_properties.yaml`). Quarters run from 2015 through the latest quarter FDIC has published, past the msa_year panel's last year, so peer comparisons can use current figures. **Released** for every row: Call Reports are due 30 days after quarter end (35 for some banks with foreign offices), and FDIC updates a quarter when banks amend it; the ingest pulls quarters that ended in the last 200 days again on every run to pick that up.
+Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of each insured institution's Call Report (field definitions: `https://api.fdic.gov/banks/docs/risview_properties.yaml`). Quarters run from 2015 through the latest quarter FDIC has published, past the msa_year panel's last year, so peer comparisons can use current figures. **Released** for every row: Call Reports are due 30 days after quarter end (35 for banks with more than one foreign office, per [FDIC FIL-10-2026](https://www.fdic.gov/news/financial-institution-letters/2026/consolidated-reports-condition-and-income-first-quarter)), and FDIC updates a quarter when banks amend it; the ingest pulls quarters that ended in the last 200 days again on every run to pick that up.
 
 | Column | Type | Unit | Definition | Source and field | Released | Transformation |
 |---|---|---|---|---|---|---|
@@ -83,6 +83,7 @@ Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of e
 | `call_cert` | string | | FDIC certificate number | `CERT` | | |
 | `call_bank_name` | string | | Institution name that quarter | `NAMEFULL`, else `NAME` | | |
 | `call_state` | string | | Two-letter postal code of the state where the bank is headquartered | `STALP` | | |
+| `call_report_form` | string | | Call Report form the bank filed that quarter: `031` (the form for banks with foreign offices; some banks without them file it too), `041` (domestic offices only), `051` (a shorter form for smaller banks with domestic offices only, used since March 2017) or `002` (insured U.S. branches of foreign banks, which file the FFIEC 002 instead of a Call Report). It decides when the small-loan columns are reported | `CALLFORM` | | Zero-padded to three digits |
 | `call_top_holder_rssd_id` | string | | RSSD ID of the bank's top regulatory holding company, or the bank's own `rssd_id` if it has none. Group by this column to treat affiliated banks as one organization | `RSSDHCR` (0 means no holding company) | | Falls back to `rssd_id` when `RSSDHCR` is 0 or empty |
 | `call_top_holder_name` | string | | Name of that holding company, or the bank's name | `NAMEHCR`, else the bank's name | | |
 | `call_total_assets_usd` | numeric | usd | Total assets at quarter end: everything the bank owns, including cash, loans, securities and premises, but not off-balance-sheet items | `ASSET` (reported in $1,000s) | | ×1,000 |
@@ -91,6 +92,8 @@ Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of e
 | `call_insured_deposits_usd_net` | numeric | usd_net | Estimated insured deposits. Kept as published, so one bank-quarter through June 2026 is negative, which looks like a filing error | `DEPINS` (reported in $1,000s) | | ×1,000 |
 | `call_core_deposits_usd` | numeric | usd | Core deposits | `COREDEP` (reported in $1,000s) | | ×1,000 |
 | `call_brokered_deposits_usd` | numeric | usd | Brokered deposits | `BRO` (reported in $1,000s) | | ×1,000 |
+| `call_noninterest_bearing_deposits_usd` | numeric | usd | Non-interest-bearing deposits, including any in foreign offices: the closest Call Report measure of low-cost operating deposits. Empty for FFIEC 002 filers | `DEPNI` (reported in $1,000s) | | ×1,000 |
+| `call_domestic_noninterest_bearing_deposits_usd` | numeric | usd | Non-interest-bearing deposits in domestic offices; equal to `call_noninterest_bearing_deposits_usd` for banks without foreign offices. Divided by `call_domestic_deposits_usd`, it gives a share on the same footing as branch (SOD) deposits | `DEPNIDOM` (reported in $1,000s) | | ×1,000 |
 | `call_total_loans_usd` | numeric | usd | Total loans and leases, before the allowance for credit losses | `LNLSGR` (reported in $1,000s) | | ×1,000 |
 | `call_net_loans_usd` | numeric | usd | Loans and leases net of the allowance | `LNLSNET` (reported in $1,000s) | | ×1,000 |
 | `call_loan_loss_allowance_usd_net` | numeric | usd_net | Allowance for loan and lease losses (allowance for credit losses on loans under CECL). CECL allows a negative allowance in limited cases, such as expected recoveries; four bank-quarters through June 2026 are negative | `LNATRES` (reported in $1,000s) | | ×1,000 |
@@ -103,11 +106,18 @@ Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of e
 | `call_residential_1_4_family_loans_usd` | numeric | usd | Loans secured by 1-4 family residential properties | `LNRERES` (reported in $1,000s) | | ×1,000 |
 | `call_farmland_loans_usd` | numeric | usd | Loans secured by farmland | `LNREAG` (reported in $1,000s) | | ×1,000 |
 | `call_ci_loans_usd` | numeric | usd | Commercial and industrial loans | `LNCI` (reported in $1,000s) | | ×1,000 |
+| `call_ci_loans_non_us_addressees_usd` | numeric | usd | The part of `call_ci_loans_usd` lent to borrowers domiciled outside the U.S. Empty when the bank's form doesn't split C&I loans this way (every FFIEC 051 filer and some smaller FFIEC 041 filers) | `LNCINUS` (reported in $1,000s) | | ×1,000 |
 | `call_agricultural_loans_usd` | numeric | usd | Agricultural production loans | `LNAG` (reported in $1,000s) | | ×1,000 |
 | `call_consumer_loans_usd` | numeric | usd | Loans to individuals (consumer loans) | `LNCON` (reported in $1,000s) | | ×1,000 |
 | `call_securities_usd` | numeric | usd | Total securities | `SC` (reported in $1,000s) | | ×1,000 |
 | `call_noncurrent_loans_usd` | numeric | usd | Noncurrent loans and leases | `NCLNLS` (reported in $1,000s) | | ×1,000 |
 | `call_equity_capital_usd_net` | numeric | usd_net | Total equity capital: preferred and common stock, surplus and undivided profits. Negative only for an insolvent bank | `EQ` (reported in $1,000s) | | ×1,000 |
+| `call_ci_loans_1m_or_less_usd` | numeric | usd | Balance of C&I loans to U.S. addressees with original amounts of $1 million or less (Schedule RC-C Part II, "loans to small businesses"). For FFIEC 031 filers, domestic offices only. Empty where Part II isn't reported (see the note below) | `LNCI4` (reported in $1,000s) | | ×1,000; emptied where not reported |
+| `call_ci_loans_1m_or_less_count` | int | count | Number of the loans in `call_ci_loans_1m_or_less_usd` | `LNCI4N` | | Emptied where not reported |
+| `call_nonfarm_nonres_loans_1m_or_less_usd` | numeric | usd | Balance of loans secured by nonfarm nonresidential properties with original amounts of $1 million or less (Schedule RC-C Part II) | `LNRENR4` (reported in $1,000s) | | ×1,000; emptied where not reported |
+| `call_nonfarm_nonres_loans_1m_or_less_count` | int | count | Number of the loans in `call_nonfarm_nonres_loans_1m_or_less_usd` | `LNRENR4N` | | Emptied where not reported |
+| `call_ci_loans_over_1m_usd` | numeric | usd | Balance of C&I loans to U.S. addressees with original amounts over $1 million | Derived from `LNCI`, `LNCINUS` and `LNCI4` | | `call_ci_loans_usd` − `call_ci_loans_non_us_addressees_usd` (0 when empty) − `call_ci_loans_1m_or_less_usd`. Empty where Part II isn't reported, and where the result would be negative |
+| `call_nonfarm_nonres_loans_over_1m_usd` | numeric | usd | Balance of loans secured by nonfarm nonresidential properties with original amounts over $1 million | Derived from `LNRENRES` and `LNRENR4` | | `call_nonfarm_nonres_loans_usd` − `call_nonfarm_nonres_loans_1m_or_less_usd`. Empty under the same conditions |
 | `call_quarter_net_interest_income_usd_net` | numeric | usd_net | Net interest income earned in the quarter alone | `NIMQ` (reported in $1,000s) | | ×1,000 |
 | `call_quarter_noninterest_income_usd_net` | numeric | usd_net | Total noninterest income earned in the quarter alone; can be negative, for example from trading losses | `NONIIQ` (reported in $1,000s) | | ×1,000 |
 | `call_quarter_noninterest_expense_usd_net` | numeric | usd_net | Total noninterest expense in the quarter alone. Banks report year to date, so the quarter's figure can be negative when a bank reverses expenses booked earlier in the year; 152 bank-quarters through June 2026 are | `NONIXQ` (reported in $1,000s) | | ×1,000 |
@@ -128,6 +138,8 @@ Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of e
 | `call_noncurrent_loans_ratio` | numeric | ratio | Noncurrent loans and leases as a percent of gross loans and leases | `NCLNLSR` | | As published |
 
 **Note: banks, not organizations.** Each row is one FDIC-insured bank or savings institution. Holding companies don't file Call Reports; sum over `call_top_holder_rssd_id` for an organization's banks combined. Owner: Austin. Added 2026-10-12.
+
+**Note: loans over $1 million.** Call Report Schedule RC-C Part II reports C&I and nonfarm nonresidential (commercial real estate) loans with original amounts of $1 million or less; the `_over_1m_` columns are the totals minus that part, as balances at quarter end. A loan is sized by its original amount (for a line of credit, the commitment), so a $1.5 million loan paid down to $800,000 still counts as over $1 million. Part II covers no other loan types, so construction and multifamily loans have no size split. Three cases are left empty rather than 0: FFIEC 051 filers that skipped March or September (the form requires Part II only for June and December, and FDIC shows 0 for a skipped quarter; the few that reported anyway are kept), FFIEC 002 filers (no Part II at all), and, in the `_over_1m_` columns only, a bank-quarter whose small loans exceed the loans they're part of. For FFIEC 031 filers, Part II covers domestic offices, so their C&I over $1 million also includes any C&I to U.S. addressees booked in foreign offices. No public source has these by metro; a metro figure has to allocate each bank's amount. Owner: Austin. Added 2026-10-15.
 
 **To check against a bank's published figures**, add a row to `data/reference/bank_spot_checks.csv` (`rssd_id`, `quarter_end`, `column`, `expected` in the column's own unit, `rel_tolerance`, `source_note`), for example a figure from the bank's UBPR. The checks compare it on every build.
 

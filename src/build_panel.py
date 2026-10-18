@@ -16,6 +16,11 @@ import pandas as pd
 from src import config
 from src.utils import standardize_keys
 
+# zstd instead of pandas' default snappy: with 2015 Q1 to 2026 Q2, bank_quarter is 53.6 MiB with
+# snappy and 43.7 MiB this way, under GitHub's 50 MiB warning. pandas (pyarrow), DuckDB and polars
+# all read it.
+PARQUET_OPTIONS = {"compression": "zstd", "compression_level": 9}
+
 
 def universe_grid() -> pd.DataFrame:
     """Every metro in data/reference/msa_universe.csv x every year in config.YEARS."""
@@ -61,7 +66,7 @@ def build_table(table: str) -> Path | None:
     out = out.sort_values(keys).reset_index(drop=True)
     config.PROCESSED.mkdir(parents=True, exist_ok=True)
     path = config.PROCESSED / f"{table}.parquet"
-    out.to_parquet(path, index=False)
+    out.to_parquet(path, index=False, **PARQUET_OPTIONS)
     print(f"[build] {table}.parquet: {len(out):,} rows x {out.shape[1]} columns from {len(frames)} source(s)")
     return path
 

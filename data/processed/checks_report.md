@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-10-17 20:39 UTC on commit `9109523`
+Run 2026-10-17 23:54 UTC on commit `dd70ec9`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -66,6 +66,8 @@ Run 2026-10-17 20:39 UTC on commit `9109523`
 | bank_quarter | call_domestic_deposits_usd >= 0 | pass |  |
 | bank_quarter | call_core_deposits_usd >= 0 | pass |  |
 | bank_quarter | call_brokered_deposits_usd >= 0 | pass |  |
+| bank_quarter | call_noninterest_bearing_deposits_usd >= 0 | pass |  |
+| bank_quarter | call_domestic_noninterest_bearing_deposits_usd >= 0 | pass |  |
 | bank_quarter | call_total_loans_usd >= 0 | pass |  |
 | bank_quarter | call_net_loans_usd >= 0 | pass |  |
 | bank_quarter | call_real_estate_loans_usd >= 0 | pass |  |
@@ -77,14 +79,26 @@ Run 2026-10-17 20:39 UTC on commit `9109523`
 | bank_quarter | call_residential_1_4_family_loans_usd >= 0 | pass |  |
 | bank_quarter | call_farmland_loans_usd >= 0 | pass |  |
 | bank_quarter | call_ci_loans_usd >= 0 | pass |  |
+| bank_quarter | call_ci_loans_non_us_addressees_usd >= 0 | pass |  |
 | bank_quarter | call_agricultural_loans_usd >= 0 | pass |  |
 | bank_quarter | call_consumer_loans_usd >= 0 | pass |  |
 | bank_quarter | call_securities_usd >= 0 | pass |  |
 | bank_quarter | call_noncurrent_loans_usd >= 0 | pass |  |
+| bank_quarter | call_ci_loans_1m_or_less_usd >= 0 | pass |  |
+| bank_quarter | call_ci_loans_1m_or_less_count >= 0 | pass |  |
+| bank_quarter | call_nonfarm_nonres_loans_1m_or_less_usd >= 0 | pass |  |
+| bank_quarter | call_nonfarm_nonres_loans_1m_or_less_count >= 0 | pass |  |
 | bank_quarter | call_employees_count >= 0 | pass |  |
 | bank_quarter | call_domestic_offices_count >= 0 | pass |  |
+| bank_quarter | call_ci_loans_over_1m_usd >= 0 | pass |  |
+| bank_quarter | call_nonfarm_nonres_loans_over_1m_usd >= 0 | pass |  |
+| bank_quarter | call_ci_loans_non_us_addressees_usd mostly filled | warning | 77% empty |
 | bank_quarter | spot check: call_total_assets_usd for RSSD 3938186 on 2026-06-30 | pass | built 34,864,976,000.00 vs published 34,864,976,000.00 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, ASSET 34864976 ($000s), retrieved 2026-10-12 |
 | bank_quarter | spot check: call_leverage_ratio for RSSD 3938186 on 2026-06-30 | pass | built 9.43 vs published 9.43 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, RBC1AAJ 9.4266, retrieved 2026-10-12 |
+| bank_quarter | spot check: call_noninterest_bearing_deposits_usd for RSSD 3938186 on 2026-06-30 | pass | built 10,145,045,000.00 vs published 10,145,045,000.00 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, DEPNI 10145045 ($000s), retrieved 2026-10-15 |
+| bank_quarter | spot check: call_ci_loans_over_1m_usd for RSSD 3938186 on 2026-06-30 | pass | built 4,490,674,000.00 vs published 4,490,674,000.00 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630: LNCI 4702937 - LNCINUS 2980 - LNCI4 209283 = 4490674 ($000s), retrieved 2026-10-15 |
+| bank_quarter | spot check: call_nonfarm_nonres_loans_over_1m_usd for RSSD 3938186 on 2026-06-30 | pass | built 6,670,334,000.00 vs published 6,670,334,000.00 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630: LNRENRES 6879810 - LNRENR4 209476 = 6670334 ($000s), retrieved 2026-10-15 |
+| bank_quarter | spot check: call_ci_loans_1m_or_less_usd for RSSD 470032 on 2026-06-30 | pass | built 20,093,000.00 vs published 20,093,000.00 FDIC BankFind API /financials, Community Spirit Bank (CERT 50), an FFIEC 051 filer, REPDTE 20260630, LNCI4 20093 ($000s), retrieved 2026-10-15. Checks that June values from semiannual Part II reporters are kept |
 | bank_msa_year | key columns present | pass |  |
 | bank_msa_year | no empty keys | pass |  |
 | bank_msa_year | one row per key | pass |  |
