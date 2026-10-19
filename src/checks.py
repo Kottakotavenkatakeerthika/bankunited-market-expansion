@@ -7,6 +7,7 @@ what was tested" for the weekly Integration & Delivery Updates.
 
 Column-name suffixes drive the range checks (see docs/data_dictionary.md):
 _count and _usd must be >= 0, _pct must be 0-100, _share must be 0-1.
+_net: can be negative; no range check.
 Published figures to compare against go in data/reference/spot_checks.csv.
 """
 from __future__ import annotations
@@ -87,6 +88,17 @@ def check_table(table: str, df: pd.DataFrame) -> list[Result]:
     return results
 
 
+def _compare(table: str, name: str, match: pd.Series, spec: pd.Series) -> Result:
+    """One spot check: the built value against the published one, within rel_tolerance (default 0.1%)."""
+    if match.empty or pd.isna(match.iloc[0]):
+        return Result(table, name, False, "no value to compare")
+    actual, expected = float(match.iloc[0]), float(spec["expected"])
+    tolerance = float(spec["rel_tolerance"]) if pd.notna(spec.get("rel_tolerance")) else 0.001
+    ok = abs(actual - expected) <= tolerance * abs(expected) if expected else actual == 0
+    note = spec.get("source_note") if pd.notna(spec.get("source_note")) else ""
+    return Result(table, name, ok, f"built {actual:,.2f} vs published {expected:,.2f} {note}".strip())
+
+
 def spot_checks(df: pd.DataFrame) -> list[Result]:
     """Compare msa_year values with figures a source publishes itself (spot_checks.csv)."""
     if not config.SPOT_CHECKS.exists():
@@ -100,14 +112,29 @@ def spot_checks(df: pd.DataFrame) -> list[Result]:
             results.append(Result("msa_year", name, False, "column not in table"))
             continue
         match = df.loc[(df["cbsa_code"] == code) & (df["year"] == year), col]
-        if match.empty or pd.isna(match.iloc[0]):
-            results.append(Result("msa_year", name, False, "no value to compare"))
+        results.append(_compare("msa_year", name, match, spec))
+    return results
+
+
+def bank_spot_checks(df: pd.DataFrame) -> list[Result]:
+    """Compare bank_quarter values with figures published elsewhere, such as a bank's UBPR.
+
+    Each row of data/reference/bank_spot_checks.csv names a bank (rssd_id), a quarter_end
+    (YYYY-MM-DD), a column, the published value in the column's own unit (whole dollars
+    for _usd, percent for _ratio), and where it was published.
+    """
+    if not config.BANK_SPOT_CHECKS.exists():
+        return []
+    specs = pd.read_csv(config.BANK_SPOT_CHECKS, dtype=str).dropna(how="all")
+    results = []
+    for _, spec in specs.iterrows():
+        rssd, quarter, col = str(spec["rssd_id"]).strip(), pd.Timestamp(spec["quarter_end"]), spec["column"]
+        name = f"spot check: {col} for RSSD {rssd} on {quarter:%Y-%m-%d}"
+        if col not in df.columns:
+            results.append(Result("bank_quarter", name, False, "column not in table"))
             continue
-        actual, expected = float(match.iloc[0]), float(spec["expected"])
-        tolerance = float(spec["rel_tolerance"]) if pd.notna(spec.get("rel_tolerance")) else 0.001
-        ok = abs(actual - expected) <= tolerance * abs(expected) if expected else actual == 0
-        note = spec.get("source_note") if pd.notna(spec.get("source_note")) else ""
-        results.append(Result("msa_year", name, ok, f"built {actual:,.2f} vs published {expected:,.2f} {note}".strip()))
+        here = (df["rssd_id"].astype(str) == rssd) & (pd.to_datetime(df["quarter_end"]) == quarter)
+        results.append(_compare("bank_quarter", name, df.loc[here, col], spec))
     return results
 
 
@@ -142,6 +169,8 @@ def run_checks(write_report: bool = True) -> bool:
         results += check_table(table, df)
         if table == "msa_year":
             results += spot_checks(df)
+        if table == "bank_quarter":
+            results += bank_spot_checks(df)
     if not results:
         print("[checks] no processed tables to check yet")
         return True

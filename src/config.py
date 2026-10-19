@@ -33,6 +33,7 @@ COUNTY_CBSA_XWALK = REFERENCE / "county_cbsa_xwalk.csv"
 MSA_UNIVERSE = REFERENCE / "msa_universe.csv"
 FRED_SERIES = REFERENCE / "fred_series.csv"
 SPOT_CHECKS = REFERENCE / "spot_checks.csv"
+BANK_SPOT_CHECKS = REFERENCE / "bank_spot_checks.csv"  # published bank figures, e.g. from a UBPR
 
 # --- Decisions to confirm with the pod --------------------------------------
 # Panel years. The Charlotte back-test needs years from before BankUnited entered.
@@ -50,7 +51,7 @@ DELINEATION_URL = (
 )
 
 # Ingest modules run by run_pipeline, in this order: src/ingest_<name>.py
-SOURCES = ["census", "bea_bls", "cra", "fred", "fdic", "ffiec"]  # Bhavana's four, then Austin's two
+SOURCES = ["census", "pep", "bea_bls", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: cre reads the QCEW files that bea_bls downloads
 
 # Processed tables and their keys. build_panel joins every
 # data/interim/<table>/<source>.parquet into data/processed/<table>.parquet.

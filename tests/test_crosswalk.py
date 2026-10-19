@@ -1,6 +1,7 @@
 import pandas as pd
 
-from src.crosswalk import counties_to_cbsa, load_crosswalk, parse_delineation, to_parent_cbsa
+from src import config
+from src.crosswalk import build_universe, counties_to_cbsa, load_crosswalk, parse_delineation, to_parent_cbsa
 
 
 def test_parse_delineation_pads_codes_and_drops_footnotes(delineation_xlsx):
@@ -30,3 +31,13 @@ def test_counties_to_cbsa_sums_and_keeps_missing_as_missing(crosswalk_csv):
     assert values[("13820", 2022)] == 7       # "1073" padded to 01073
     assert pd.isna(values[("16740", 2023)])   # all-missing stays missing, not 0
     assert "99990" not in out["cbsa_code"].tolist()  # micropolitan left out
+
+
+def test_build_universe_lists_every_metro_and_keeps_the_pilot(crosswalk_csv):
+    build_universe()  # the project fixture lists Charlotte (pilot) and Birmingham
+    universe = pd.read_csv(config.MSA_UNIVERSE, dtype=str, keep_default_na=False)
+    assert universe["cbsa_code"].tolist() == ["13820", "16740", "33100"]  # micropolitan 99990 left out
+    charlotte = universe.loc[universe["cbsa_code"] == "16740"].iloc[0]
+    assert (charlotte["is_pilot"], charlotte["notes"]) == ("1", "pilot")
+    miami = universe.loc[universe["cbsa_code"] == "33100"].iloc[0]
+    assert (miami["cbsa_title"], miami["is_pilot"], miami["notes"]) == ("Miami-Fort Lauderdale-West Palm Beach, FL", "0", "")

@@ -5,7 +5,8 @@ the metro codes a source ships with. Sources use different delineation years,
 and some report large metros (Miami, Washington, Philadelphia) by Metropolitan
 Division rather than by metro.
 
-    python -m src.crosswalk      # download the delineation file and rebuild the crosswalk
+    python -m src.crosswalk              # download the delineation file and rebuild the crosswalk
+    python -m src.crosswalk --universe   # list every metro in the crosswalk in msa_universe.csv
 """
 from __future__ import annotations
 
@@ -102,6 +103,30 @@ def build_crosswalk(force_download: bool = False) -> Path:
     return config.COUNTY_CBSA_XWALK
 
 
+def build_universe() -> Path:
+    """Write data/reference/msa_universe.csv with every metro in the crosswalk.
+
+    Keeps the is_pilot flag and notes of metros already listed, so Charlotte stays
+    the pilot. msa_year gets one row per listed metro per year.
+    """
+    metros = (load_crosswalk(metro_only=True)[["cbsa_code", "cbsa_title"]]
+              .drop_duplicates("cbsa_code").sort_values("cbsa_code").reset_index(drop=True))
+    if config.MSA_UNIVERSE.exists():
+        listed = pd.read_csv(config.MSA_UNIVERSE, dtype=str)
+        listed["cbsa_code"] = normalize_code(listed["cbsa_code"], 5)
+        dropped = sorted(set(listed["cbsa_code"].dropna()) - set(metros["cbsa_code"]))
+        if dropped:
+            print(f"[crosswalk] not metros in vintage {config.DELINEATION_VINTAGE}, so left out: {dropped}")
+        keep = [col for col in ("is_pilot", "notes") if col in listed.columns]
+        metros = metros.merge(listed[["cbsa_code", *keep]], on="cbsa_code", how="left", validate="one_to_one")
+    metros["is_pilot"] = metros.get("is_pilot", pd.Series(index=metros.index, dtype="string")).fillna("0")
+    metros["notes"] = metros.get("notes", pd.Series(index=metros.index, dtype="string")).fillna("")
+    metros[["cbsa_code", "cbsa_title", "is_pilot", "notes"]].to_csv(config.MSA_UNIVERSE, index=False)
+    print(f"[crosswalk] msa_universe.csv lists {len(metros)} metros "
+          f"({int((metros['is_pilot'] == '1').sum())} pilot)")
+    return config.MSA_UNIVERSE
+
+
 def load_crosswalk(metro_only: bool = True) -> pd.DataFrame:
     """The committed crosswalk with codes as strings. metro_only drops micropolitan areas."""
     xwalk = pd.read_csv(config.COUNTY_CBSA_XWALK, dtype=str)
@@ -142,4 +167,9 @@ def counties_to_cbsa(df: pd.DataFrame, value_cols, county_col: str = "county_fip
 
 
 if __name__ == "__main__":
-    build_crosswalk(force_download=True)
+    import sys
+
+    if "--universe" in sys.argv[1:]:
+        build_universe()
+    else:
+        build_crosswalk(force_download=True)
