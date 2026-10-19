@@ -59,6 +59,7 @@ TABLES = {
     "msa_year": ["cbsa_code", "year"],
     "bank_quarter": ["rssd_id", "quarter_end"],
     "bank_msa_year": ["rssd_id", "cbsa_code", "year"],
+    "msa_naics_year": ["cbsa_code", "naics_code", "year"],
 }
 
 # --- Secrets ----------------------------------------------------------------
