@@ -6,6 +6,9 @@ import pytest
 from openpyxl import Workbook
 
 from src import config, ingest_bea_bls
+from src.crosswalk import load_crosswalk
+
+REAL_COMBINED_AREAS = config.BEA_COMBINED_AREAS     # read before any test repoints config
 
 
 # --------------------------------------------------------------- BEA
@@ -60,13 +63,134 @@ def test_bea_download_asks_for_the_current_dollar_gdp_table_and_personal_income(
     assert all(p["GeoFips"] == "COUNTY" and p["Year"] == "ALL" for p in by_file.values())
 
 
-def test_documents_that_a_bea_combined_virginia_area_is_dropped_silently(project, crosswalk_csv):
-    income = write_bea_json(project, "cainc1", [("37119", "2023", "1,000"), ("51901", "2023", "5,000,000")])
-    gdp = write_bea_json(project, "cagdp2", [("37119", "2023", "10"), ("51901", "2023", "9,000,000")])
+CROSSWALK_COLUMNS = ["county_fips", "state_fips", "county_name", "state_name", "cbsa_code", "cbsa_title",
+                     "cbsa_type", "metro_division_code", "metro_division_title", "csa_code", "csa_title",
+                     "central_outlying"]
+METRO, MICRO = "Metropolitan Statistical Area", "Micropolitan Statistical Area"
+
+
+def write_crosswalk(project, rows):
+    """A small county-to-CBSA crosswalk. rows: (county_fips, cbsa_code, cbsa_type) triples."""
+    frame = pd.DataFrame([{"county_fips": fips, "state_fips": fips[:2], "cbsa_code": cbsa, "cbsa_type": kind}
+                          for fips, cbsa, kind in rows], columns=CROSSWALK_COLUMNS)
+    frame.to_csv(project["COUNTY_CBSA_XWALK"], index=False)
+
+
+def write_combined_areas(project, rows):
+    """A small bea_combined_areas.csv. rows: (bea_code, county_fips) pairs."""
+    pd.DataFrame([{"bea_code": code, "bea_name": f"Test area {code}", "county_fips": fips, "county_name": "Test"}
+                  for code, fips in rows]).to_csv(project["BEA_COMBINED_AREAS"], index=False)
+
+
+def test_a_bea_combined_virginia_area_lands_in_the_metro_of_its_parts(project):
+    # 51919 is Fairfax + Fairfax City + Falls Church (in the copy of the real component list)
+    write_crosswalk(project, [("11001", "47900", METRO), ("51059", "47900", METRO), ("51600", "47900", METRO),
+                              ("51610", "47900", METRO), ("51165", "25500", METRO), ("51660", "25500", METRO)])
+    income = write_bea_json(project, "cainc1", [("11001", "2023", "100"), ("51919", "2023", "5,000"),
+                                                ("51947", "2023", "40")])      # 51947: Rockingham + Harrisonburg
+    gdp = write_bea_json(project, "cagdp2", [("11001", "2023", "10"), ("51919", "2023", "900"),
+                                             ("51947", "2023", "7")])
     ingest_bea_bls._transform_bea([income, gdp], [2023])
     out = bea_result(project)
-    assert list(out.index.get_level_values("cbsa_code").unique()) == ["16740"]
-    assert out.loc[("16740", 2023), "bea_personal_income_usd"] == 1_000_000   # no row, no error for 51901
+    washington = out.loc[("47900", 2023)]
+    assert washington["bea_personal_income_usd"] == (100 + 5_000) * 1000      # the combined area is added to the metro
+    assert washington["bea_gdp_usd"] == (10 + 900) * 1000
+    harrisonburg = out.loc[("25500", 2023)]                                   # a metro made only of a combined area
+    assert harrisonburg["bea_personal_income_usd"] == 40_000
+    assert harrisonburg["bea_gdp_usd"] == 7_000
+    assert sorted(out.index.get_level_values("cbsa_code").unique()) == ["25500", "47900"]
+
+
+def test_a_bea_combined_area_whose_parts_are_in_different_metros_raises(project):
+    write_combined_areas(project, [("51999", "51001"), ("51999", "51002")])
+    write_crosswalk(project, [("51001", "11111", METRO), ("51002", "22222", METRO)])
+    income = write_bea_json(project, "cainc1", [("51999", "2023", "5,000")])
+    gdp = write_bea_json(project, "cagdp2", [("51999", "2023", "900")])
+    with pytest.raises(ValueError, match=r"combined area 51999 .* parts in different places"):
+        ingest_bea_bls._transform_bea([income, gdp], [2023])
+
+
+def test_a_bea_combined_area_with_one_part_outside_the_metros_raises(project):
+    write_combined_areas(project, [("51999", "51001"), ("51999", "51002")])
+    write_crosswalk(project, [("51001", "11111", METRO), ("51002", "22222", MICRO)])   # a metro and a micropolitan area
+    income = write_bea_json(project, "cainc1", [("51999", "2023", "5,000")])
+    gdp = write_bea_json(project, "cagdp2", [("51999", "2023", "900")])
+    with pytest.raises(ValueError, match="not in a metro"):
+        ingest_bea_bls._transform_bea([income, gdp], [2023])
+
+
+def test_a_bea_combined_area_in_a_micropolitan_area_or_no_cbsa_is_still_left_out(project):
+    # 51929 = Henry + Martinsville (micropolitan), 51903 = Alleghany + Covington (no CBSA at all)
+    write_crosswalk(project, [("11001", "47900", METRO), ("51089", "32300", MICRO), ("51690", "32300", MICRO)])
+    income = write_bea_json(project, "cainc1", [("11001", "2023", "100"), ("51929", "2023", "8,000"),
+                                                ("51903", "2023", "6,000")])
+    gdp = write_bea_json(project, "cagdp2", [("11001", "2023", "10"), ("51929", "2023", "7,000"),
+                                             ("51903", "2023", "5,000")])
+    ingest_bea_bls._transform_bea([income, gdp], [2023])
+    out = bea_result(project)
+    assert list(out.index.get_level_values("cbsa_code").unique()) == ["47900"]
+    assert out.loc[("47900", 2023), "bea_personal_income_usd"] == 100_000     # nothing added from either code
+
+
+def test_a_county_that_is_also_inside_a_combined_area_is_rejected_so_it_is_not_counted_twice(project):
+    write_crosswalk(project, [("51059", "47900", METRO), ("51600", "47900", METRO), ("51610", "47900", METRO)])
+    income = write_bea_json(project, "cainc1", [("51919", "2023", "5,000"), ("51059", "2023", "1,000")])
+    gdp = write_bea_json(project, "cagdp2", [("51919", "2023", "900"), ("51059", "2023", "100")])
+    with pytest.raises(ValueError, match="count them twice"):
+        ingest_bea_bls._transform_bea([income, gdp], [2023])
+
+
+# Every part of BEA's 23 Virginia combination areas, matched by name from BEA's area names to the Virginia
+# counties and independent cities in the BLS LAUS county file. A change to the reference file shows up here.
+EXPECTED_COMBINED_AREA_PARTS = {
+    "51901": {"51003", "51540"},
+    "51903": {"51005", "51580"},
+    "51907": {"51015", "51790", "51820"},
+    "51911": {"51031", "51680"},
+    "51913": {"51035", "51640"},
+    "51918": {"51053", "51570", "51730"},
+    "51919": {"51059", "51600", "51610"},
+    "51921": {"51069", "51840"},
+    "51923": {"51081", "51595"},
+    "51929": {"51089", "51690"},
+    "51931": {"51095", "51830"},
+    "51933": {"51121", "51750"},
+    "51939": {"51143", "51590"},
+    "51941": {"51149", "51670"},
+    "51942": {"51153", "51683", "51685"},
+    "51944": {"51161", "51775"},
+    "51945": {"51163", "51530", "51678"},
+    "51947": {"51165", "51660"},
+    "51949": {"51175", "51620"},
+    "51951": {"51177", "51630"},
+    "51953": {"51191", "51520"},
+    "51955": {"51195", "51720"},
+    "51958": {"51199", "51735"},
+}
+# The 15 combination areas inside a metropolitan area, and the metro each belongs to.
+EXPECTED_COMBINED_AREA_METROS = {
+    "51901": "16820", "51907": "44420", "51911": "31340", "51918": "40060", "51919": "47900",
+    "51921": "49020", "51931": "47260", "51933": "13980", "51941": "40060", "51942": "47900",
+    "51944": "40220", "51947": "25500", "51951": "47900", "51953": "28700", "51958": "47260",
+}
+
+
+def test_the_real_combined_areas_file_has_23_codes_with_the_expected_parts_and_metros():
+    parts = pd.read_csv(REAL_COMBINED_AREAS, dtype=str)
+    assert list(parts.columns) == ["bea_code", "bea_name", "county_fips", "county_name"]
+    assert not parts.duplicated(["bea_code", "county_fips"]).any()
+    found = {code: set(group["county_fips"]) for code, group in parts.groupby("bea_code")}
+    assert len(found) == 23
+    assert found == EXPECTED_COMBINED_AREA_PARTS
+
+    metro_of = load_crosswalk(metro_only=True).set_index("county_fips")["cbsa_code"]
+    by_metro = {code: set(metro_of.reindex(sorted(fips)).dropna()) for code, fips in found.items()}
+    in_metros = {code: metros for code, metros in by_metro.items() if metros}
+    assert len(in_metros) == 15
+    assert all(len(metros) == 1 for metros in in_metros.values())         # every part of a code is in one metro
+    assert {code: next(iter(metros)) for code, metros in in_metros.items()} == EXPECTED_COMBINED_AREA_METROS
+    for code in in_metros:                                                # none of the 15 has a part outside it
+        assert metro_of.reindex(sorted(found[code])).notna().all(), code
 
 
 # --------------------------------------------------------------- BLS LAUS
