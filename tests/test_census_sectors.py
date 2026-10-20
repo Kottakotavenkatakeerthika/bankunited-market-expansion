@@ -138,13 +138,33 @@ def test_an_omitted_county_sector_gives_no_row_and_counties_reported_counts_coun
     assert ("16740", "62", 2023) not in out.index                                  # no county has a 62 row: no row
 
 
-def test_a_withheld_county_still_counts_as_reported(project, crosswalk_csv):
+def test_a_withheld_county_is_not_counted_as_reported(project, crosswalk_csv):
     path = write_cbp_zip(project, 2016, [
         row("37119", "23----", est=3, emp=0, qp1=0, ap=0, flag="D", empflag="A"),
         row("45091", "23----", est=4, emp=16, qp1=30, ap=90),
     ], old_format=True)
     ingest_census.transform([path], [2016])
-    assert sectors(project).loc[("16740", "23", 2016), "cbp_counties_reported_count"] == 2
+    s23 = sectors(project).loc[("16740", "23", 2016)]
+    assert s23["cbp_counties_reported_count"] == 1                  # only York published employment and payroll
+    assert s23["cbp_establishments_count"] == 7                     # EST is still summed over both
+
+
+def test_when_some_but_not_all_counties_are_withheld_only_the_published_ones_count(project, crosswalk_csv):
+    path = write_cbp_zip(project, 2016, [
+        row("37119", "23----", est=3, emp=0, qp1=0, ap=0, flag="D", empflag="A"),      # both withheld
+        row("45091", "23----", est=4, emp=16, qp1=30, ap=90),                          # published
+        row("37119", "54----", est=2, emp=0, qp1=0, ap=0, flag="S", empflag="B"),      # both withheld
+        row("45091", "54----", est=5, emp=0, qp1=9, ap=60, empflag="C"),               # employment withheld only
+        row("37119", "62----", est=8, emp=80, qp1=9, ap=300),                          # published
+        row("45091", "62----", est=6, emp=60, qp1=9, ap=200),                          # published
+        row("01073", "62----", est=1, emp=0, qp1=0, ap=0, flag="D", empflag="A"),      # Birmingham: every county withheld
+    ], old_format=True)
+    ingest_census.transform([path], [2016])
+    out = sectors(project)
+    assert out.loc[("16740", "23", 2016), "cbp_counties_reported_count"] == 1     # 1 of 2
+    assert out.loc[("16740", "54", 2016), "cbp_counties_reported_count"] == 0     # none: employment or payroll withheld
+    assert out.loc[("16740", "62", 2016), "cbp_counties_reported_count"] == 2     # all published
+    assert out.loc[("13820", "62", 2016), "cbp_counties_reported_count"] == 0     # 0, not missing: the row exists
 
 
 def test_two_counties_sum_to_the_metro_for_every_sector_measure(project, crosswalk_csv):

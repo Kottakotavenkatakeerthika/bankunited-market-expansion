@@ -29,6 +29,8 @@ Withheld cells in the sector table (never turned into 0):
     the value field holds a literal 0. Those EMP and AP values become NaN. EST is always published.
   - 2018 onward: no cells are withheld; Census adds noise instead (flags G, H, J) and the values are
     used as published.
+  - cbp_counties_reported_count counts only the counties whose establishments, employment and payroll were all
+    published, so a withheld county is not counted (the same rule as cre_<industry>_counties_reported_count).
   - The all-industry rows keep the behavior they had before the sector table existed: their flags are
     not read.
 """
@@ -177,14 +179,18 @@ def _sectors(year: int, raw: pd.DataFrame) -> pd.DataFrame:
     if "EMPFLAG" in rows.columns:  # 2015-2017: a letter here means employment is withheld
         emp_withheld |= rows["EMPFLAG"].fillna("").str.strip() != ""
     ap_withheld = rows["AP_NF"].fillna("").str.strip().isin(WITHHELD_FLAGS)
+    establishments = pd.to_numeric(rows["EST"], errors="coerce")
+    employment = pd.to_numeric(rows["EMP"], errors="coerce").mask(emp_withheld)
+    payroll = (pd.to_numeric(rows["AP"], errors="coerce") * 1000).mask(ap_withheld)
     return pd.DataFrame({
         "county_fips": rows["county_fips"],
         "naics_code": rows["NAICS"].str[:2],
         "year": year,
-        "cbp_establishments_count": pd.to_numeric(rows["EST"], errors="coerce"),
-        "cbp_employment_count": pd.to_numeric(rows["EMP"], errors="coerce").mask(emp_withheld),
-        "cbp_annual_payroll_usd": (pd.to_numeric(rows["AP"], errors="coerce") * 1000).mask(ap_withheld),
-        "cbp_counties_reported_count": 1,  # this county has a row for the sector; the sum is the metro's count
+        "cbp_establishments_count": establishments,
+        "cbp_employment_count": employment,
+        "cbp_annual_payroll_usd": payroll,
+        # 1 when establishments, employment and payroll were all published (as in ingest_cre); the sum is the metro's count
+        "cbp_counties_reported_count": (establishments.notna() & employment.notna() & payroll.notna()).astype(int),
     })
 
 
