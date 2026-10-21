@@ -34,7 +34,7 @@ MSA_UNIVERSE = REFERENCE / "msa_universe.csv"
 FRED_SERIES = REFERENCE / "fred_series.csv"
 SPOT_CHECKS = REFERENCE / "spot_checks.csv"
 BANK_SPOT_CHECKS = REFERENCE / "bank_spot_checks.csv"  # published bank figures, e.g. from a UBPR
-BEA_COMBINED_AREAS = REFERENCE / "bea_combined_areas.csv"  # BEA's Virginia county-city codes (519xx) and their parts
+BEA_COMBINED_AREAS = REFERENCE / "bea_combined_areas.csv"  # BEA's Virginia (519xx) and Hawaii (15901) combination-area codes and their parts
 
 # --- Decisions to confirm with the pod --------------------------------------
 # Panel years. The Charlotte back-test needs years from before BankUnited entered.

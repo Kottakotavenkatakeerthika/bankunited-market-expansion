@@ -143,6 +143,7 @@ def test_a_county_that_is_also_inside_a_combined_area_is_rejected_so_it_is_not_c
 # Every part of BEA's 23 Virginia combination areas, matched by name from BEA's area names to the Virginia
 # counties and independent cities in the BLS LAUS county file. A change to the reference file shows up here.
 EXPECTED_COMBINED_AREA_PARTS = {
+    "15901": {"15005", "15009"},
     "51901": {"51003", "51540"},
     "51903": {"51005", "51580"},
     "51907": {"51015", "51790", "51820"},
@@ -167,29 +168,30 @@ EXPECTED_COMBINED_AREA_PARTS = {
     "51955": {"51195", "51720"},
     "51958": {"51199", "51735"},
 }
-# The 15 combination areas inside a metropolitan area, and the metro each belongs to.
+# The 16 combination areas inside a metropolitan area, and the metro each belongs to.
 EXPECTED_COMBINED_AREA_METROS = {
+    "15901": "27980",
     "51901": "16820", "51907": "44420", "51911": "31340", "51918": "40060", "51919": "47900",
     "51921": "49020", "51931": "47260", "51933": "13980", "51941": "40060", "51942": "47900",
     "51944": "40220", "51947": "25500", "51951": "47900", "51953": "28700", "51958": "47260",
 }
 
 
-def test_the_real_combined_areas_file_has_23_codes_with_the_expected_parts_and_metros():
+def test_the_real_combined_areas_file_has_24_codes_with_the_expected_parts_and_metros():
     parts = pd.read_csv(REAL_COMBINED_AREAS, dtype=str)
     assert list(parts.columns) == ["bea_code", "bea_name", "county_fips", "county_name"]
     assert not parts.duplicated(["bea_code", "county_fips"]).any()
     found = {code: set(group["county_fips"]) for code, group in parts.groupby("bea_code")}
-    assert len(found) == 23
+    assert len(found) == 24
     assert found == EXPECTED_COMBINED_AREA_PARTS
 
     metro_of = load_crosswalk(metro_only=True).set_index("county_fips")["cbsa_code"]
     by_metro = {code: set(metro_of.reindex(sorted(fips)).dropna()) for code, fips in found.items()}
     in_metros = {code: metros for code, metros in by_metro.items() if metros}
-    assert len(in_metros) == 15
+    assert len(in_metros) == 16
     assert all(len(metros) == 1 for metros in in_metros.values())         # every part of a code is in one metro
     assert {code: next(iter(metros)) for code, metros in in_metros.items()} == EXPECTED_COMBINED_AREA_METROS
-    for code in in_metros:                                                # none of the 15 has a part outside it
+    for code in in_metros:                                                # none of the 16 has a part outside it
         assert metro_of.reindex(sorted(found[code])).notna().all(), code
 
 

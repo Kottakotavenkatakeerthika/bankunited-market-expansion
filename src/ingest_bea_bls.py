@@ -12,8 +12,9 @@ Starting points (verify before relying on them):
   - Rates such as unemployment can't be summed across counties: aggregate the
     counts (unemployed, labor force) with counties_to_cbsa(), then divide.
   - BEA reports 23 Virginia counties together with their independent cities under codes 519xx
-    (e.g. 51919 = Fairfax + Fairfax City + Falls Church). _combined_area_stand_ins() gives each such
-    code the metro its parts are in, using data/reference/bea_combined_areas.csv.
+    (e.g. 51919 = Fairfax + Fairfax City + Falls Church), and Maui and Kalawao counties in Hawaii
+    together under 15901. _combined_area_stand_ins() gives each such code the metro its parts are in,
+    using data/reference/bea_combined_areas.csv.
 
 Availability (Data Source Log, Bhavana, 2026-09-28):
   - BEA GDP by county, with industry detail: 2001-2024
@@ -149,10 +150,10 @@ def _parse_bea_table(path: Path, measure_name: str) -> pd.DataFrame:
 
 
 def _combined_area_stand_ins(county_level: pd.DataFrame) -> dict[str, str]:
-    """For each of BEA's Virginia county-city combination codes (519xx), the FIPS of one of its parts.
+    """For each of BEA's combination-area codes (Virginia 519xx and Hawaii 15901), the FIPS of one of its parts.
 
-    BEA reports a Virginia county together with one or two adjacent independent cities under a code like
-    51919 that is not a county, so the crosswalk has no row for it. data/reference/bea_combined_areas.csv
+    BEA reports a Virginia county together with one or two adjacent independent cities, and Maui with
+    Kalawao, under a code like 51919 that is not a county, so the crosswalk has no row for it. data/reference/bea_combined_areas.csv
     lists the parts of every code; the code takes the metro its parts are in. Codes whose parts are in a
     micropolitan area or in no CBSA are left alone and drop out like any county outside a metro.
     """
