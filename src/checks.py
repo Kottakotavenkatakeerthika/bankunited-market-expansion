@@ -8,15 +8,22 @@ what was tested" for the weekly Integration & Delivery Updates.
 Column-name suffixes drive the range checks (see docs/data_dictionary.md):
 _count and _usd must be >= 0, _pct must be 0-100, _share must be 0-1.
 _net: can be negative; no range check.
+The data dictionary drives the schema checks: every processed column needs exactly
+one row in docs/data_dictionary.md, and its values must fit that row's Type (int,
+numeric, string, string(N) or date). A documented column that isn't built yet is
+only a warning, so a column can be documented before it's built.
 Published figures to compare against go in data/reference/spot_checks.csv.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from src import config
@@ -24,6 +31,7 @@ from src.utils import CODE_WIDTHS
 
 NONNEGATIVE_SUFFIXES = ("_count", "_usd")
 MOSTLY_EMPTY = 0.5  # warn when more than half of a column is empty
+DICTIONARY_TYPES = re.compile(r"int|numeric|date|string(?:\((\d+)\))?")  # the Type column's allowed values
 
 
 @dataclass
@@ -33,6 +41,95 @@ class Result:
     passed: bool
     detail: str = ""
     level: str = "error"  # "error" fails the run; "warning" is only reported
+
+
+@dataclass
+class DictionaryRow:
+    column: str
+    type: str
+    line: int  # line number in docs/data_dictionary.md, for error messages
+
+
+def read_dictionary(path: Path | None = None) -> dict[str, list[DictionaryRow]]:
+    """Each table's column rows in the data dictionary, keyed by table name.
+
+    A table's rows are the table rows (lines starting with "| `") under a heading
+    like "## msa_year: one row per metro per year". Only the Column and Type cells
+    are read; other sections, such as Conventions, are skipped.
+    """
+    path = Path(path or config.DATA_DICTIONARY)
+    tables: dict[str, list[DictionaryRow]] = {}
+    current = None
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if line.startswith("## "):
+            heading = re.match(r"##\s+`?(\w+)`?\s*:", line)
+            current = heading.group(1) if heading else None
+            if current:
+                tables.setdefault(current, [])
+            continue
+        if current and line.lstrip().startswith("| `"):
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if len(cells) >= 2:
+                tables[current].append(DictionaryRow(cells[0].strip("`"), cells[1], number))
+    return tables
+
+
+def _type_problem(values: pd.Series, column_type: str) -> str:
+    """Why a column's values don't fit its dictionary Type, or "" if they do. Missing values aren't checked."""
+    present = values.dropna()
+    if present.empty:
+        return ""
+    if column_type in ("int", "numeric"):
+        if not pd.api.types.is_numeric_dtype(values) or pd.api.types.is_bool_dtype(values):
+            return f"stored as {values.dtype}, not numbers"
+        if column_type == "int":  # decimals that are all whole numbers pass, so no stored type has to change
+            numbers = present.astype("float64")
+            fractional = ~np.isfinite(numbers) | (numbers != np.floor(numbers))
+            if fractional.any():
+                return (f"{int(fractional.sum())} values aren't whole numbers, "
+                        f"e.g. {numbers[fractional].head(3).tolist()}")
+        return ""
+    if column_type == "date":
+        return "" if pd.api.types.is_datetime64_any_dtype(values) else f"stored as {values.dtype}, not dates"
+    kind = pd.api.types.infer_dtype(present, skipna=True)  # string or string(N)
+    if kind != "string":
+        return f"holds {kind} values, not text"
+    width = DICTIONARY_TYPES.fullmatch(column_type).group(1)
+    if width:
+        wrong = present[present.str.len() != int(width)]
+        if len(wrong):
+            return f"{len(wrong)} values aren't {width} characters long, e.g. {wrong.head(3).tolist()}"
+    return ""
+
+
+def schema_checks(table: str, df: pd.DataFrame, rows: list[DictionaryRow]) -> list[Result]:
+    """Hold a processed table to its section of the data dictionary."""
+    if not rows:
+        return [Result(table, "every column has a dictionary row", False,
+                       f"docs/data_dictionary.md has no section headed '## {table}: ...'")]
+    documented = [row.column for row in rows]
+    undocumented = [col for col in df.columns if col not in documented]
+    repeated = {name: [row.line for row in rows if row.column == name]
+                for name in dict.fromkeys(documented) if documented.count(name) > 1}
+    unknown = [f"{row.column} ({row.type!r}, line {row.line})"
+               for row in rows if not DICTIONARY_TYPES.fullmatch(row.type)]
+    types = {row.column: row.type for row in rows if DICTIONARY_TYPES.fullmatch(row.type)}
+    misfits = [f"{col} ({types[col]}): {problem}" for col in df.columns
+               if col in types and (problem := _type_problem(df[col], types[col]))]
+    results = [
+        Result(table, "every column has a dictionary row", not undocumented,
+               f"no row in docs/data_dictionary.md for {undocumented}" if undocumented else ""),
+        Result(table, "no column has two dictionary rows", not repeated,
+               "; ".join(f"{name} on lines {lines}" for name, lines in repeated.items())),
+        Result(table, "every dictionary Type is known", not unknown,
+               f"{unknown}; use int, numeric, string, string(N) or date" if unknown else ""),
+        Result(table, "values fit their dictionary Type", not misfits, "; ".join(misfits)),
+    ]
+    unbuilt = [name for name in dict.fromkeys(documented) if name not in df.columns]
+    if unbuilt:
+        results.append(Result(table, "every dictionary row is built", False,
+                              f"documented but not in the table yet: {unbuilt}", level="warning"))
+    return results
 
 
 def check_table(table: str, df: pd.DataFrame) -> list[Result]:
@@ -161,12 +258,18 @@ def _write_report(results: list[Result]) -> None:
 
 def run_checks(write_report: bool = True) -> bool:
     results: list[Result] = []
+    dictionary = read_dictionary() if config.DATA_DICTIONARY.exists() else None
     for table in config.TABLES:
         path = config.PROCESSED / f"{table}.parquet"
         if not path.exists():
             continue
         df = pd.read_parquet(path)
         results += check_table(table, df)
+        if dictionary is None:
+            results.append(Result(table, "every column has a dictionary row", False,
+                                  f"{config.DATA_DICTIONARY} doesn't exist"))
+        else:
+            results += schema_checks(table, df, dictionary.get(table, []))
         if table == "msa_year":
             results += spot_checks(df)
         if table == "bank_quarter":

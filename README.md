@@ -59,6 +59,8 @@ import duckdb
 duckdb.sql("SELECT * FROM 'data/processed/msa_year.parquet' WHERE cbsa_code = '16740'").df()
 ```
 
+Each table's grain, key and joins are under [Tables and keys](docs/data_dictionary.md#tables-and-keys) in the data dictionary, which defines every column.
+
 Never edit files in `data/processed/`. Note the data version tag (e.g. `data-v0.1`) you used for each model run. Need a new variable? Ask data engineering to add it to the build rather than creating it in a notebook.
 
 ## Adding a data source
@@ -68,7 +70,7 @@ Each `src/ingest_<name>.py` has a `download()` and a `transform()` to fill in:
 1. `download()` pulls raw files with `fetch(url, SOURCE)`, or logs a file you downloaded by hand with `register_local_file()`. Either way the file lands in the manifest.
 2. `transform()` reads the raw files, maps counties to metros with `counties_to_cbsa()`, and saves with `write_interim(df, SOURCE, "msa_year")`. `write_interim()` rejects missing or repeated keys and badly named columns.
 3. Name measure columns `<source>_<measure>` and end them with a unit suffix: `_count`, `_usd` (whole dollars), `_pct`, or `_share`. The checks use these suffixes. Two more aren't range-checked: `_ratio` for a percent kept as published that can be negative or above 100, and `_usd_net` for dollars that can be negative.
-4. Add every new column to `docs/data_dictionary.md`.
+4. Add every new column to `docs/data_dictionary.md`, with its Type. The checks fail the build if a processed column has no row, has two, or holds values that don't fit its Type.
 
 ## Versioning the data
 
