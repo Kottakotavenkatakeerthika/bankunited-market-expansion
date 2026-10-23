@@ -32,6 +32,13 @@ online accounts) at their main office. Headquarters metros look far bigger and
 far more concentrated than they are; Charlotte is the extreme case. The
 as-reported columns match FDIC's published figures, and sod_main_office_deposits_usd
 isolates the booked-at-headquarters part so an adjustment can be chosen later.
+
+Concentration (msa_year): each metro-year's deposit HHI and the share held by its three
+largest banking organizations, plus that share's change from three years earlier. An
+organization is a bank's top holding company, or the bank itself if it has none, so
+affiliated banks count as one competitor. Each measure comes twice: on deposits as
+reported, and with every main office left out (the _ex_main_office columns), the
+simplest adjustment for the booked-at-headquarters problem above.
 """
 from __future__ import annotations
 
@@ -70,6 +77,8 @@ STATE_CODES = [
 
 FULL_SERVICE_BRANCH_TYPES = [11, 12]  # brick and mortar, retail office (main offices included)
 NATIONAL_CHECK_FILE = "national_check.json"  # written once a year's states match FDIC's national count
+TOP_HOLDERS = 3  # the top-3 share counts this many organizations
+CHANGE_YEARS = 3  # the top-3 share's change is measured against this many years earlier
 
 KEY_HINT = ("FDIC's API may be refusing requests without a key: get a free one at "
             "https://api.data.gov/signup/ and set FDIC_API_KEY in .env")
@@ -274,6 +283,49 @@ def _summarize(data: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
     })
 
 
+def _concentration(data: pd.DataFrame) -> pd.DataFrame:
+    """Deposit HHI, top-3 share and the top-3 share's 3-year change, one row per metro and year.
+
+    Organizations are top holders, as sod_top_holder_rssd_id in bank_msa_year. An office with
+    no RSSD ID counts with its institution (CERT), so shares are of every deposit in the
+    metro and add up to 1. Empty deposits add nothing; a metro-year with no deposits on a
+    basis gets empty measures on that basis.
+    """
+    keys = ["cbsa_code", "year"]
+    holder = data["hc_rssd_id"].fillna(data["rssd_id"]).fillna("cert " + data["cert"]).fillna("unknown")
+    bases = {
+        "deposit": data["deposits_usd"],
+        "deposit_ex_main_office": data["deposits_usd"].mask(data["main_office"], 0),
+    }
+    by_holder = pd.DataFrame({"cbsa_code": data["cbsa_code"], "year": data["year"], "holder": holder,
+                              **bases}).groupby(keys + ["holder"]).sum()  # sum() skips empty deposits
+
+    out = pd.DataFrame(index=by_holder.index.droplevel("holder").unique())
+    for base in bases:
+        amounts = by_holder[base]
+        total = amounts.groupby(level=keys).sum()
+        total = total.where(total > 0)  # no deposits on this basis: the measures stay empty
+        share = amounts / amounts.groupby(level=keys).transform("sum").where(lambda s: s > 0)
+        out[f"sod_{base}_hhi"] = ((share * 100) ** 2).groupby(level=keys).sum(min_count=1)
+        top = amounts.sort_values(ascending=False).groupby(level=keys).head(TOP_HOLDERS)
+        # Dollars over dollars, so a metro with three organizations or fewer comes out exactly 1
+        out[f"sod_top3_{base}_share"] = top.groupby(level=keys).sum() / total
+
+    out = out.reset_index()
+    for base in bases:
+        column = f"sod_top3_{base}_share"
+        earlier = out[keys + [column]].assign(year=out["year"] + CHANGE_YEARS)
+        out = out.merge(earlier, on=keys, how="left", suffixes=("", "_earlier"), validate="one_to_one")
+        out[f"{column}_3y_change_net"] = out[column] - out.pop(f"{column}_earlier")
+
+    undefined = int(out["sod_deposit_ex_main_office_hhi"].isna().sum())
+    if undefined:
+        print(f"[sod] {undefined:,} metro-years have no deposits outside main offices: "
+              "their _ex_main_office concentration is left empty")
+    measures = ["sod_{}_hhi", "sod_top3_{}_share", "sod_top3_{}_share_3y_change_net"]
+    return out.set_index(keys)[[measure.format(base) for measure in measures for base in bases]]
+
+
 def build_tables(offices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Office rows (with cbsa_code) -> (msa_year, bank_msa_year)."""
     data = offices.assign(
@@ -283,7 +335,7 @@ def build_tables(offices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     metro = _summarize(data, ["cbsa_code", "year"])
     metro["sod_institutions_count"] = data.groupby(["cbsa_code", "year"])["cert"].nunique()
-    metro = metro.reset_index()
+    metro = metro.join(_concentration(data), validate="one_to_one").reset_index()
 
     no_id = data["rssd_id"].isna()
     if no_id.any():

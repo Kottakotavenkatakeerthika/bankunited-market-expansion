@@ -47,6 +47,17 @@ def test_checks_pass_then_catch_a_negative_amount(project):
     assert not checks.run_checks()
 
 
+def test_an_hhi_outside_0_to_10000_fails(project):
+    table = pd.DataFrame({"cbsa_code": ["16740", "13820"], "year": [2023, 2023], "sod_deposit_hhi": [10_000.0, 0.0]})
+
+    def hhi_check():
+        return next(r for r in checks.check_table("msa_year", table) if r.check == "sod_deposit_hhi within 0-10,000")
+
+    assert hhi_check().passed  # both ends are allowed
+    table.loc[0, "sod_deposit_hhi"] = 10_000.5
+    assert not hhi_check().passed
+
+
 def test_spot_checks_compare_with_published_figures(project):
     seed(project)
     build_panel.build_all()
