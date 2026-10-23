@@ -20,8 +20,9 @@ Source (checked 2026-10-04):
     and set FDIC_API_KEY in .env. fetch() keeps it out of the manifest.
   - Fields: YEAR, CERT, RSSDID, RSSDHCR (top regulatory holding company, 0 = none),
     NAMEFULL, NAMEHCR, BRNUM, UNINUMBR, BKMO (1 = main office), BRSERTYP (service
-    type: 11 = full-service brick and mortar, 12 = full-service retail office;
-    main offices carry one of these too, so they count as branches),
+    type: 11 = full-service brick and mortar, 12 = full-service retail office,
+    13 = full-service home banking; nearly all main offices are 11, so they count
+    as branches),
     STALPBR, STCNTYBR (branch state + county FIPS), DEPSUMBR (branch deposits,
     in $1,000s: converted to whole dollars), MSABR (FDIC's own metro code, used
     only as a cross-check on our crosswalk).
@@ -32,6 +33,9 @@ online accounts) at their main office. Headquarters metros look far bigger and
 far more concentrated than they are; Charlotte is the extreme case. The
 as-reported columns match FDIC's published figures, and sod_main_office_deposits_usd
 isolates the booked-at-headquarters part so an adjustment can be chosen later.
+Some banks book large deposits at a home-banking office (BRSERTYP 13) that isn't
+their main office instead, e.g. Capital One in Wilmington, DE and USAA in San Antonio;
+sod_home_banking_office_deposits_usd isolates those.
 
 Concentration (msa_year): each metro-year's deposit HHI and the share held by its three
 largest banking organizations, plus that share's change from three years earlier. An
@@ -76,6 +80,7 @@ STATE_CODES = [
 ]
 
 FULL_SERVICE_BRANCH_TYPES = [11, 12]  # brick and mortar, retail office (main offices included)
+HOME_BANKING_TYPE = 13  # full-service home banking: no branch, but some banks book large deposits there
 NATIONAL_CHECK_FILE = "national_check.json"  # written once a year's states match FDIC's national count
 TOP_HOLDERS = 3  # the top-3 share counts this many organizations
 CHANGE_YEARS = 3  # the top-3 share's change is measured against this many years earlier
@@ -278,6 +283,7 @@ def _summarize(data: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
     return pd.DataFrame({
         "sod_deposits_usd": grouped["deposits_usd"].sum(min_count=1),  # all empty stays empty
         "sod_main_office_deposits_usd": grouped["main_office_deposits_usd"].sum(),
+        "sod_home_banking_office_deposits_usd": grouped["home_banking_office_deposits_usd"].sum(),
         "sod_offices_count": grouped.size(),
         "sod_branches_count": grouped["full_service"].sum(),
     })
@@ -330,6 +336,9 @@ def build_tables(offices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Office rows (with cbsa_code) -> (msa_year, bank_msa_year)."""
     data = offices.assign(
         main_office_deposits_usd=offices["deposits_usd"].where(offices["main_office"], 0),
+        # A main office of this type stays with the main offices, so the two parts never overlap
+        home_banking_office_deposits_usd=offices["deposits_usd"].where(
+            offices["service_type"].eq(HOME_BANKING_TYPE).fillna(False) & ~offices["main_office"], 0),
         full_service=offices["service_type"].isin(FULL_SERVICE_BRANCH_TYPES),
     )
 
@@ -360,7 +369,8 @@ def build_tables(offices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     metro[count_columns + ["sod_institutions_count"]] = metro[count_columns + ["sod_institutions_count"]].astype("int64")
     bank[count_columns] = bank[count_columns].astype("int64")
     bank_columns = keys + ["sod_cert", "sod_bank_name", "sod_top_holder_rssd_id", "sod_top_holder_name",
-                           "sod_deposits_usd", "sod_main_office_deposits_usd", "sod_offices_count",
+                           "sod_deposits_usd", "sod_main_office_deposits_usd",
+                           "sod_home_banking_office_deposits_usd", "sod_offices_count",
                            "sod_branches_count", "sod_deposit_share"]
     return metro, bank[bank_columns]
 

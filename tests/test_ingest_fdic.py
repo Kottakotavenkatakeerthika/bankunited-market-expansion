@@ -205,6 +205,28 @@ def test_concentration_counts_organizations_and_compares_with_three_years_earlie
     assert out.loc[("33333", 2022)].isna().all()
 
 
+def test_home_banking_offices_get_their_own_deposit_column():
+    def row(cert, brnum, deposits, main=False, service=11):
+        return {"year": 2024, "cert": cert, "brnum": brnum, "rssd_id": f"{cert}0", "hc_rssd_id": None,
+                "bank_name": f"Bank {cert}", "hc_name": None, "main_office": main, "service_type": float(service),
+                "county_fips": "37119", "deposits_usd": deposits, "fdic_cbsa": "16740", "cbsa_code": "16740"}
+
+    offices = pd.DataFrame([
+        row("1", "0", 100.0, main=True),
+        row("1", "1", 40.0, service=13),             # a home-banking office that isn't the main office
+        row("2", "0", 30.0, main=True, service=13),  # an internet bank's main office stays with the main offices
+        row("2", "1", 10.0),
+    ]).astype({column: "string" for column in ("cert", "brnum", "rssd_id", "hc_rssd_id", "bank_name", "hc_name",
+                                               "county_fips", "fdic_cbsa", "cbsa_code")})
+
+    metro, bank = ingest_fdic.build_tables(offices)
+    charlotte = metro.set_index(["cbsa_code", "year"]).loc[("16740", 2024)]
+    assert charlotte["sod_main_office_deposits_usd"] == 130 and charlotte["sod_home_banking_office_deposits_usd"] == 40
+    assert charlotte["sod_branches_count"] == 2  # home-banking offices aren't branches
+    banks = bank.set_index("rssd_id")["sod_home_banking_office_deposits_usd"]
+    assert banks.to_dict() == {"10": 40, "20": 0}
+
+
 def test_a_state_too_big_for_one_request_stops_the_pull(fdic_api, monkeypatch):
     monkeypatch.setattr(ingest_fdic, "PAGE_SIZE", 2)
     with pytest.raises(ValueError, match="don't fit in one 2-row request"):
