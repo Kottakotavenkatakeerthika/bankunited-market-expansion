@@ -35,6 +35,7 @@ FRED_SERIES = REFERENCE / "fred_series.csv"
 SPOT_CHECKS = REFERENCE / "spot_checks.csv"
 BANK_SPOT_CHECKS = REFERENCE / "bank_spot_checks.csv"  # published bank figures, e.g. from a UBPR
 BEA_COMBINED_AREAS = REFERENCE / "bea_combined_areas.csv"  # BEA's Virginia (519xx) and Hawaii (15901) combination-area codes and their parts
+DATA_DICTIONARY = ROOT / "docs" / "data_dictionary.md"  # the checks hold every processed column to it
 
 # --- Decisions to confirm with the pod --------------------------------------
 # Panel years. The Charlotte back-test needs years from before BankUnited entered.
@@ -60,6 +61,7 @@ TABLES = {
     "msa_year": ["cbsa_code", "year"],
     "bank_quarter": ["rssd_id", "quarter_end"],
     "bank_msa_year": ["rssd_id", "cbsa_code", "year"],
+    "msa_naics_year": ["cbsa_code", "naics_code", "year"],
 }
 
 # --- Secrets ----------------------------------------------------------------

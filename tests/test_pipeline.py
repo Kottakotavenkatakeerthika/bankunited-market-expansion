@@ -8,7 +8,8 @@ from src.crosswalk import counties_to_cbsa
 from src.utils import write_interim
 
 
-def test_pipeline_runs_end_to_end_and_skips_unbuilt_sources(project, crosswalk_csv, monkeypatch):
+def test_pipeline_runs_end_to_end_and_skips_unbuilt_sources(project, crosswalk_csv, document, monkeypatch):
+    document("msa_year", "demo_jobs_count", "int")  # the checks fail the run for an undocumented column
     finished = types.ModuleType("src.ingest_finished")
 
     def run(years=None, force=False):

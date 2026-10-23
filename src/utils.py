@@ -21,7 +21,7 @@ from src import config
 MANIFEST_COLUMNS = ["source", "file", "url", "pulled_at_utc", "sha256", "bytes", "notes"]
 
 # Code columns and their fixed widths. Identifiers are kept as unpadded strings.
-CODE_WIDTHS = {"cbsa_code": 5, "county_fips": 5, "metro_division_code": 5, "state_fips": 2}
+CODE_WIDTHS = {"cbsa_code": 5, "county_fips": 5, "metro_division_code": 5, "state_fips": 2, "naics_code": 2}
 ID_COLUMNS = ("rssd_id",)
 
 # Query parameters that carry credentials. Never written to the manifest.

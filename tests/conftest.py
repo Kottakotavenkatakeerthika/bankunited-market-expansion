@@ -14,8 +14,12 @@ def project(tmp_path, monkeypatch):
     The folder gets a copy of the real BEA combined-areas file, which a test can overwrite.
     """
     real_combined_areas = config.BEA_COMBINED_AREAS
+    dictionary = tmp_path / "docs" / "data_dictionary.md"
+    dictionary.parent.mkdir()
+    dictionary.write_text(config.DATA_DICTIONARY.read_text(encoding="utf-8"), encoding="utf-8")
     data = tmp_path / "data"
     paths = {
+        "DATA_DICTIONARY": dictionary,
         "DATA": data,
         "RAW": data / "raw",
         "INTERIM": data / "interim",
@@ -42,6 +46,24 @@ def project(tmp_path, monkeypatch):
         "notes": ["pilot", ""],
     }).to_csv(paths["MSA_UNIVERSE"], index=False)
     return paths
+
+
+@pytest.fixture
+def document(project):
+    """Add a row to the test copy of the data dictionary: document("msa_year", "demo_jobs_count", "int")."""
+    def add(table, column, column_type):
+        path = project["DATA_DICTIONARY"]
+        lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+        in_section, last_row = False, None
+        for i, line in enumerate(lines):
+            if line.startswith("## "):
+                in_section = line.startswith(f"## {table}:")
+            elif in_section and line.startswith("| `"):
+                last_row = i
+        assert last_row is not None, f"no rows under '## {table}:' in the dictionary"
+        lines.insert(last_row + 1, f"| `{column}` | {column_type} | | Added by a test | | | |\n")
+        path.write_text("".join(lines), encoding="utf-8")
+    return add
 
 
 @pytest.fixture
