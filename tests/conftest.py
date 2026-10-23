@@ -1,3 +1,5 @@
+import shutil
+
 import pandas as pd
 import pytest
 from openpyxl import Workbook
@@ -7,8 +9,11 @@ from src import config
 
 @pytest.fixture
 def project(tmp_path, monkeypatch):
-    """Point every path in config at a throwaway data/ folder with a two-metro universe,
-    and the data dictionary at a copy that a test can add rows to (see `document`)."""
+    """Point every path in config at a throwaway data/ folder with a two-metro universe.
+
+    The folder gets a copy of the real BEA combined-areas file, which a test can overwrite.
+    """
+    real_combined_areas = config.BEA_COMBINED_AREAS
     dictionary = tmp_path / "docs" / "data_dictionary.md"
     dictionary.parent.mkdir()
     dictionary.write_text(config.DATA_DICTIONARY.read_text(encoding="utf-8"), encoding="utf-8")
@@ -26,12 +31,14 @@ def project(tmp_path, monkeypatch):
         "FRED_SERIES": data / "reference" / "fred_series.csv",
         "SPOT_CHECKS": data / "reference" / "spot_checks.csv",
         "BANK_SPOT_CHECKS": data / "reference" / "bank_spot_checks.csv",
+        "BEA_COMBINED_AREAS": data / "reference" / "bea_combined_areas.csv",
     }
     for name, value in paths.items():
         monkeypatch.setattr(config, name, value)
     monkeypatch.setattr(config, "YEARS", [2022, 2023])
     for name in ("RAW", "INTERIM", "PROCESSED", "REFERENCE"):
         paths[name].mkdir(parents=True)
+    shutil.copy(real_combined_areas, paths["BEA_COMBINED_AREAS"])
     pd.DataFrame({
         "cbsa_code": ["16740", "13820"],
         "cbsa_title": ["Charlotte-Concord-Gastonia, NC-SC", "Birmingham, AL"],

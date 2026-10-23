@@ -11,6 +11,10 @@ Starting points (verify before relying on them):
   - BLS QCEW annual averages by county (open-data files or API).
   - Rates such as unemployment can't be summed across counties: aggregate the
     counts (unemployed, labor force) with counties_to_cbsa(), then divide.
+  - BEA reports 23 Virginia counties together with their independent cities under codes 519xx
+    (e.g. 51919 = Fairfax + Fairfax City + Falls Church), and Maui and Kalawao counties in Hawaii
+    together under 15901. _combined_area_stand_ins() gives each such code the metro its parts are in,
+    using data/reference/bea_combined_areas.csv.
 
 Availability (Data Source Log, Bhavana, 2026-09-28):
   - BEA GDP by county, with industry detail: 2001-2024
@@ -45,7 +49,7 @@ from pathlib import Path
 import pandas as pd
 
 from src import config
-from src.crosswalk import counties_to_cbsa
+from src.crosswalk import counties_to_cbsa, load_crosswalk
 from src.utils import fetch, normalize_code, write_interim
 
 SOURCE_BEA = "bea"
@@ -145,12 +149,49 @@ def _parse_bea_table(path: Path, measure_name: str) -> pd.DataFrame:
     return frame[["county_fips", "year", measure_name]].dropna(subset=["year"])
 
 
+def _combined_area_stand_ins(county_level: pd.DataFrame) -> dict[str, str]:
+    """For each of BEA's combination-area codes (Virginia 519xx and Hawaii 15901), the FIPS of one of its parts.
+
+    BEA reports a Virginia county together with one or two adjacent independent cities, and Maui with
+    Kalawao, under a code like 51919 that is not a county, so the crosswalk has no row for it. data/reference/bea_combined_areas.csv
+    lists the parts of every code; the code takes the metro its parts are in. Codes whose parts are in a
+    micropolitan area or in no CBSA are left alone and drop out like any county outside a metro.
+    """
+    parts = pd.read_csv(config.BEA_COMBINED_AREAS, dtype=str)
+    parts["bea_code"] = normalize_code(parts["bea_code"], 5)
+    parts["county_fips"] = normalize_code(parts["county_fips"], 5)
+    metro_of = load_crosswalk(metro_only=True).set_index("county_fips")["cbsa_code"]
+    parts["cbsa_code"] = parts["county_fips"].map(metro_of)
+
+    stand_ins = {}
+    for code, group in parts.groupby("bea_code"):
+        metros = group["cbsa_code"].dropna().unique()
+        if len(metros) == 0:
+            continue
+        if len(metros) > 1 or group["cbsa_code"].isna().any():
+            places = {fips: cbsa if isinstance(cbsa, str) else "not in a metro"
+                      for fips, cbsa in zip(group["county_fips"], group["cbsa_code"])}
+            raise ValueError(f"bea: combined area {code} ({group['bea_name'].iloc[0]}) has parts in different "
+                             f"places {places}; one BEA value can't be split, so decide how to assign it")
+        stand_ins[code] = group.loc[group["cbsa_code"].notna(), "county_fips"].iloc[0]
+
+    mapped_parts = set(parts.loc[parts["bea_code"].isin(stand_ins), "county_fips"])
+    doubled = sorted(mapped_parts & set(county_level["county_fips"]))
+    if doubled:
+        raise ValueError(f"bea: {doubled} appear in the BEA data on their own and inside a combined area; "
+                         "adding both would count them twice")
+    return stand_ins
+
+
 def _transform_bea(paths: list[Path], years: list[int]) -> Path:
     by_table = {path.stem: path for path in paths if path.parent.name == SOURCE_BEA}
     income = _parse_bea_table(by_table["cainc1"], "bea_personal_income_usd")
     gdp = _parse_bea_table(by_table["cagdp2"], "bea_gdp_usd")
     county_level = income.merge(gdp, on=["county_fips", "year"], how="outer")
     county_level = county_level[county_level["year"].isin(years)]
+
+    stand_ins = _combined_area_stand_ins(county_level)
+    county_level = county_level.assign(county_fips=county_level["county_fips"].replace(stand_ins))
 
     metro_level = counties_to_cbsa(
         county_level,
