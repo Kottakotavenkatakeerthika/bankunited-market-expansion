@@ -229,11 +229,15 @@ def _read_one_qcew_year(path: Path, year: int) -> pd.DataFrame:
             total = df[(df["own_code"] == "0") & (df["industry_code"].str.strip() == "10")]
             if total.empty:
                 continue
+            employment = pd.to_numeric(total["annual_avg_emplvl"].iloc[0], errors="coerce")
+            wages = pd.to_numeric(total["total_annual_wages"].iloc[0], errors="coerce")
+            if "disclosure_code" in total.columns and str(total["disclosure_code"].iloc[0]).strip() == "N":
+                employment = wages = float("nan")  # suppressed: the file shows 0, but the value is not published
             rows.append({
                 "county_fips": total["area_fips"].iloc[0],
                 "year": year,
-                "bls_qcew_employment_count": pd.to_numeric(total["annual_avg_emplvl"].iloc[0], errors="coerce"),
-                "bls_qcew_total_wages_usd": pd.to_numeric(total["total_annual_wages"].iloc[0], errors="coerce"),
+                "bls_qcew_employment_count": employment,
+                "bls_qcew_total_wages_usd": wages,
             })
     return pd.DataFrame(rows)
 
