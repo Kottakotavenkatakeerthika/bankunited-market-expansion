@@ -5,6 +5,10 @@
 msa_year is built on the full MSA-universe x years grid, so a value a source
 doesn't report shows up as an empty cell rather than a missing row.
 
+build_all() first writes data/interim/msa_year/bankunited.parquet from the
+bank_msa_year interim files (src/bankunited.py), so BankUnited's own footprint
+lands in msa_year without a download of its own.
+
     python -m src.build_panel
 """
 from __future__ import annotations
@@ -13,7 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src import config
+from src import bankunited, config
 from src.utils import standardize_keys
 
 # zstd instead of pandas' default snappy: with 2015 Q1 to 2026 Q2, bank_quarter is 53.6 MiB with
@@ -72,6 +76,7 @@ def build_table(table: str) -> Path | None:
 
 
 def build_all() -> dict[str, Path | None]:
+    bankunited.build_presence()  # derived from bank_msa_year's interim files, so it goes first
     return {table: build_table(table) for table in config.TABLES}
 
 
