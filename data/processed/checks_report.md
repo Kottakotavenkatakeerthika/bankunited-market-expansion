@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-10-17 23:54 UTC on commit `dd70ec9`
+Run 2026-10-23 08:09 UTC on commit `09834a6`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -21,6 +21,8 @@ Run 2026-10-17 23:54 UTC on commit `dd70ec9`
 | msa_year | cbp_employment_count >= 0 | pass |  |
 | msa_year | cbp_first_quarter_payroll_usd >= 0 | pass |  |
 | msa_year | cbp_annual_payroll_usd >= 0 | pass |  |
+| msa_year | cbp_establishments_20plus_count >= 0 | pass |  |
+| msa_year | cbp_establishments_20_249_count >= 0 | pass |  |
 | msa_year | cra_small_business_loan_count >= 0 | pass |  |
 | msa_year | cra_small_business_loan_amount_usd >= 0 | pass |  |
 | msa_year | cre_real_estate_establishments_count >= 0 | pass |  |
@@ -42,6 +44,10 @@ Run 2026-10-17 23:54 UTC on commit `dd70ec9`
 | msa_year | sod_branches_count >= 0 | pass |  |
 | msa_year | sod_institutions_count >= 0 | pass |  |
 | msa_year | fred_unemployment_rate_pct mostly filled | warning | 100% empty |
+| msa_year | every column has a dictionary row | pass |  |
+| msa_year | no column has two dictionary rows | pass |  |
+| msa_year | every dictionary Type is known | pass |  |
+| msa_year | values fit their dictionary Type | pass |  |
 | msa_year | spot check: cbp_establishments_count for 16740 in 2023 | pass | built 71,411.00 vs published 71,411.00 Census County Business Patterns, 2023 MSA-level file cbp23msa.zip (https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23msa.zip), row msa=16740 naics=------ (all-industry total), field EST=71411. This file uses the 2023 OMB delineation (includes Anson County, 37007); the 2021 file (cbp21msa.zip, EST=67674) does not and falls short by exactly Anson's 380 establishments, so use 2022 or later. Retrieved 2026-10-01. |
 | msa_year | spot check: bea_gdp_usd for 16740 in 2023 | pass | built 259,146,518,000.00 vs published 255,666,417,000.00 BEA current-dollar GDP by metro area, as republished on FRED series NGMP16740 (https://fred.stlouisfed.org/series/NGMP16740, Total Gross Domestic Product for Charlotte-Concord-Gastonia, NC-SC (MSA), millions of dollars), observation 2023-01-01 value=255666.417 (x1,000,000). Series is discontinued, last updated 2024-12-04 (BEA December 2024 vintage); our pull is a later BEA revision, hence the 2% tolerance. The gap is a vintage difference, not a pipeline error: summing Charlotte's 11 counties from the same December 2024 release (lagdp1224.xlsx) gives $206.53B vs FRED's $206.55B metro figure (within 0.007%), and Mecklenburg alone was revised from $139.16B to $141.41B (+1.6%), matching the size of the overall gap. Both checks were done on real GDP (chained 2017 dollars), since that release only publishes real GDP by county; current-dollar revisions are assumed to be similar. Retrieved 2026-09-30. |
 | msa_year | spot check: bls_qcew_employment_count for 16740 in 2024 | pass | built 1,339,734.00 vs published 1,339,736.00 BLS QCEW 2024 annual-by-area file 2024_annual_by_area.zip (https://www.bls.gov/cew/data/files/2024/csv/2024_annual_by_area.zip), inner file '2024.annual C1674 Charlotte-Concord-Gastonia, NC-SC MSA.csv', row own_code=0 industry_code=10 (all ownerships, all industries), field annual_avg_emplvl=1339736. QCEW MSA files before 2024 use the pre-2023 delineation (no Anson County), so use 2024 or later. Retrieved 2026-09-30. |
@@ -58,6 +64,8 @@ Run 2026-10-17 23:54 UTC on commit `dd70ec9`
 | msa_year | spot check: cre_real_estate_payroll_usd for 16740 in 2023 | pass | built 1,163,068,000.00 vs published 1,163,068,000.00 Same file and row, field AP=1,163,068 ($1,000s), converted to whole dollars. https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23msa.zip. Retrieved 2026-10-07. |
 | msa_year | spot check: cre_nonres_construction_establishments_count for 16740 in 2023 | pass | built 376.00 vs published 367.00 Census County Business Patterns, 2023 MSA-level file cbp23msa.zip (https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23msa.zip), row msa=16740 naics=2362//, field EST=367. Tolerance is 3%: Lancaster County, SC has no 2362 row in the CBP county file, so its establishments come from BLS QCEW, while Census's own metro total implies about 2 there (367 minus the other counties' 365). QCEW counts establishments differently from CBP, so the two sources do not tie exactly (built 376 vs 367, about 2.5%). See cre_nonres_construction_qcew_fallback_counties_count (1 in 2023). Retrieved 2026-10-07. |
 | msa_year | spot check: cre_real_estate_establishments_count for 16740 in 2024 | pass | built 5,006.00 vs published 5,005.00 BLS QCEW 2024 annual-by-area file 2024_annual_by_area.zip (https://www.bls.gov/cew/data/files/2024/csv/2024_annual_by_area.zip), inner file '2024.annual C1674 Charlotte-Concord-Gastonia, NC-SC MSA.csv', row own_code=5 industry_code=531 (private ownership, real estate), field annual_avg_estabs_count=5005. CBP has no 2024 file, so 2024 comes from QCEW; the row's disclosure_code is N, which suppresses employment and wages but not the establishment count. QCEW MSA files before 2024 use the pre-2023 delineation (no Anson County), so use 2024 or later. Retrieved 2026-10-08. |
+| msa_year | spot check: cbp_establishments_20plus_count for 16740 in 2023 | pass | built 11,309.00 vs published 11,309.00 Census County Business Patterns, 2023 MSA-level file cbp23msa.zip (https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23msa.zip), row msa=16740 naics=------ (all-industry total), fields EST=71411 minus N<5=39615, N5_9=11663 and N10_19=8824 (establishments with 20 or more employees). Retrieved 2026-10-19. |
+| msa_year | spot check: cbp_establishments_20_249_count for 16740 in 2023 | pass | built 10,737.00 vs published 10,737.00 Census County Business Patterns, 2023 MSA-level file cbp23msa.zip (https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23msa.zip), row msa=16740 naics=------ (all-industry total), fields N20_49=7113 plus N50_99=2364 and N100_249=1260 (establishments with 20 to 249 employees). Retrieved 2026-10-19. |
 | bank_quarter | key columns present | pass |  |
 | bank_quarter | no empty keys | pass |  |
 | bank_quarter | one row per key | pass |  |
@@ -93,6 +101,10 @@ Run 2026-10-17 23:54 UTC on commit `dd70ec9`
 | bank_quarter | call_ci_loans_over_1m_usd >= 0 | pass |  |
 | bank_quarter | call_nonfarm_nonres_loans_over_1m_usd >= 0 | pass |  |
 | bank_quarter | call_ci_loans_non_us_addressees_usd mostly filled | warning | 77% empty |
+| bank_quarter | every column has a dictionary row | pass |  |
+| bank_quarter | no column has two dictionary rows | pass |  |
+| bank_quarter | every dictionary Type is known | pass |  |
+| bank_quarter | values fit their dictionary Type | pass |  |
 | bank_quarter | spot check: call_total_assets_usd for RSSD 3938186 on 2026-06-30 | pass | built 34,864,976,000.00 vs published 34,864,976,000.00 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, ASSET 34864976 ($000s), retrieved 2026-10-12 |
 | bank_quarter | spot check: call_leverage_ratio for RSSD 3938186 on 2026-06-30 | pass | built 9.43 vs published 9.43 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, RBC1AAJ 9.4266, retrieved 2026-10-12 |
 | bank_quarter | spot check: call_noninterest_bearing_deposits_usd for RSSD 3938186 on 2026-06-30 | pass | built 10,145,045,000.00 vs published 10,145,045,000.00 FDIC BankFind API /financials, BankUnited N.A. (CERT 58979), REPDTE 20260630, DEPNI 10145045 ($000s), retrieved 2026-10-15 |
@@ -122,3 +134,20 @@ Run 2026-10-17 23:54 UTC on commit `dd70ec9`
 | bank_msa_year | sod_offices_count mostly filled | warning | 72% empty |
 | bank_msa_year | sod_branches_count mostly filled | warning | 72% empty |
 | bank_msa_year | sod_deposit_share mostly filled | warning | 72% empty |
+| bank_msa_year | every column has a dictionary row | pass |  |
+| bank_msa_year | no column has two dictionary rows | pass |  |
+| bank_msa_year | every dictionary Type is known | pass |  |
+| bank_msa_year | values fit their dictionary Type | pass |  |
+| msa_naics_year | key columns present | pass |  |
+| msa_naics_year | no empty keys | pass |  |
+| msa_naics_year | one row per key | pass |  |
+| msa_naics_year | cbsa_code is 5 digits | pass |  |
+| msa_naics_year | naics_code is 2 digits | pass |  |
+| msa_naics_year | cbp_establishments_count >= 0 | pass |  |
+| msa_naics_year | cbp_employment_count >= 0 | pass |  |
+| msa_naics_year | cbp_annual_payroll_usd >= 0 | pass |  |
+| msa_naics_year | cbp_counties_reported_count >= 0 | pass |  |
+| msa_naics_year | every column has a dictionary row | pass |  |
+| msa_naics_year | no column has two dictionary rows | pass |  |
+| msa_naics_year | every dictionary Type is known | pass |  |
+| msa_naics_year | values fit their dictionary Type | pass |  |
