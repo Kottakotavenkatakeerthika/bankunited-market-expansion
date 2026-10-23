@@ -45,6 +45,20 @@ Call Reports (checked 2026-10-12):
     them. FFIEC 031 filers report Part II for domestic offices while their C&I
     total includes foreign offices, so their C&I over $1M includes any C&I to
     U.S. addressees booked in foreign offices.
+  - Fields for the ML pod's peer measures (checked 2026-10-23 against every bank
+    in 2015 Q2 and 2025 Q2): RBC is total risk-based capital (3792): it equals
+    tier 1 plus tier 2 (RBCT1 + RBCT2), and RBCRWAJ is 100 x RBC / RWAJT. It is
+    negative for a few insolvent banks, so its column is _usd_net. Since
+    2020, banks that elect the community bank leverage ratio (CBLRIND = 1; 1,717
+    banks in 2025 Q2) report no risk-based capital, and FDIC shows 0 for RBC,
+    RBCRWAJ and IDT1CER; those are left empty. DEPUNA is the estimated uninsured
+    deposits (RCON5597), which only banks with $1 billion or more in total
+    assets report; FDIC shows 0 for the rest (99.5% of smaller banks in 2015 Q2),
+    so a 0 is left empty. LNNDEPD is loans to nondepository financial
+    institutions in domestic offices (J454), filled for every form since 2015;
+    the consolidated version (LNNDEPC) starts later, so it isn't used. ILNQ is
+    the quarter's own interest and fee income on loans (RIAD4010); banks report
+    year to date, so a quarter's figure can be negative.
 
 Small-business lending by bank (checked 2026-10-12 against FFIEC's 2015 and 2024
 Disclosure and Transmittal specs, <YY>FlatDiscSpecs.pdf and <YY>FlatTransSpecs.pdf
@@ -110,6 +124,8 @@ RECENT_DAYS = 200  # quarters that ended this recently are pulled again on every
 
 ID_FIELDS = ["CERT", "REPDTE", "RSSDID", "RSSDHCR", "NAMEFULL", "NAME", "NAMEHCR", "STALP", "CALLFORM"]
 REQUIRED_FIELDS = ["CERT", "REPDTE", "RSSDID"]
+CBLR_FLAG = "CBLRIND"  # 1 = the bank uses the community bank leverage ratio (from 2020); used, not kept
+FLAG_FIELDS = [CBLR_FLAG]
 
 # FDIC field -> our column. The column's suffix sets the unit:
 #   _usd       reported in $1,000s, converted to whole dollars, never negative
@@ -127,6 +143,7 @@ CALL_FIELDS = {
     "BRO": "call_brokered_deposits_usd",
     "DEPNI": "call_noninterest_bearing_deposits_usd",
     "DEPNIDOM": "call_domestic_noninterest_bearing_deposits_usd",
+    "DEPUNA": "call_uninsured_deposits_usd",
     "LNLSGR": "call_total_loans_usd",
     "LNLSNET": "call_net_loans_usd",
     "LNATRES": "call_loan_loss_allowance_usd_net",
@@ -142,9 +159,11 @@ CALL_FIELDS = {
     "LNCINUS": "call_ci_loans_non_us_addressees_usd",
     "LNAG": "call_agricultural_loans_usd",
     "LNCON": "call_consumer_loans_usd",
+    "LNNDEPD": "call_nondepository_fi_loans_usd",
     "SC": "call_securities_usd",
     "NCLNLS": "call_noncurrent_loans_usd",
     "EQ": "call_equity_capital_usd_net",
+    "RBC": "call_total_risk_based_capital_usd_net",
     # Loans to small businesses (Schedule RC-C Part II): original amounts of $1M or less
     "LNCI4": "call_ci_loans_1m_or_less_usd",
     "LNCI4N": "call_ci_loans_1m_or_less_count",
@@ -152,6 +171,7 @@ CALL_FIELDS = {
     "LNRENR4N": "call_nonfarm_nonres_loans_1m_or_less_count",
     # Income for the quarter alone
     "NIMQ": "call_quarter_net_interest_income_usd_net",
+    "ILNQ": "call_quarter_loan_interest_income_usd_net",
     "NONIIQ": "call_quarter_noninterest_income_usd_net",
     "NONIXQ": "call_quarter_noninterest_expense_usd_net",
     "NETINCQ": "call_quarter_net_income_usd_net",
@@ -188,6 +208,9 @@ OVER_1M = {
     "call_nonfarm_nonres_loans_over_1m_usd": (
         "call_nonfarm_nonres_loans_usd", None, "call_nonfarm_nonres_loans_1m_or_less_usd"),
 }
+# Fields FDIC shows as 0 for banks that don't report them (see the docstring)
+RISK_BASED_FIELDS = ["RBC", "IDT1CER", "RBCRWAJ"]  # not reported by community bank leverage ratio banks
+LARGE_BANK_ONLY_FIELDS = ["DEPUNA"]  # reported only by banks with $1 billion or more in total assets
 
 
 def _unit(column: str) -> str:
@@ -258,7 +281,7 @@ def _published_count(stamp: str) -> int:
 
 
 def _requested_fields() -> list[str]:
-    return ID_FIELDS + list(CALL_FIELDS)
+    return ID_FIELDS + FLAG_FIELDS + list(CALL_FIELDS)
 
 
 def _fields_missing_from(path: Path) -> list[str]:
@@ -350,7 +373,7 @@ def _read_banks(paths: list[Path]) -> pd.DataFrame:
     if unknown:
         raise ValueError(f"call: FDIC returned no {unknown} in any quarter. It drops field names it doesn't "
                          "know, so check them against https://api.fdic.gov/banks/docs/ and fix CALL_FIELDS")
-    for optional in ID_FIELDS:
+    for optional in ID_FIELDS + FLAG_FIELDS:
         if optional not in raw.columns:
             raw[optional] = pd.NA
     return raw
@@ -396,6 +419,7 @@ def build_bank_quarter(raw: pd.DataFrame) -> pd.DataFrame:
             except (TypeError, ValueError):  # a fractional count: keep it as published
                 pass
         banks[column] = values
+    banks = _blank_not_reported(banks, raw[CBLR_FLAG])
     banks = _add_over_1m(_blank_unreported_small_loans(banks))
 
     no_id = banks["rssd_id"].isna()
@@ -430,6 +454,30 @@ def _blank_unreported_small_loans(banks: pd.DataFrame) -> pd.DataFrame:
     blank = form.eq(NO_PART_II_FORM).fillna(False) | (off_quarter & ~reported)
     for column in columns:
         banks[column] = banks[column].mask(blank)
+    return banks
+
+
+def _blank_not_reported(banks: pd.DataFrame, cblr_flag: pd.Series) -> pd.DataFrame:
+    """Empty the values FDIC shows as 0 for banks that don't report them.
+
+    A community bank leverage ratio bank reports no risk-based capital, and a bank under
+    $1 billion doesn't report uninsured deposits. A 0 there would read as "no capital"
+    or "no uninsured deposits" and pull any average toward 0.
+    """
+    cblr = pd.to_numeric(cblr_flag, errors="coerce").eq(1).fillna(False)
+    if cblr.any():
+        print(f"[call] {int(cblr.sum()):,} bank-quarters use the community bank leverage ratio; "
+              "their risk-based capital columns are left empty")
+    for field in RISK_BASED_FIELDS:
+        column = CALL_FIELDS[field]
+        banks[column] = banks[column].mask(cblr)
+    for field in LARGE_BANK_ONLY_FIELDS:
+        column = CALL_FIELDS[field]
+        zero = banks[column].eq(0).fillna(False)
+        if zero.any():
+            print(f"[call] {int(zero.sum()):,} bank-quarters show 0 for {field}, which banks under "
+                  f"$1 billion don't report; {column} left empty there")
+        banks[column] = banks[column].mask(zero)
     return banks
 
 
