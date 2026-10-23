@@ -69,6 +69,12 @@ in the folder below; the layouts are the same in both years):
   - Each lender gets its RSSD ID from the transmittal (Respondent ID + Agency
     Code + year), so it lines up with SOD and Call Reports. Lending by a lender
     without one still counts in metro totals and shares.
+  - Each lender's top holding company, for rolling lending up to organizations as
+    sod_top_holder_rssd_id does for deposits, comes from its last Call Report on or
+    before December 31 of the year (call_top_holder_rssd_id in bank_quarter's
+    interim file, which transform() writes first). Nearly every lender has a
+    December 31 report; one that stopped filing during the year keeps the holder
+    from its last report, and one with no report by then gets an empty holder.
   - Every lender's lending, summed by metro, is checked against Bhavana's
     all-lender totals in data/interim/msa_year/cra.parquet (when that file
     exists). A misread column or report level would throw off most metros and
@@ -713,6 +719,37 @@ def _reconcile(metro_all: pd.DataFrame) -> None:
           f"{len(both) - len(off):,} of {len(both):,} metro-years; every year's total is within {year_gaps.max():.2%}")
 
 
+HOLDER_COLUMNS = {"call_top_holder_rssd_id": "cra_bank_top_holder_rssd_id",
+                  "call_top_holder_name": "cra_bank_top_holder_name"}
+
+
+def _add_top_holders(bank: pd.DataFrame) -> pd.DataFrame:
+    """Each lender's top holding company at the end of the year, from its last Call Report on or before December 31."""
+    bank = bank.assign(rssd_id=bank["rssd_id"].astype("string"))
+    lenders = bank[["rssd_id", "year"]].drop_duplicates()
+    path = config.INTERIM / "bank_quarter" / f"{SOURCE_CALL}.parquet"
+    if path.exists():
+        calls = pd.read_parquet(path, columns=["rssd_id", "quarter_end", *HOLDER_COLUMNS])
+        calls = calls.assign(rssd_id=calls["rssd_id"].astype("string"),
+                             quarter_end=pd.to_datetime(calls["quarter_end"]).astype("datetime64[ns]"))
+        year_end = pd.to_datetime(lenders["year"].astype(str) + "-12-31").astype("datetime64[ns]")
+        found = pd.merge_asof(lenders.assign(year_end=year_end).sort_values("year_end"),
+                              calls.dropna(subset=["rssd_id"]).sort_values("quarter_end"),
+                              left_on="year_end", right_on="quarter_end", by="rssd_id", direction="backward")
+        missing = int(found["call_top_holder_rssd_id"].isna().sum())
+        if missing:
+            print(f"[cra_bank] {missing:,} lender-years have no Call Report by December 31: holder left empty")
+    else:
+        print("[cra_bank] holders left empty: data/interim/bank_quarter/call.parquet isn't built yet "
+              "(run the Call Reports first)")
+        found = lenders.assign(**{column: pd.NA for column in HOLDER_COLUMNS})
+    found = found.rename(columns=HOLDER_COLUMNS)[["rssd_id", "year", *HOLDER_COLUMNS.values()]]
+    found = found.astype({column: "string" for column in HOLDER_COLUMNS.values()})
+    out = bank.merge(found, on=["rssd_id", "year"], how="left", validate="many_to_one")
+    first = ["rssd_id", "cbsa_code", "year", "cra_bank_lender_name", *HOLDER_COLUMNS.values()]
+    return out[first + [column for column in out.columns if column not in first]]
+
+
 def transform_cra_bank(paths: list[Path], years: list[int]) -> Path:
     """Lender x county rows -> bank x metro x year; save bank_msa_year with write_interim()."""
     disclosures = sorted(p for p in paths if p.name.endswith("exp_discl.zip") and _file_year(p, "discl") in years)
@@ -729,7 +766,7 @@ def transform_cra_bank(paths: list[Path], years: list[int]) -> Path:
     data = lending.merge(lenders, on=LENDER, how="left", validate="many_to_one")
     metro_all, bank = build_cra_bank_tables(data)
     _reconcile(metro_all)
-    return write_interim(bank, SOURCE_CRA_BANK, "bank_msa_year")
+    return write_interim(_add_top_holders(bank), SOURCE_CRA_BANK, "bank_msa_year")
 
 
 # --------------------------------------------------------------- interface

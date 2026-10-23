@@ -411,6 +411,7 @@ def test_cra_lending_rolls_lenders_up_to_banks_by_metro(ffiec_site, capsys):
     out = capsys.readouterr().out
     assert "2023: 3 lenders, 95.4% of the dollars matched to an RSSD ID" in out  # 1 - 0.2M / 4.36M
     assert "within 2% for 3 of 3 metro-years; every year's total is within 0.00%" in out
+    assert "holders left empty: data/interim/bank_quarter/call.parquet isn't built yet" in out  # CRA alone
 
     bank = pd.read_parquet(config.INTERIM / "bank_msa_year" / "cra_bank.parquet").set_index(["rssd_id", "cbsa_code", "year"])
     assert len(bank) == 4  # the lender without an RSSD ID and the micropolitan county are left out
@@ -486,10 +487,41 @@ def test_cra_needs_the_transmittal_for_rssd_ids(ffiec_site):
         ingest_ffiec.transform(paths, [2023])
 
 
-def test_full_ffiec_run_fills_both_bank_tables(fdic_api, ffiec_site):
+def test_full_ffiec_run_fills_both_bank_tables(fdic_api, ffiec_site, capsys):
     bhavanas_totals()
     outputs = ingest_ffiec.run(years=[2022, 2023])
     assert sorted(p.relative_to(config.INTERIM).as_posix() for p in outputs) == [
         "bank_msa_year/cra_bank.parquet", "bank_quarter/call.parquet"]
+    # The Call Reports are built first, so CRA lenders get their holding company from them
+    assert "2 lender-years have no Call Report by December 31" in capsys.readouterr().out
+    bank = pd.read_parquet(config.INTERIM / "bank_msa_year" / "cra_bank.parquet").set_index(["rssd_id", "cbsa_code", "year"])
+    holder = bank[["cra_bank_top_holder_rssd_id", "cra_bank_top_holder_name"]]
+    assert tuple(holder.loc[("480228", "16740", 2023)]) == ("1073757", "Holding A")  # its December 31, 2023 report
+    assert holder.loc[("480228", "16740", 2022)].isna().all()  # the fake publishes no 2022 quarters
+    assert holder.loc[("999", "13820", 2023)].isna().all()  # no Call Report at all
     build_panel.build_all()
     assert checks.run_checks()
+
+
+def test_cra_lenders_take_the_holder_on_their_last_call_report_of_the_year(project, capsys):
+    from src.utils import write_interim
+
+    write_interim(pd.DataFrame({
+        "rssd_id": ["1", "1", "2", "3", "5"],
+        "quarter_end": pd.to_datetime(["2022-12-31", "2023-06-30", "2023-12-31", "2022-12-31", "2024-03-31"]),
+        "call_top_holder_rssd_id": ["100", "200", "2", "300", "500"],
+        "call_top_holder_name": ["Old Holding", "New Holding", "Bank 2", "Holding 3", "Holding 5"],
+    }), "call", "bank_quarter")
+    bank = pd.DataFrame({"rssd_id": ["1", "1", "2", "3", "5"], "cbsa_code": "16740", "year": [2022, 2023, 2023, 2023, 2023],
+                         "cra_bank_lender_name": "A lender", "cra_bank_small_business_loan_count": 1})
+
+    out = ingest_ffiec._add_top_holders(bank)
+    assert list(out.columns[:6]) == ["rssd_id", "cbsa_code", "year", "cra_bank_lender_name",
+                                     "cra_bank_top_holder_rssd_id", "cra_bank_top_holder_name"]
+    holders = out.set_index(["rssd_id", "year"])["cra_bank_top_holder_rssd_id"]
+    assert holders[("1", 2022)] == "100"  # December 31
+    assert holders[("1", 2023)] == "200"  # stopped filing after June: its last report that year
+    assert holders[("2", 2023)] == "2"  # no holding company: the bank itself, as the Call Report gives it
+    assert holders[("3", 2023)] == "300"  # no 2023 report: its last earlier one
+    assert pd.isna(holders[("5", 2023)])  # only a later report, which isn't used
+    assert "1 lender-years have no Call Report by December 31" in capsys.readouterr().out
