@@ -166,8 +166,9 @@ def test_a_county_that_is_also_inside_a_combined_area_is_rejected_so_it_is_not_c
         ingest_bea_bls._transform_bea([income, gdp], [2023])
 
 
-# Every part of BEA's 23 Virginia combination areas, matched by name from BEA's area names to the Virginia
-# counties and independent cities in the BLS LAUS county file. A change to the reference file shows up here.
+# Every part of BEA's 24 combination areas (23 in Virginia, plus Maui + Kalawao in Hawaii), matched by name from
+# BEA's area names to the counties and independent cities in the BLS LAUS county file. A change to the reference
+# file shows up here.
 EXPECTED_COMBINED_AREA_PARTS = {
     "15901": {"15005", "15009"},
     "51901": {"51003", "51540"},
