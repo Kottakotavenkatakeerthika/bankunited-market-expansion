@@ -35,6 +35,8 @@ FRED_SERIES = REFERENCE / "fred_series.csv"
 SPOT_CHECKS = REFERENCE / "spot_checks.csv"
 BANK_SPOT_CHECKS = REFERENCE / "bank_spot_checks.csv"  # published bank figures, e.g. from a UBPR
 BEA_COMBINED_AREAS = REFERENCE / "bea_combined_areas.csv"  # BEA's Virginia (519xx) and Hawaii (15901) combination-area codes and their parts
+HOLDER_LISTINGS = REFERENCE / "holder_listings.csv"  # ticker and SEC CIK per top holding company, checked by hand (src/peers.py)
+PEER_ORGANIZATIONS = REFERENCE / "peer_organizations.csv"  # the peer band's organizations and their identifiers (src/peers.py)
 DATA_DICTIONARY = ROOT / "docs" / "data_dictionary.md"  # the checks hold every processed column to it
 
 # --- Decisions to confirm with the pod --------------------------------------
@@ -51,6 +53,10 @@ DELINEATION_URL = (
     "https://www2.census.gov/programs-surveys/metro-micro/geographies/"
     "reference-files/2023/delineation-files/list1_2023.xlsx"
 )
+
+# Peer band for the ML pod's peer set: organizations (a bank's top holding company, or the bank
+# itself if it has none) with $10B-$100B in total assets. Confirmed by the sponsor 10/19 (blocker B1).
+PEER_ASSETS_USD = (10_000_000_000, 100_000_000_000)
 
 # Ingest modules run by run_pipeline, in this order: src/ingest_<name>.py
 SOURCES = ["census", "pep", "bea_bls", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: cre reads the QCEW files that bea_bls downloads

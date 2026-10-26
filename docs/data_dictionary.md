@@ -59,6 +59,21 @@ erDiagram
     }
 ```
 
+## Bank identifiers and the peer set
+
+`rssd_id`, the Federal Reserve's RSSD ID, is the bank key in every table because every bank source carries it. The Call Reports and SOD also carry FDIC's certificate number (`call_cert`, `sod_cert`); CRA carries only the RSSD ID. Join on `rssd_id`, not the certificate: in some mergers the surviving bank takes the other bank's certificate, so 12 RSSD IDs changed certificates in 2015–2026 and 15 certificates moved from one RSSD ID to another. New York Community Bank (RSSD 694904), for one, has reported as Flagstar Bank, N.A. under Flagstar's certificate 32541 since its December 31, 2022 Call Report. Within one quarter, each certificate belongs to one RSSD ID; the checks fail the build otherwise.
+
+The checks also warn where SOD and CRA disagree with the Call Reports. In 2015–2024 there are four cases:
+
+- **New York Community Bank and Flagstar, 2022.** SOD's 2022 survey lists Flagstar Bank's offices other than its main office (15 metros in Michigan, Indiana, Wisconsin and California) under RSSD 694904 with Flagstar's certificate 32541, though the two banks still filed separate June 30, 2022 Call Reports (Flagstar under RSSD 146672). So RSSD 694904's 2022 SOD deposits include those offices, and its Call Report doesn't.
+- **Park State Bank, 2021.** SOD's 2021 survey lists Park State Bank (certificate 8851, RSSD 286457 in the Call Reports) under RSSD 716655, the RSSD ID of American Bank of the North, whose last Call Report is March 31, 2021. So that year Park State Bank's deposits in Duluth and Minneapolis sit under an RSSD ID with no June Call Report, and RSSD 286457 has no SOD rows.
+- **Bank of China, 2015–2024.** SOD lists an office in the New York metro under certificate 33652 (RSSD 125707) every year, with $0.5–0.7 billion in deposits, but FDIC's `/financials` has no report under that certificate, so it has no `bank_quarter` rows. Bank of China's larger New York branch, certificate 33653 (RSSD 908508), is in both.
+- **CRA lenders without a Call Report that year.** First Midwest Bank and Great Western Bank (2022), Standard Bank and Trust (2017) and MutualBank (2020) reported CRA lending for a year in which they filed no Call Report. Each filed its last one the December before, as a bank merged into another early in the year would.
+
+SOD's and the Call Reports' top holders, `sod_top_holder_rssd_id` and `call_top_holder_rssd_id` (June 30), agree for 98.6% of the 37,204 bank-years that have both, and for at least 99.2% in each year from 2016 on. 2015 is the exception at 93.7%: in 249 of its 276 differences, SOD lists the bank as its own top holder while the Call Report names a holding company. To group banks into organizations next to their financials, use `call_top_holder_rssd_id`.
+
+**The peer set.** `data/reference/peer_organizations.csv` lists the organizations with $10B–$100B in total assets at one quarter end (`PEER_ASSETS_USD` in `src/config.py`): 126 organizations with 168 banks at June 30, 2026. An organization is a top holder, as `call_top_holder_rssd_id` groups banks. Each row has the organization's banks' RSSD IDs and certificates, largest bank first, and its ticker, exchange and SEC CIK from `data/reference/holder_listings.csv`. That file is checked by hand against SEC's company ticker list and each company's filings, and its `checked` column dates each row. 101 of the 126 have a ticker. `listing_note` says why the rest don't (no SEC-registered stock, a mutual, or a foreign parent without SEC registration), and whose ticker it is when the listed company isn't the top holder itself, such as a nonbank parent or the bank itself. `organization_type` marks the six insured U.S. branches of foreign banks, which file the FFIEC 002 instead of a Call Report. After a new quarter, `python -m src.peers` rewrites the file and names any organization that enters the band without a row in `holder_listings.csv`; add its row before using the file. Owner: Austin. Added 2026-10-26.
+
 ## msa_year: one row per metro per year
 
 | Column | Type | Unit | Definition | Source and field | Released | Transformation |

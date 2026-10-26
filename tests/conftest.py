@@ -32,6 +32,8 @@ def project(tmp_path, monkeypatch):
         "SPOT_CHECKS": data / "reference" / "spot_checks.csv",
         "BANK_SPOT_CHECKS": data / "reference" / "bank_spot_checks.csv",
         "BEA_COMBINED_AREAS": data / "reference" / "bea_combined_areas.csv",
+        "HOLDER_LISTINGS": data / "reference" / "holder_listings.csv",
+        "PEER_ORGANIZATIONS": data / "reference" / "peer_organizations.csv",
     }
     for name, value in paths.items():
         monkeypatch.setattr(config, name, value)
