@@ -147,9 +147,11 @@ def _parse_bea_table(path: Path, measure_name: str) -> pd.DataFrame:
     frame = frame.loc[frame["GeoFips"].str.fullmatch(r"\d{5}")]  # counties only, drop states/US
     frame["county_fips"] = normalize_code(frame["GeoFips"], 5)
     frame["year"] = pd.to_numeric(frame["TimePeriod"], errors="coerce").astype("Int64")
-    frame[measure_name] = (
-        pd.to_numeric(frame["DataValue"].str.replace(",", "", regex=False), errors="coerce") * 1000
-    )
+    values = pd.to_numeric(frame["DataValue"].str.replace(",", "", regex=False), errors="coerce")
+    # BEA's API answers 0 for an area in years BEA doesn't report it, such as Connecticut's planning
+    # regions before 2024 (BEA used the old counties until then). No county really has zero GDP or
+    # personal income, so a 0 is left empty rather than summed into a metro as $0.
+    frame[measure_name] = values.mask(values == 0) * 1000
     return frame[["county_fips", "year", measure_name]].dropna(subset=["year"])
 
 
