@@ -75,7 +75,7 @@ def build(quarter_end=None) -> Path:
     for row in unlisted.itertuples():
         print(f"[peers] {row.top_holder_rssd_id} {row.top_holder_name} is in the peer band but has no row in "
               f"{config.HOLDER_LISTINGS.name}: add its listing")
-    peers.to_csv(config.PEER_ORGANIZATIONS, index=False, lineterminator="\n")  # the same bytes on Windows
+    peers.to_csv(config.PEER_ORGANIZATIONS, index=False)
     print(f"[peers] {len(peers)} organizations with ${config.PEER_ASSETS_USD[0] / 1e9:,.0f}B-"
           f"${config.PEER_ASSETS_USD[1] / 1e9:,.0f}B at {quarter_end:%Y-%m-%d} "
           f"({int(peers['bank_count'].sum())} banks, {int((peers['ticker'].fillna('') != '').sum())} with a ticker)")
