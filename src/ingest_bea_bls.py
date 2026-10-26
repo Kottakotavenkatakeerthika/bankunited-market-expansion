@@ -1,8 +1,12 @@
 """BEA regional accounts and BLS labor data by county.
 
 Outputs:
-  data/interim/msa_year/bea.parquet   keys: cbsa_code, year   measures: bea_*
-  data/interim/msa_year/bls.parquet   keys: cbsa_code, year   measures: bls_*
+  data/interim/msa_year/bea.parquet           keys: cbsa_code, year   measures: bea_*
+  data/interim/msa_year/bls.parquet           keys: cbsa_code, year   measures: bls_*
+  data/interim/msa_year_history/bea.parquet   keys: cbsa_code, year   measures: bea_* (config.HISTORY_YEARS)
+
+The BEA files hold every year BEA publishes, so the years before the panel come from the same
+download: the ML pod asked for history back to 2010 for its 10-year volatility measures.
 
 Starting points (verify before relying on them):
   - BEA Regional API (BEA_API_KEY in .env): county tables such as CAINC1 (personal
@@ -183,7 +187,7 @@ def _combined_area_stand_ins(county_level: pd.DataFrame) -> dict[str, str]:
     return stand_ins
 
 
-def _transform_bea(paths: list[Path], years: list[int]) -> Path:
+def _transform_bea(paths: list[Path], years: list[int], table: str = "msa_year") -> Path:
     by_table = {path.stem: path for path in paths if path.parent.name == SOURCE_BEA}
     income = _parse_bea_table(by_table["cainc1"], "bea_personal_income_usd")
     gdp = _parse_bea_table(by_table["cagdp2"], "bea_gdp_usd")
@@ -200,7 +204,7 @@ def _transform_bea(paths: list[Path], years: list[int]) -> Path:
         by=("year",),
         metro_only=True,
     )
-    return write_interim(metro_level, SOURCE_BEA, "msa_year")
+    return write_interim(metro_level, SOURCE_BEA, table)
 
 
 # --------------------------------------------------------------- BLS LAUS transform
@@ -305,15 +309,19 @@ def _transform_qcew(paths: list[Path]) -> pd.DataFrame:
 
 # --------------------------------------------------------------- combine and run
 def transform(paths: list[Path], years: list[int]) -> list[Path]:
-    """County rows -> metro-year; save with write_interim(df, SOURCE_BEA or SOURCE_BLS, "msa_year")."""
+    """County rows -> metro-year; save with write_interim(df, SOURCE_BEA or SOURCE_BLS, "msa_year").
+
+    BEA's years before the panel (config.HISTORY_YEARS) go to msa_year_history.
+    """
     bea_path = _transform_bea(paths, years)
+    history_path = _transform_bea(paths, config.HISTORY_YEARS, table="msa_year_history")
 
     laus = _transform_laus(paths)
     qcew = _transform_qcew(paths)
     bls_combined = laus.merge(qcew, on=["cbsa_code", "year"], how="outer")
     bls_path = write_interim(bls_combined, SOURCE_BLS, "msa_year")
 
-    return [bea_path, bls_path]
+    return [bea_path, history_path, bls_path]
 
 
 def run(years: list[int] | None = None, force: bool = False) -> list[Path]:

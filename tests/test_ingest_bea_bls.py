@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from openpyxl import Workbook
 
-from src import config, ingest_bea_bls
+from src import build_panel, checks, config, ingest_bea_bls
 from src.crosswalk import load_crosswalk
 
 REAL_COMBINED_AREAS = config.BEA_COMBINED_AREAS     # read before any test repoints config
@@ -44,6 +44,22 @@ def test_bea_missing_markers_and_state_rows_do_not_enter_the_metro_total(project
     row = bea_result(project).loc[("16740", 2023)]
     assert row["bea_personal_income_usd"] == 1_000_000      # York's "(NA)" adds nothing; the state value is not included
     assert row["bea_gdp_usd"] == 10_000
+
+
+def test_bea_years_before_the_panel_go_to_their_own_table(project, crosswalk_csv):
+    income = write_bea_json(project, "cainc1", [("37119", "2014", "1,000"), ("37119", "2015", "2,000")])
+    gdp = write_bea_json(project, "cagdp2", [("37119", "2014", "30"), ("37119", "2015", "40")])
+    path = ingest_bea_bls._transform_bea([income, gdp], config.HISTORY_YEARS, table="msa_year_history")
+    assert path == project["INTERIM"] / "msa_year_history" / "bea.parquet"
+    history = pd.read_parquet(path).set_index(["cbsa_code", "year"])
+    assert list(history.index) == [("16740", 2014)]     # 2015 belongs to msa_year
+    assert history.loc[("16740", 2014), "bea_personal_income_usd"] == 1_000_000
+
+    build_panel.build_all()
+    table = pd.read_parquet(project["PROCESSED"] / "msa_year_history.parquet")
+    assert len(table) == 2 * len(config.HISTORY_YEARS)  # the universe's two metros in every history year
+    assert table["bea_gdp_usd"].notna().sum() == 1
+    assert checks.run_checks()
 
 
 def test_bea_download_asks_for_the_current_dollar_gdp_table_and_personal_income(project, monkeypatch):

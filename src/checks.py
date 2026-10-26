@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 
 from src import config
+from src.build_panel import grid_years
 from src.utils import CODE_WIDTHS
 
 NONNEGATIVE_SUFFIXES = ("_count", "_usd")
@@ -152,9 +153,10 @@ def check_table(table: str, df: pd.DataFrame) -> list[Result]:
             results.append(Result(table, f"{col} is {width} digits", bad.empty,
                                   f"{len(bad)} malformed, e.g. {bad.head(3).tolist()}" if len(bad) else ""))
 
-    if table == "msa_year" and config.MSA_UNIVERSE.exists():
+    years = grid_years(table)
+    if years is not None and config.MSA_UNIVERSE.exists():
         universe = pd.read_csv(config.MSA_UNIVERSE, dtype=str)["cbsa_code"].dropna().str.strip().str.zfill(5)
-        expected = {(code, year) for code in universe for year in config.YEARS}
+        expected = {(code, year) for code in universe for year in years}
         present = set(zip(df["cbsa_code"].astype(str), df["year"].astype(int)))
         gaps = sorted(expected - present)
         results.append(Result(table, "every universe metro has every year", not gaps,

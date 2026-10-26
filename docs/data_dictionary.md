@@ -31,12 +31,15 @@ Every column in `data/processed/` gets exactly one row here, in the same pull re
 | `msa_year` | metro and year | `cbsa_code`, `year` | Every metro in `data/reference/msa_universe.csv` (393), 2015–2024 |
 | `bank_quarter` | bank and quarter | `rssd_id`, `quarter_end` | Every FDIC-insured bank with an RSSD ID, 2015 Q1 through the latest quarter FDIC has published |
 | `bank_msa_year` | bank, metro and year | `rssd_id`, `cbsa_code`, `year` | Every bank with an office (SOD) or small business lending (CRA) in a metro, 2015–2024 |
+| `msa_naics_year` | metro, industry sector and year | `cbsa_code`, `naics_code`, `year` | Every metro-sector with a CBP row, 2015–2023 (387 metros, 20 sectors) |
+| `msa_year_history` | metro and year, before the panel | `cbsa_code`, `year` | Every metro in `data/reference/msa_universe.csv` (393), 2010–2014. BEA only, with the same column names as `msa_year` |
 
 Key columns are never empty and never repeat; the checks fail the build otherwise.
 
 How the tables join:
 
 - **A bank in a metro, next to the metro's economy:** `bank_msa_year` to `msa_year` on `cbsa_code` and `year`.
+- **BEA back to 2010:** stack `msa_year_history` on top of `msa_year`'s `bea_` columns. The metros and column names are the same, so the two make one 2010–2024 series.
 - **A bank's metro footprint, next to its financials:** `bank_msa_year` to `bank_quarter` on `rssd_id`, with one quarter of `year`. The June 30 quarter matches the SOD survey date, and the December 31 quarter closes the calendar year the CRA loans cover.
 - **Organizations:** affiliated banks share `call_top_holder_rssd_id` in `bank_quarter` and `sod_top_holder_rssd_id` in `bank_msa_year`. Group by it to treat them as one competitor.
 
@@ -230,3 +233,17 @@ Every column comes from the FDIC BankFind API `/financials`, FDIC's posting of e
 **Check: lenders against the metro totals (CRA).** Every lender's lending, summed by metro, should equal `cra_small_business_loan_count` and `cra_small_business_loan_amount_usd` in msa_year, which come from FFIEC's aggregate files. The build stops if more than 1% of metro-years are more than 2% apart, or if any year's total across all metros is more than 0.5% apart, since a misread column would do that. Smaller, isolated gaps are printed on every run instead. In FFIEC's 2015 files, Oklahoma City (36420) and Tulsa (46140) add up 4% to 6% below the aggregate totals; the cause isn't traced yet, and every other metro-year matches within 2%. Owner: Austin. Flagged 2026-10-12.
 
 **Note: rows from either source.** A row exists when SOD or CRA has the bank in that metro that year. `sod_` columns are empty where a bank lends in a metro but has no office there, which is most rows, and `cra_bank_` columns are empty for banks below the CRA threshold and for years CRA hasn't published. That's why the checks warn that the `sod_` columns are mostly empty. Owner: Austin. Added 2026-10-12.
+
+## msa_year_history: one row per metro per year before the panel
+
+The years before `msa_year` starts (`HISTORY_YEARS` in `src/config.py`, 2010–2014), for the ML pod's 10-year volatility measures. Only BEA is here so far. The columns have the same names, sources and transformations as in `msa_year`, so stacking the two tables gives one series from 2010 on. The BEA files hold every year BEA publishes, so this needs no download of its own.
+
+| Column | Type | Unit | Definition | Source and field | Released | Transformation |
+|---|---|---|---|---|---|---|
+| `cbsa_code` | string(5) | | Metro (CBSA) code | OMB delineation, List 1 | | |
+| `cbsa_title` | string | | Metro name | `data/reference/msa_universe.csv` | | |
+| `year` | int | | Year the measures describe, 2010–2014 | | | |
+| `bea_personal_income_usd` | numeric | usd | Total personal income of residents, current dollars, as in `msa_year` | BEA Regional API, table CAINC1 line 1 "Personal income", county field `DataValue` (reported in $1,000s) | First released April 25, 2012 (2010), November 26, 2012 (2011), November 21, 2013 (2012), November 20, 2014 (2013) and November 19, 2015 (2014); the table holds BEA's latest revision | As in `msa_year`, including the Virginia and Hawaii combination areas |
+| `bea_gdp_usd` | numeric | usd | Gross domestic product, all industries, current dollars, as in `msa_year` | BEA Regional API, table CAGDP2 line 1, county field `DataValue` (reported in $1,000s) | December 12, 2019 for every year: BEA's first official county GDP release, covering 2001–2018 | As in `msa_year`, including the Virginia and Hawaii combination areas |
+
+Puerto Rico's six metros have no values here: BEA doesn't cover Puerto Rico.

@@ -43,6 +43,10 @@ DATA_DICTIONARY = ROOT / "docs" / "data_dictionary.md"  # the checks hold every 
 START_YEAR = 2015
 END_YEAR = 2024
 YEARS = list(range(START_YEAR, END_YEAR + 1))
+# Years before the panel, for the ML pod's 10-year volatility measures. Only BEA goes back this
+# far so far, in its own table (msa_year_history), so msa_year keeps one set of years for every source.
+HISTORY_START_YEAR = 2010
+HISTORY_YEARS = list(range(HISTORY_START_YEAR, START_YEAR))
 
 # One OMB delineation vintage for every source and every year.
 # July 2023 = OMB Bulletin 23-01; check census.gov's delineation-files page for a newer one.
@@ -62,6 +66,7 @@ TABLES = {
     "bank_quarter": ["rssd_id", "quarter_end"],
     "bank_msa_year": ["rssd_id", "cbsa_code", "year"],
     "msa_naics_year": ["cbsa_code", "naics_code", "year"],
+    "msa_year_history": ["cbsa_code", "year"],
 }
 
 # --- Secrets ----------------------------------------------------------------
