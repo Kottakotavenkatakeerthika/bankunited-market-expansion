@@ -59,6 +59,16 @@ Call Reports (checked 2026-10-12):
     the consolidated version (LNNDEPC) starts later, so it isn't used. ILNQ is
     the quarter's own interest and fee income on loans (RIAD4010); banks report
     year to date, so a quarter's figure can be negative.
+  - More zeros that mean "not reported" (checked 2026-10-26 against data-v0.4 and
+    FDIC's 2026 Q2 data): FFIEC 002 filers (17 insured U.S. branches of foreign
+    banks) file no capital schedule and no income statement. FDIC leaves their
+    equity, capital and quarterly income empty, but shows 0 for RBC1AAJ, IDT1CER,
+    RBCRWAJ, ROA, NIMY, EEFFR and NTLNLSR, so those zeros are left empty. FDIC
+    also shows an IDT1CER of 0 for some banks with a positive RBCRWAJ, nearly all
+    non-deposit trust companies (BlackRock Institutional Trust in 2026 Q2 has
+    CET1 capital RBCT1C of $812M against risk-weighted assets RWAJT of $615M);
+    that CET1 ratio is left empty too. After these rules no bank-quarter has a
+    leverage, CET1 or total risk-based capital ratio of exactly 0.
 
 Small-business lending by bank (checked 2026-10-12 against FFIEC's 2015 and 2024
 Disclosure and Transmittal specs, <YY>FlatDiscSpecs.pdf and <YY>FlatTransSpecs.pdf
@@ -211,6 +221,8 @@ OVER_1M = {
 # Fields FDIC shows as 0 for banks that don't report them (see the docstring)
 RISK_BASED_FIELDS = ["RBC", "IDT1CER", "RBCRWAJ"]  # not reported by community bank leverage ratio banks
 LARGE_BANK_ONLY_FIELDS = ["DEPUNA"]  # reported only by banks with $1 billion or more in total assets
+FOREIGN_BRANCH_FORM = "002"  # insured U.S. branches of foreign banks: no capital schedule or income statement
+FOREIGN_BRANCH_ZERO_FIELDS = ["RBC1AAJ", "IDT1CER", "RBCRWAJ", "ROA", "NIMY", "EEFFR", "NTLNLSR"]  # 0 there
 
 
 def _unit(column: str) -> str:
@@ -460,9 +472,12 @@ def _blank_unreported_small_loans(banks: pd.DataFrame) -> pd.DataFrame:
 def _blank_not_reported(banks: pd.DataFrame, cblr_flag: pd.Series) -> pd.DataFrame:
     """Empty the values FDIC shows as 0 for banks that don't report them.
 
-    A community bank leverage ratio bank reports no risk-based capital, and a bank under
-    $1 billion doesn't report uninsured deposits. A 0 there would read as "no capital"
-    or "no uninsured deposits" and pull any average toward 0.
+    A community bank leverage ratio bank reports no risk-based capital, a bank under
+    $1 billion doesn't report uninsured deposits, and an insured branch of a foreign bank
+    files no capital schedule or income statement. FDIC also shows a CET1 ratio of 0 for
+    some banks whose total risk-based capital ratio it does compute, nearly all trust
+    companies. A 0 there would read as "no capital" or "no uninsured deposits" and pull
+    any average toward 0.
     """
     cblr = pd.to_numeric(cblr_flag, errors="coerce").eq(1).fillna(False)
     if cblr.any():
@@ -471,6 +486,19 @@ def _blank_not_reported(banks: pd.DataFrame, cblr_flag: pd.Series) -> pd.DataFra
     for field in RISK_BASED_FIELDS:
         column = CALL_FIELDS[field]
         banks[column] = banks[column].mask(cblr)
+    branch = banks["call_report_form"].eq(FOREIGN_BRANCH_FORM).fillna(False)
+    if branch.any():
+        print(f"[call] {int(branch.sum()):,} bank-quarters are insured U.S. branches of foreign banks (FFIEC 002); "
+              "the capital and earnings ratios FDIC shows as 0 for them are left empty")
+    for field in FOREIGN_BRANCH_ZERO_FIELDS:
+        column = CALL_FIELDS[field]
+        banks[column] = banks[column].mask(branch & banks[column].eq(0).fillna(False))
+    cet1, total = CALL_FIELDS["IDT1CER"], CALL_FIELDS["RBCRWAJ"]
+    no_cet1 = banks[cet1].eq(0).fillna(False) & banks[total].gt(0).fillna(False)
+    if no_cet1.any():
+        print(f"[call] {int(no_cet1.sum()):,} bank-quarters show a CET1 ratio of 0 next to a positive total "
+              f"risk-based capital ratio (FDIC computes none for them, mostly trust companies); {cet1} left empty")
+    banks[cet1] = banks[cet1].mask(no_cet1)
     for field in LARGE_BANK_ONLY_FIELDS:
         column = CALL_FIELDS[field]
         zero = banks[column].eq(0).fillna(False)
