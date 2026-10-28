@@ -1,8 +1,12 @@
 """BEA regional accounts and BLS labor data by county.
 
 Outputs:
-  data/interim/msa_year/bea.parquet   keys: cbsa_code, year   measures: bea_*
-  data/interim/msa_year/bls.parquet   keys: cbsa_code, year   measures: bls_*
+  data/interim/msa_year/bea.parquet           keys: cbsa_code, year   measures: bea_*
+  data/interim/msa_year/bls.parquet           keys: cbsa_code, year   measures: bls_*
+  data/interim/msa_year_history/bea.parquet   keys: cbsa_code, year   measures: bea_* (config.HISTORY_YEARS)
+
+The BEA files hold every year BEA publishes, so the years before the panel come from the same
+download: the ML pod asked for history back to 2010 for its 10-year volatility measures.
 
 Starting points (verify before relying on them):
   - BEA Regional API (BEA_API_KEY in .env): county tables such as CAINC1 (personal
@@ -143,9 +147,11 @@ def _parse_bea_table(path: Path, measure_name: str) -> pd.DataFrame:
     frame = frame.loc[frame["GeoFips"].str.fullmatch(r"\d{5}")]  # counties only, drop states/US
     frame["county_fips"] = normalize_code(frame["GeoFips"], 5)
     frame["year"] = pd.to_numeric(frame["TimePeriod"], errors="coerce").astype("Int64")
-    frame[measure_name] = (
-        pd.to_numeric(frame["DataValue"].str.replace(",", "", regex=False), errors="coerce") * 1000
-    )
+    values = pd.to_numeric(frame["DataValue"].str.replace(",", "", regex=False), errors="coerce")
+    # BEA's API answers 0 for an area in years BEA doesn't report it, such as Connecticut's planning
+    # regions before 2024 (BEA used the old counties until then). No county really has zero GDP or
+    # personal income, so a 0 is left empty rather than summed into a metro as $0.
+    frame[measure_name] = values.mask(values == 0) * 1000
     return frame[["county_fips", "year", measure_name]].dropna(subset=["year"])
 
 
@@ -183,7 +189,25 @@ def _combined_area_stand_ins(county_level: pd.DataFrame) -> dict[str, str]:
     return stand_ins
 
 
-def _transform_bea(paths: list[Path], years: list[int]) -> Path:
+def _warn_partly_empty(county_level: pd.DataFrame, value_cols: list[str], table: str) -> None:
+    """Print the metro-years whose total covers only some of their counties.
+
+    A metro's value is the sum of its counties that have one, so a county left empty in a year
+    (a 0 or "(NA)" from BEA) would make the total too low without stopping the build. An all-empty
+    metro-year stays empty and isn't counted here.
+    """
+    metro_of = load_crosswalk(metro_only=True).set_index("county_fips")["cbsa_code"]
+    frame = county_level.assign(cbsa_code=county_level["county_fips"].map(metro_of)).dropna(subset=["cbsa_code"])
+    for column in value_cols:
+        empty = frame[column].isna().groupby([frame["cbsa_code"], frame["year"]])
+        partly = empty.any() & ~empty.all()
+        if partly.any():
+            examples = ", ".join(f"{cbsa} {year}" for cbsa, year in partly[partly].index[:5])
+            print(f"[bea] {table}: {int(partly.sum()):,} metro-years have {column} for only some of their "
+                  f"counties, so their totals are low (e.g. {examples})")
+
+
+def _transform_bea(paths: list[Path], years: list[int], table: str = "msa_year") -> Path:
     by_table = {path.stem: path for path in paths if path.parent.name == SOURCE_BEA}
     income = _parse_bea_table(by_table["cainc1"], "bea_personal_income_usd")
     gdp = _parse_bea_table(by_table["cagdp2"], "bea_gdp_usd")
@@ -192,6 +216,7 @@ def _transform_bea(paths: list[Path], years: list[int]) -> Path:
 
     stand_ins = _combined_area_stand_ins(county_level)
     county_level = county_level.assign(county_fips=county_level["county_fips"].replace(stand_ins))
+    _warn_partly_empty(county_level, ["bea_personal_income_usd", "bea_gdp_usd"], table)
 
     metro_level = counties_to_cbsa(
         county_level,
@@ -200,7 +225,7 @@ def _transform_bea(paths: list[Path], years: list[int]) -> Path:
         by=("year",),
         metro_only=True,
     )
-    return write_interim(metro_level, SOURCE_BEA, "msa_year")
+    return write_interim(metro_level, SOURCE_BEA, table)
 
 
 # --------------------------------------------------------------- BLS LAUS transform
@@ -305,15 +330,19 @@ def _transform_qcew(paths: list[Path]) -> pd.DataFrame:
 
 # --------------------------------------------------------------- combine and run
 def transform(paths: list[Path], years: list[int]) -> list[Path]:
-    """County rows -> metro-year; save with write_interim(df, SOURCE_BEA or SOURCE_BLS, "msa_year")."""
+    """County rows -> metro-year; save with write_interim(df, SOURCE_BEA or SOURCE_BLS, "msa_year").
+
+    BEA's years before the panel (config.HISTORY_YEARS) go to msa_year_history.
+    """
     bea_path = _transform_bea(paths, years)
+    history_path = _transform_bea(paths, config.HISTORY_YEARS, table="msa_year_history")
 
     laus = _transform_laus(paths)
     qcew = _transform_qcew(paths)
     bls_combined = laus.merge(qcew, on=["cbsa_code", "year"], how="outer")
     bls_path = write_interim(bls_combined, SOURCE_BLS, "msa_year")
 
-    return [bea_path, bls_path]
+    return [bea_path, history_path, bls_path]
 
 
 def run(years: list[int] | None = None, force: bool = False) -> list[Path]:
