@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-10-23 08:09 UTC on commit `09834a6`
+Run 2026-10-28 12:09 UTC on commit `b753452`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -9,6 +9,10 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | msa_year | one row per key | pass |  |
 | msa_year | cbsa_code is 5 digits | pass |  |
 | msa_year | every universe metro has every year | pass |  |
+| msa_year | bankunited_sod_offices_count >= 0 | pass |  |
+| msa_year | bankunited_sod_deposits_usd >= 0 | pass |  |
+| msa_year | bankunited_cra_small_business_loan_count >= 0 | pass |  |
+| msa_year | bankunited_cra_small_business_loan_amount_usd >= 0 | pass |  |
 | msa_year | bea_personal_income_usd >= 0 | pass |  |
 | msa_year | bea_gdp_usd >= 0 | pass |  |
 | msa_year | bls_labor_force_count >= 0 | pass |  |
@@ -40,9 +44,16 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | msa_year | pep_counties_reported_count >= 0 | pass |  |
 | msa_year | sod_deposits_usd >= 0 | pass |  |
 | msa_year | sod_main_office_deposits_usd >= 0 | pass |  |
+| msa_year | sod_home_banking_office_deposits_usd >= 0 | pass |  |
 | msa_year | sod_offices_count >= 0 | pass |  |
 | msa_year | sod_branches_count >= 0 | pass |  |
 | msa_year | sod_institutions_count >= 0 | pass |  |
+| msa_year | sod_deposit_hhi within 0-10,000 | pass |  |
+| msa_year | sod_deposit_ex_main_office_hhi within 0-10,000 | pass |  |
+| msa_year | sod_top3_deposit_share within 0-1 | pass |  |
+| msa_year | sod_top3_deposit_ex_main_office_share within 0-1 | pass |  |
+| msa_year | sod_top3_deposit_share_3y_change_net within -1 to 1 | pass |  |
+| msa_year | sod_top3_deposit_ex_main_office_share_3y_change_net within -1 to 1 | pass |  |
 | msa_year | fred_unemployment_rate_pct mostly filled | warning | 100% empty |
 | msa_year | every column has a dictionary row | pass |  |
 | msa_year | no column has two dictionary rows | pass |  |
@@ -76,6 +87,7 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | bank_quarter | call_brokered_deposits_usd >= 0 | pass |  |
 | bank_quarter | call_noninterest_bearing_deposits_usd >= 0 | pass |  |
 | bank_quarter | call_domestic_noninterest_bearing_deposits_usd >= 0 | pass |  |
+| bank_quarter | call_uninsured_deposits_usd >= 0 | pass |  |
 | bank_quarter | call_total_loans_usd >= 0 | pass |  |
 | bank_quarter | call_net_loans_usd >= 0 | pass |  |
 | bank_quarter | call_real_estate_loans_usd >= 0 | pass |  |
@@ -90,6 +102,7 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | bank_quarter | call_ci_loans_non_us_addressees_usd >= 0 | pass |  |
 | bank_quarter | call_agricultural_loans_usd >= 0 | pass |  |
 | bank_quarter | call_consumer_loans_usd >= 0 | pass |  |
+| bank_quarter | call_nondepository_fi_loans_usd >= 0 | pass |  |
 | bank_quarter | call_securities_usd >= 0 | pass |  |
 | bank_quarter | call_noncurrent_loans_usd >= 0 | pass |  |
 | bank_quarter | call_ci_loans_1m_or_less_usd >= 0 | pass |  |
@@ -100,6 +113,7 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | bank_quarter | call_domestic_offices_count >= 0 | pass |  |
 | bank_quarter | call_ci_loans_over_1m_usd >= 0 | pass |  |
 | bank_quarter | call_nonfarm_nonres_loans_over_1m_usd >= 0 | pass |  |
+| bank_quarter | call_uninsured_deposits_usd mostly filled | warning | 84% empty |
 | bank_quarter | call_ci_loans_non_us_addressees_usd mostly filled | warning | 77% empty |
 | bank_quarter | every column has a dictionary row | pass |  |
 | bank_quarter | no column has two dictionary rows | pass |  |
@@ -122,6 +136,7 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | bank_msa_year | cra_bank_small_business_amount_share within 0-1 | pass |  |
 | bank_msa_year | sod_deposits_usd >= 0 | pass |  |
 | bank_msa_year | sod_main_office_deposits_usd >= 0 | pass |  |
+| bank_msa_year | sod_home_banking_office_deposits_usd >= 0 | pass |  |
 | bank_msa_year | sod_offices_count >= 0 | pass |  |
 | bank_msa_year | sod_branches_count >= 0 | pass |  |
 | bank_msa_year | sod_deposit_share within 0-1 | pass |  |
@@ -131,6 +146,7 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | bank_msa_year | sod_top_holder_name mostly filled | warning | 72% empty |
 | bank_msa_year | sod_deposits_usd mostly filled | warning | 72% empty |
 | bank_msa_year | sod_main_office_deposits_usd mostly filled | warning | 72% empty |
+| bank_msa_year | sod_home_banking_office_deposits_usd mostly filled | warning | 72% empty |
 | bank_msa_year | sod_offices_count mostly filled | warning | 72% empty |
 | bank_msa_year | sod_branches_count mostly filled | warning | 72% empty |
 | bank_msa_year | sod_deposit_share mostly filled | warning | 72% empty |
@@ -151,3 +167,14 @@ Run 2026-10-23 08:09 UTC on commit `09834a6`
 | msa_naics_year | no column has two dictionary rows | pass |  |
 | msa_naics_year | every dictionary Type is known | pass |  |
 | msa_naics_year | values fit their dictionary Type | pass |  |
+| msa_year_history | key columns present | pass |  |
+| msa_year_history | no empty keys | pass |  |
+| msa_year_history | one row per key | pass |  |
+| msa_year_history | cbsa_code is 5 digits | pass |  |
+| msa_year_history | every universe metro has every year | pass |  |
+| msa_year_history | bea_personal_income_usd >= 0 | pass |  |
+| msa_year_history | bea_gdp_usd >= 0 | pass |  |
+| msa_year_history | every column has a dictionary row | pass |  |
+| msa_year_history | no column has two dictionary rows | pass |  |
+| msa_year_history | every dictionary Type is known | pass |  |
+| msa_year_history | values fit their dictionary Type | pass |  |
