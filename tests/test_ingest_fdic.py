@@ -129,7 +129,9 @@ def test_a_national_count_mismatch_stops_the_build_even_on_a_rerun(fdic_api, mon
 
 def test_transform_builds_metro_and_bank_tables(fdic_api, capsys):
     ingest_fdic.run(years=[2022, 2023])
-    assert "1 Connecticut offices use pre-2022 county codes" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "1 Connecticut offices use pre-2022 county codes" in out
+    assert "2 metro-years have no deposits outside main and home-banking offices" in out  # Birmingham, both years
 
     metro = pd.read_parquet(config.INTERIM / "msa_year" / "sod.parquet").set_index(["cbsa_code", "year"])
     charlotte = metro.loc[("16740", 2023)]
@@ -140,6 +142,16 @@ def test_transform_builds_metro_and_bank_tables(fdic_api, capsys):
     assert metro.loc[("13820", 2023), "sod_deposits_usd"] == 50_000_000  # code 1073 read as county 01073
     assert metro.loc[("16740", 2022), "sod_deposits_usd"] == 310_000_000
     assert set(metro.index.get_level_values("cbsa_code")) == {"16740", "13820"}  # micropolitan and CT left out
+
+    # Concentration among organizations: Holding A has 330 of Charlotte's 400, Holding B 70, bank 9999 nothing
+    assert charlotte["sod_deposit_hhi"] == pytest.approx(82.5 ** 2 + 17.5 ** 2)  # 7,112.5
+    assert charlotte["sod_top3_deposit_share"] == 1.0  # three organizations or fewer: exactly 1
+    # Without main offices A keeps its two branches (30) and B its branch (70); B's main office is in Birmingham
+    assert charlotte["sod_deposit_ex_main_office_hhi"] == pytest.approx(30 ** 2 + 70 ** 2)  # 5,800
+    assert metro.loc[("16740", 2022), "sod_deposit_ex_main_office_hhi"] == 10_000  # A has only its main office
+    birmingham = metro.loc[("13820", 2023)]
+    assert birmingham["sod_deposit_hhi"] == 10_000 and pd.isna(birmingham["sod_deposit_ex_main_office_hhi"])
+    assert metro["sod_top3_deposit_share_3y_change_net"].isna().all()  # no year three years earlier
 
     bank = pd.read_parquet(config.INTERIM / "bank_msa_year" / "sod.parquet").set_index(["rssd_id", "cbsa_code", "year"])
     a = bank.loc[("480228", "16740", 2023)]
@@ -158,6 +170,67 @@ def test_transform_builds_metro_and_bank_tables(fdic_api, capsys):
     panel = pd.read_parquet(config.PROCESSED / "msa_year.parquet")
     assert {"sod_deposits_usd", "sod_institutions_count"} <= set(panel.columns)
     assert len(pd.read_parquet(config.PROCESSED / "bank_msa_year.parquet")) == 7  # 4 bank-metros in 2023, 3 in 2022
+
+
+def test_concentration_counts_organizations_and_compares_with_three_years_earlier():
+    def row(cbsa, year, rssd, deposits, hc=None, main=False, cert=None, service=11.0):
+        return {"cbsa_code": cbsa, "year": year, "cert": cert or f"c{rssd}", "rssd_id": rssd,
+                "hc_rssd_id": hc, "deposits_usd": deposits, "main_office": main, "service_type": service}
+
+    data = pd.DataFrame([
+        # 2019: banks 1 and 2 share holding company 100, so they count as one organization (60)
+        row("11111", 2019, "1", 40.0, hc="100", main=True), row("11111", 2019, "2", 20.0, hc="100"),
+        row("11111", 2019, "3", 25.0), row("11111", 2019, "4", 10.0), row("11111", 2019, "5", 5.0),
+        # 2022: three organizations
+        row("11111", 2022, "1", 50.0, hc="100", main=True), row("11111", 2022, "3", 30.0),
+        row("11111", 2022, "4", 20.0),
+        # An office with no RSSD ID counts with its institution; a metro with no deposits gets empty measures
+        row("22222", 2022, None, 30.0, cert="77"), row("22222", 2022, "9", 70.0),
+        row("33333", 2022, "8", 0.0), row("33333", 2022, "6", None),
+        # A home-banking office (service type 13) that isn't a main office is left out of _ex_main_office too
+        row("44444", 2022, "10", 60.0, service=13.0), row("44444", 2022, "11", 30.0), row("44444", 2022, "12", 10.0),
+    ]).astype({"cbsa_code": "string", "cert": "string", "rssd_id": "string", "hc_rssd_id": "string"})
+
+    out = ingest_fdic._concentration(data)
+    early, late = out.loc[("11111", 2019)], out.loc[("11111", 2022)]
+    assert early["sod_deposit_hhi"] == pytest.approx(60 ** 2 + 25 ** 2 + 10 ** 2 + 5 ** 2)  # 4,350
+    assert early["sod_top3_deposit_share"] == pytest.approx(0.95)
+    # Without main offices, holding company 100 keeps only bank 2's 20, of 60
+    assert early["sod_deposit_ex_main_office_hhi"] == pytest.approx(10_000 * (20 ** 2 + 25 ** 2 + 10 ** 2 + 5 ** 2) / 60 ** 2)
+    assert early["sod_top3_deposit_ex_main_office_share"] == pytest.approx(55 / 60)
+    assert pd.isna(early["sod_top3_deposit_share_3y_change_net"])  # 2016 isn't in the data
+    assert late["sod_deposit_hhi"] == pytest.approx(50 ** 2 + 30 ** 2 + 20 ** 2)  # 3,800
+    assert late["sod_top3_deposit_share_3y_change_net"] == pytest.approx(1 - 0.95)
+    assert late["sod_deposit_ex_main_office_hhi"] == pytest.approx(60 ** 2 + 40 ** 2)  # 5,200
+    assert late["sod_top3_deposit_ex_main_office_share_3y_change_net"] == pytest.approx(1 - 55 / 60)
+    assert out.loc[("22222", 2022), "sod_deposit_hhi"] == pytest.approx(30 ** 2 + 70 ** 2)  # not 4,900 or 10,000
+    assert out.loc[("33333", 2022)].isna().all()
+    home = out.loc[("44444", 2022)]
+    assert home["sod_deposit_hhi"] == pytest.approx(60 ** 2 + 30 ** 2 + 10 ** 2)  # 4,600: as reported, it counts
+    assert home["sod_deposit_ex_main_office_hhi"] == pytest.approx(75 ** 2 + 25 ** 2)  # 6,250: 30 and 10 of 40
+    assert home["sod_top3_deposit_ex_main_office_share"] == 1.0
+
+
+def test_home_banking_offices_get_their_own_deposit_column():
+    def row(cert, brnum, deposits, main=False, service=11):
+        return {"year": 2024, "cert": cert, "brnum": brnum, "rssd_id": f"{cert}0", "hc_rssd_id": None,
+                "bank_name": f"Bank {cert}", "hc_name": None, "main_office": main, "service_type": float(service),
+                "county_fips": "37119", "deposits_usd": deposits, "fdic_cbsa": "16740", "cbsa_code": "16740"}
+
+    offices = pd.DataFrame([
+        row("1", "0", 100.0, main=True),
+        row("1", "1", 40.0, service=13),             # a home-banking office that isn't the main office
+        row("2", "0", 30.0, main=True, service=13),  # an internet bank's main office stays with the main offices
+        row("2", "1", 10.0),
+    ]).astype({column: "string" for column in ("cert", "brnum", "rssd_id", "hc_rssd_id", "bank_name", "hc_name",
+                                               "county_fips", "fdic_cbsa", "cbsa_code")})
+
+    metro, bank = ingest_fdic.build_tables(offices)
+    charlotte = metro.set_index(["cbsa_code", "year"]).loc[("16740", 2024)]
+    assert charlotte["sod_main_office_deposits_usd"] == 130 and charlotte["sod_home_banking_office_deposits_usd"] == 40
+    assert charlotte["sod_branches_count"] == 2  # home-banking offices aren't branches
+    banks = bank.set_index("rssd_id")["sod_home_banking_office_deposits_usd"]
+    assert banks.to_dict() == {"10": 40, "20": 0}
 
 
 def test_a_state_too_big_for_one_request_stops_the_pull(fdic_api, monkeypatch):
