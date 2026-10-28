@@ -493,7 +493,7 @@ def test_full_ffiec_run_fills_both_bank_tables(fdic_api, ffiec_site, capsys):
     assert sorted(p.relative_to(config.INTERIM).as_posix() for p in outputs) == [
         "bank_msa_year/cra_bank.parquet", "bank_quarter/call.parquet"]
     # The Call Reports are built first, so CRA lenders get their holding company from them
-    assert "2 lender-years have no Call Report by December 31" in capsys.readouterr().out
+    assert "2 lender-years have no Call Report from the previous December 31 through December 31" in capsys.readouterr().out
     bank = pd.read_parquet(config.INTERIM / "bank_msa_year" / "cra_bank.parquet").set_index(["rssd_id", "cbsa_code", "year"])
     holder = bank[["cra_bank_top_holder_rssd_id", "cra_bank_top_holder_name"]]
     assert tuple(holder.loc[("480228", "16740", 2023)]) == ("1073757", "Holding A")  # its December 31, 2023 report
@@ -507,12 +507,15 @@ def test_cra_lenders_take_the_holder_on_their_last_call_report_of_the_year(proje
     from src.utils import write_interim
 
     write_interim(pd.DataFrame({
-        "rssd_id": ["1", "1", "2", "3", "5"],
-        "quarter_end": pd.to_datetime(["2022-12-31", "2023-06-30", "2023-12-31", "2022-12-31", "2024-03-31"]),
-        "call_top_holder_rssd_id": ["100", "200", "2", "300", "500"],
-        "call_top_holder_name": ["Old Holding", "New Holding", "Bank 2", "Holding 3", "Holding 5"],
+        "rssd_id": ["1", "1", "2", "3", "5", "6", "7"],
+        "quarter_end": pd.to_datetime(["2022-12-31", "2023-06-30", "2023-12-31", "2022-12-31", "2024-03-31",
+                                       "2019-12-31", "2021-12-31"]),
+        "call_top_holder_rssd_id": ["100", "200", "2", "300", "500", "600", "700"],
+        "call_top_holder_name": ["Old Holding", "New Holding", "Bank 2", "Holding 3", "Holding 5", "Holding 6",
+                                 "Holding 7"],
     }), "call", "bank_quarter")
-    bank = pd.DataFrame({"rssd_id": ["1", "1", "2", "3", "5"], "cbsa_code": "16740", "year": [2022, 2023, 2023, 2023, 2023],
+    bank = pd.DataFrame({"rssd_id": ["1", "1", "2", "3", "5", "6", "7"], "cbsa_code": "16740",
+                         "year": [2022, 2023, 2023, 2023, 2023, 2020, 2023],
                          "cra_bank_lender_name": "A lender", "cra_bank_small_business_loan_count": 1})
 
     out = ingest_ffiec._add_top_holders(bank)
@@ -522,6 +525,8 @@ def test_cra_lenders_take_the_holder_on_their_last_call_report_of_the_year(proje
     assert holders[("1", 2022)] == "100"  # December 31
     assert holders[("1", 2023)] == "200"  # stopped filing after June: its last report that year
     assert holders[("2", 2023)] == "2"  # no holding company: the bank itself, as the Call Report gives it
-    assert holders[("3", 2023)] == "300"  # no 2023 report: its last earlier one
+    assert holders[("3", 2023)] == "300"  # no 2023 report: the previous December 31's, 365 days earlier
+    assert holders[("6", 2020)] == "600"  # the same in a leap year: 366 days, the oldest allowed
     assert pd.isna(holders[("5", 2023)])  # only a later report, which isn't used
-    assert "1 lender-years have no Call Report by December 31" in capsys.readouterr().out
+    assert pd.isna(holders[("7", 2023)])  # its last report is two years old, too old to date the holder
+    assert "2 lender-years have no Call Report from the previous December 31 through December 31" in capsys.readouterr().out

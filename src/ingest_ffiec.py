@@ -74,7 +74,12 @@ in the folder below; the layouts are the same in both years):
     before December 31 of the year (call_top_holder_rssd_id in bank_quarter's
     interim file, which transform() writes first). Nearly every lender has a
     December 31 report; one that stopped filing during the year keeps the holder
-    from its last report, and one with no report by then gets an empty holder.
+    from its last report. That report can be at most a year old: the previous
+    December 31 is the oldest used (366 days in a leap year, HOLDER_MAX_AGE), so a
+    lender with no report in that window gets an empty holder rather than one from
+    years earlier. Checked 2026-10-28 on data-v0.4: 6,623 of the 6,709 lender-years
+    in 2015-2024 use a December 31 report, and the oldest used is 366 days (lender
+    810777's December 31, 2019 report, for 2020), so the limit changes no holder.
   - Every lender's lending, summed by metro, is checked against Bhavana's
     all-lender totals in data/interim/msa_year/cra.parquet (when that file
     exists). A misread column or report level would throw off most metros and
@@ -721,10 +726,16 @@ def _reconcile(metro_all: pd.DataFrame) -> None:
 
 HOLDER_COLUMNS = {"call_top_holder_rssd_id": "cra_bank_top_holder_rssd_id",
                   "call_top_holder_name": "cra_bank_top_holder_name"}
+# The oldest Call Report a lender's holder can come from: the previous December 31 (366 days
+# before December 31 in a leap year). An older one would date the holder to an earlier year.
+HOLDER_MAX_AGE = pd.Timedelta(days=366)
 
 
 def _add_top_holders(bank: pd.DataFrame) -> pd.DataFrame:
-    """Each lender's top holding company at the end of the year, from its last Call Report on or before December 31."""
+    """Each lender's top holding company at the end of the year, from its last Call Report on or before December 31.
+
+    The report can be at most HOLDER_MAX_AGE old; without one in that window the holder is empty.
+    """
     bank = bank.assign(rssd_id=bank["rssd_id"].astype("string"))
     lenders = bank[["rssd_id", "year"]].drop_duplicates()
     path = config.INTERIM / "bank_quarter" / f"{SOURCE_CALL}.parquet"
@@ -735,10 +746,12 @@ def _add_top_holders(bank: pd.DataFrame) -> pd.DataFrame:
         year_end = pd.to_datetime(lenders["year"].astype(str) + "-12-31").astype("datetime64[ns]")
         found = pd.merge_asof(lenders.assign(year_end=year_end).sort_values("year_end"),
                               calls.dropna(subset=["rssd_id"]).sort_values("quarter_end"),
-                              left_on="year_end", right_on="quarter_end", by="rssd_id", direction="backward")
+                              left_on="year_end", right_on="quarter_end", by="rssd_id", direction="backward",
+                              tolerance=HOLDER_MAX_AGE)
         missing = int(found["call_top_holder_rssd_id"].isna().sum())
         if missing:
-            print(f"[cra_bank] {missing:,} lender-years have no Call Report by December 31: holder left empty")
+            print(f"[cra_bank] {missing:,} lender-years have no Call Report from the previous December 31 "
+                  "through December 31: holder left empty")
     else:
         print("[cra_bank] holders left empty: data/interim/bank_quarter/call.parquet isn't built yet "
               "(run the Call Reports first)")
