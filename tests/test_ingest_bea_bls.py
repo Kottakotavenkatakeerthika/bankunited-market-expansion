@@ -46,7 +46,7 @@ def test_bea_missing_markers_and_state_rows_do_not_enter_the_metro_total(project
     assert row["bea_gdp_usd"] == 10_000
 
 
-def test_bea_zeros_mean_not_reported_so_they_stay_empty(project, crosswalk_csv):
+def test_bea_zeros_mean_not_reported_so_they_stay_empty(project, crosswalk_csv, capsys):
     # BEA's API answers 0 for Connecticut's planning regions before 2024; no county really has zero GDP or income
     income = write_bea_json(project, "cainc1", [("37119", "2023", "0"), ("45091", "2023", "100")])
     gdp = write_bea_json(project, "cagdp2", [("37119", "2023", "0"), ("45091", "2023", "0")])
@@ -54,6 +54,11 @@ def test_bea_zeros_mean_not_reported_so_they_stay_empty(project, crosswalk_csv):
     row = bea_result(project).loc[("16740", 2023)]
     assert row["bea_personal_income_usd"] == 100_000    # the zero adds nothing
     assert pd.isna(row["bea_gdp_usd"])                   # every county zero: empty, not $0
+    out = capsys.readouterr().out
+    # One of Charlotte's two counties is empty, so its income total is low, and the run says so
+    assert ("[bea] msa_year: 1 metro-years have bea_personal_income_usd for only some of their counties, "
+            "so their totals are low (e.g. 16740 2023)") in out
+    assert "bea_gdp_usd for only some" not in out        # an all-empty metro-year isn't partly empty
 
 
 def test_bea_years_before_the_panel_go_to_their_own_table(project, crosswalk_csv):

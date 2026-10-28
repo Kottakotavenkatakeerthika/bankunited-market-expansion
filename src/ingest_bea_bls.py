@@ -189,6 +189,24 @@ def _combined_area_stand_ins(county_level: pd.DataFrame) -> dict[str, str]:
     return stand_ins
 
 
+def _warn_partly_empty(county_level: pd.DataFrame, value_cols: list[str], table: str) -> None:
+    """Print the metro-years whose total covers only some of their counties.
+
+    A metro's value is the sum of its counties that have one, so a county left empty in a year
+    (a 0 or "(NA)" from BEA) would make the total too low without stopping the build. An all-empty
+    metro-year stays empty and isn't counted here.
+    """
+    metro_of = load_crosswalk(metro_only=True).set_index("county_fips")["cbsa_code"]
+    frame = county_level.assign(cbsa_code=county_level["county_fips"].map(metro_of)).dropna(subset=["cbsa_code"])
+    for column in value_cols:
+        empty = frame[column].isna().groupby([frame["cbsa_code"], frame["year"]])
+        partly = empty.any() & ~empty.all()
+        if partly.any():
+            examples = ", ".join(f"{cbsa} {year}" for cbsa, year in partly[partly].index[:5])
+            print(f"[bea] {table}: {int(partly.sum()):,} metro-years have {column} for only some of their "
+                  f"counties, so their totals are low (e.g. {examples})")
+
+
 def _transform_bea(paths: list[Path], years: list[int], table: str = "msa_year") -> Path:
     by_table = {path.stem: path for path in paths if path.parent.name == SOURCE_BEA}
     income = _parse_bea_table(by_table["cainc1"], "bea_personal_income_usd")
@@ -198,6 +216,7 @@ def _transform_bea(paths: list[Path], years: list[int], table: str = "msa_year")
 
     stand_ins = _combined_area_stand_ins(county_level)
     county_level = county_level.assign(county_fips=county_level["county_fips"].replace(stand_ins))
+    _warn_partly_empty(county_level, ["bea_personal_income_usd", "bea_gdp_usd"], table)
 
     metro_level = counties_to_cbsa(
         county_level,
