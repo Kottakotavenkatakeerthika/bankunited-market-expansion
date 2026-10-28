@@ -55,6 +55,10 @@ DELINEATION_URL = (
 # Ingest modules run by run_pipeline, in this order: src/ingest_<name>.py
 SOURCES = ["census", "pep", "bea_bls", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: cre reads the QCEW files that bea_bls downloads
 
+# The bank the back-test is about: BankUnited, N.A. (FDIC cert 58979). src/bankunited.py
+# filters bank_msa_year to it for the bankunited_ columns in msa_year.
+BANKUNITED_RSSD_ID = "3938186"
+
 # Processed tables and their keys. build_panel joins every
 # data/interim/<table>/<source>.parquet into data/processed/<table>.parquet.
 TABLES = {
