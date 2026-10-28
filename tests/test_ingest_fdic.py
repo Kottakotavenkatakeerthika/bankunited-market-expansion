@@ -131,7 +131,7 @@ def test_transform_builds_metro_and_bank_tables(fdic_api, capsys):
     ingest_fdic.run(years=[2022, 2023])
     out = capsys.readouterr().out
     assert "1 Connecticut offices use pre-2022 county codes" in out
-    assert "2 metro-years have no deposits outside main offices" in out  # Birmingham, both years
+    assert "2 metro-years have no deposits outside main and home-banking offices" in out  # Birmingham, both years
 
     metro = pd.read_parquet(config.INTERIM / "msa_year" / "sod.parquet").set_index(["cbsa_code", "year"])
     charlotte = metro.loc[("16740", 2023)]
@@ -173,9 +173,9 @@ def test_transform_builds_metro_and_bank_tables(fdic_api, capsys):
 
 
 def test_concentration_counts_organizations_and_compares_with_three_years_earlier():
-    def row(cbsa, year, rssd, deposits, hc=None, main=False, cert=None):
+    def row(cbsa, year, rssd, deposits, hc=None, main=False, cert=None, service=11.0):
         return {"cbsa_code": cbsa, "year": year, "cert": cert or f"c{rssd}", "rssd_id": rssd,
-                "hc_rssd_id": hc, "deposits_usd": deposits, "main_office": main}
+                "hc_rssd_id": hc, "deposits_usd": deposits, "main_office": main, "service_type": service}
 
     data = pd.DataFrame([
         # 2019: banks 1 and 2 share holding company 100, so they count as one organization (60)
@@ -187,6 +187,8 @@ def test_concentration_counts_organizations_and_compares_with_three_years_earlie
         # An office with no RSSD ID counts with its institution; a metro with no deposits gets empty measures
         row("22222", 2022, None, 30.0, cert="77"), row("22222", 2022, "9", 70.0),
         row("33333", 2022, "8", 0.0), row("33333", 2022, "6", None),
+        # A home-banking office (service type 13) that isn't a main office is left out of _ex_main_office too
+        row("44444", 2022, "10", 60.0, service=13.0), row("44444", 2022, "11", 30.0), row("44444", 2022, "12", 10.0),
     ]).astype({"cbsa_code": "string", "cert": "string", "rssd_id": "string", "hc_rssd_id": "string"})
 
     out = ingest_fdic._concentration(data)
@@ -203,6 +205,10 @@ def test_concentration_counts_organizations_and_compares_with_three_years_earlie
     assert late["sod_top3_deposit_ex_main_office_share_3y_change_net"] == pytest.approx(1 - 55 / 60)
     assert out.loc[("22222", 2022), "sod_deposit_hhi"] == pytest.approx(30 ** 2 + 70 ** 2)  # not 4,900 or 10,000
     assert out.loc[("33333", 2022)].isna().all()
+    home = out.loc[("44444", 2022)]
+    assert home["sod_deposit_hhi"] == pytest.approx(60 ** 2 + 30 ** 2 + 10 ** 2)  # 4,600: as reported, it counts
+    assert home["sod_deposit_ex_main_office_hhi"] == pytest.approx(75 ** 2 + 25 ** 2)  # 6,250: 30 and 10 of 40
+    assert home["sod_top3_deposit_ex_main_office_share"] == 1.0
 
 
 def test_home_banking_offices_get_their_own_deposit_column():

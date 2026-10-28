@@ -41,8 +41,11 @@ Concentration (msa_year): each metro-year's deposit HHI and the share held by it
 largest banking organizations, plus that share's change from three years earlier. An
 organization is a bank's top holding company, or the bank itself if it has none, so
 affiliated banks count as one competitor. Each measure comes twice: on deposits as
-reported, and with every main office left out (the _ex_main_office columns), the
-simplest adjustment for the booked-at-headquarters problem above.
+reported, and with every main office and every home-banking office left out (the
+_ex_main_office columns), the simplest adjustment for the booked-at-headquarters
+problem above. The modeling sub-pod (Sonia and Matt) chose on 2026-10-26 to leave the
+home-banking offices out too, so a bank that moves its booked deposits from its main
+office to such an office (USAA in San Antonio in 2024) doesn't jump the measure.
 """
 from __future__ import annotations
 
@@ -295,13 +298,15 @@ def _concentration(data: pd.DataFrame) -> pd.DataFrame:
     Organizations are top holders, as sod_top_holder_rssd_id in bank_msa_year. An office with
     no RSSD ID counts with its institution (CERT), so shares are of every deposit in the
     metro and add up to 1. Empty deposits add nothing; a metro-year with no deposits on a
-    basis gets empty measures on that basis.
+    basis gets empty measures on that basis. The _ex_main_office basis leaves out main
+    offices and home-banking offices (service type 13), where banks book non-local deposits.
     """
     keys = ["cbsa_code", "year"]
     holder = data["hc_rssd_id"].fillna(data["rssd_id"]).fillna("cert " + data["cert"]).fillna("unknown")
+    booked = data["main_office"] | data["service_type"].eq(HOME_BANKING_TYPE).fillna(False)
     bases = {
         "deposit": data["deposits_usd"],
-        "deposit_ex_main_office": data["deposits_usd"].mask(data["main_office"], 0),
+        "deposit_ex_main_office": data["deposits_usd"].mask(booked, 0),
     }
     by_holder = pd.DataFrame({"cbsa_code": data["cbsa_code"], "year": data["year"], "holder": holder,
                               **bases}).groupby(keys + ["holder"]).sum()  # sum() skips empty deposits
@@ -326,7 +331,7 @@ def _concentration(data: pd.DataFrame) -> pd.DataFrame:
 
     undefined = int(out["sod_deposit_ex_main_office_hhi"].isna().sum())
     if undefined:
-        print(f"[sod] {undefined:,} metro-years have no deposits outside main offices: "
+        print(f"[sod] {undefined:,} metro-years have no deposits outside main and home-banking offices: "
               "their _ex_main_office concentration is left empty")
     measures = ["sod_{}_hhi", "sod_top3_{}_share", "sod_top3_{}_share_3y_change_net"]
     return out.set_index(keys)[[measure.format(base) for measure in measures for base in bases]]
