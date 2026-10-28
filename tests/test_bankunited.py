@@ -9,11 +9,13 @@ BU = config.BANKUNITED_RSSD_ID
 
 def seed_bank_tables():
     write_interim(pd.DataFrame({
-        "rssd_id": [BU, "111", "111", BU],
-        "cbsa_code": ["16740", "16740", "13820", "13820"],
-        "year": [2023, 2023, 2023, 2022],
-        "sod_offices_count": [2, 7, 5, 1],
-        "sod_deposits_usd": [5e6, 2e9, 1e9, None],  # BankUnited's 2022 office reports no deposits
+        "rssd_id": [BU, "111", "111", BU, BU],
+        "cbsa_code": ["16740", "16740", "13820", "13820", "19100"],
+        "year": [2023, 2023, 2023, 2022, 2022],
+        "sod_offices_count": [2, 7, 5, 1, 1],
+        # An office row with empty deposits, which real SOD data never has for BankUnited, and a real 0:
+        # its Dallas office reported $0 at June 30, 2022, its first survey there
+        "sod_deposits_usd": [5e6, 2e9, 1e9, None, 0.0],
     }), "sod", "bank_msa_year")
     write_interim(pd.DataFrame({
         "rssd_id": ["111", BU], "cbsa_code": ["13820", "13820"], "year": [2023, 2023],
@@ -34,7 +36,9 @@ def test_zero_where_bankunited_has_none_and_empty_where_a_source_says_nothing(pr
     assert birmingham["bankunited_cra_small_business_loan_count"] == 3
     assert birmingham["bankunited_cra_small_business_loan_amount_usd"] == 3e5
     earlier = out.loc[("13820", 2022)]
-    assert earlier["bankunited_sod_offices_count"] == 1 and pd.isna(earlier["bankunited_sod_deposits_usd"])
+    assert earlier["bankunited_sod_offices_count"] == 1 and pd.isna(earlier["bankunited_sod_deposits_usd"])  # empty stays empty
+    dallas = out.loc[("19100", 2022)]
+    assert dallas["bankunited_sod_offices_count"] == 1 and dallas["bankunited_sod_deposits_usd"] == 0  # a real 0 stays 0
 
     build_panel.build_all()  # writes the file again on its own, then joins it into msa_year
     panel = pd.read_parquet(config.PROCESSED / "msa_year.parquet").set_index(["cbsa_code", "year"])
@@ -46,3 +50,14 @@ def test_zero_where_bankunited_has_none_and_empty_where_a_source_says_nothing(pr
 def test_nothing_is_written_without_bank_tables(project):
     assert bankunited.build_presence() is None
     assert not (config.INTERIM / "msa_year" / "bankunited.parquet").exists()
+
+
+def test_one_source_alone_says_which_columns_are_left_out(project, capsys):
+    seed_bank_tables()
+    (config.INTERIM / "bank_msa_year" / "cra_bank.parquet").unlink()
+    bankunited.build_presence()
+    assert ("cra_bank.parquet isn't built yet, so msa_year has no bankunited_cra_small_business_loan_count, "
+            "bankunited_cra_small_business_loan_amount_usd") in capsys.readouterr().out
+    out = pd.read_parquet(config.INTERIM / "msa_year" / "bankunited.parquet")
+    assert [column for column in out.columns if column.startswith("bankunited_")] == [
+        "bankunited_sod_offices_count", "bankunited_sod_deposits_usd"]
