@@ -264,6 +264,67 @@ def test_small_loans_are_left_empty_where_the_form_doesnt_report_them(fdic_api, 
     assert checks.run_checks()
 
 
+def test_zeros_for_values_a_bank_doesnt_report_are_left_empty(fdic_api, capsys):
+    fdic_api.rows = [
+        # A community bank leverage ratio bank: FDIC shows 0 for its risk-based capital and ratios
+        bank("20231231", 1, 601, CBLRIND=1, RBC=0, RBCRWAJ=0, IDT1CER=0, RBC1AAJ=11.2, DEPUNA=0, ASSET=400_000),
+        # A bank on the risk-based rules keeps its values; its 0s for LNNDEPD and NTLNLSR are real 0s
+        bank("20231231", 2, 602, CBLRIND=0, RBC=150_000, RBCRWAJ=14.2, IDT1CER=12.5, DEPUNA=300_000,
+             ASSET=1_500_000, LNNDEPD=0, ILNQ=-3, NTLNLSR=0),
+        # FDIC leaves the flag empty before 2020: values are kept as published
+        bank("20230930", 3, 603, CBLRIND=None, RBC=90_000, RBCRWAJ=13.1, IDT1CER=11.9, DEPUNA=25_000),
+        # An insured branch of a foreign bank (FFIEC 002): no capital or income statement, but FDIC shows 0 ratios
+        bank("20231231", 4, 604, CALLFORM=2, CBLRIND=None, EQ=None, RBC=None, RBC1AAJ=0, IDT1CER=0, RBCRWAJ=0,
+             ROA=0, NIMY=0, EEFFR=0, NTLNLSR=0, DEPUNA=50_000, ASSET=20_000_000),
+        # A trust company: FDIC computes its total risk-based capital ratio but shows 0 for CET1
+        bank("20231231", 5, 605, CBLRIND=0, DEP=0, RBC1AAJ=66.4, IDT1CER=0, RBCRWAJ=126.5),
+    ]
+    call_reports_only([2023])
+    out = capsys.readouterr().out
+    assert "1 bank-quarters use the community bank leverage ratio" in out
+    assert "1 bank-quarters show 0 for DEPUNA" in out
+    assert "1 bank-quarters are insured U.S. branches of foreign banks (FFIEC 002)" in out
+    assert "1 bank-quarters show a CET1 ratio of 0 next to a positive total risk-based capital ratio" in out
+    rows = pd.read_parquet(config.INTERIM / "bank_quarter" / "call.parquet").set_index(["rssd_id", "quarter_end"])
+    risk_based = ["call_total_risk_based_capital_usd_net", "call_total_risk_based_capital_ratio", "call_cet1_ratio"]
+
+    cblr = rows.loc[("601", pd.Timestamp("2023-12-31"))]
+    assert cblr[risk_based + ["call_uninsured_deposits_usd"]].isna().all()
+    assert cblr["call_leverage_ratio"] == 11.2  # still reported under the leverage ratio framework
+
+    large = rows.loc[("602", pd.Timestamp("2023-12-31"))]
+    assert large["call_total_risk_based_capital_usd_net"] == 150_000_000
+    assert large["call_total_risk_based_capital_ratio"] == 14.2
+    assert large["call_cet1_ratio"] == 12.5
+    assert large["call_uninsured_deposits_usd"] == 300_000_000
+    assert large["call_nondepository_fi_loans_usd"] == 0
+    assert large["call_quarter_loan_interest_income_usd_net"] == -3_000
+    assert large["call_ytd_net_charge_off_ratio"] == 0  # only a branch's 0 means "not reported"
+
+    no_flag = rows.loc[("603", pd.Timestamp("2023-09-30"))]
+    assert no_flag["call_total_risk_based_capital_usd_net"] == 90_000_000
+    assert no_flag["call_cet1_ratio"] == 11.9
+    assert no_flag["call_uninsured_deposits_usd"] == 25_000_000
+
+    branch = rows.loc[("604", pd.Timestamp("2023-12-31"))]
+    assert branch["call_report_form"] == "002"
+    assert branch[["call_leverage_ratio", "call_cet1_ratio", "call_total_risk_based_capital_ratio",
+                   "call_ytd_return_on_assets_ratio", "call_ytd_net_interest_margin_ratio",
+                   "call_ytd_efficiency_ratio", "call_ytd_net_charge_off_ratio",
+                   "call_total_risk_based_capital_usd_net", "call_equity_capital_usd_net"]].isna().all()
+    assert branch["call_uninsured_deposits_usd"] == 50_000_000  # a reported amount stays
+
+    trust = rows.loc[("605", pd.Timestamp("2023-12-31"))]
+    assert pd.isna(trust["call_cet1_ratio"])
+    assert (trust["call_total_risk_based_capital_ratio"], trust["call_leverage_ratio"]) == (126.5, 66.4)
+
+    pulls = [hit for hit in fdic_api.hits if hit.get("limit") == str(ingest_ffiec.PAGE_SIZE)]
+    assert pulls and all("CBLRIND" in hit["fields"].split(",") for hit in pulls)
+
+    build_panel.build_all()
+    assert checks.run_checks()
+
+
 def test_a_saved_quarter_asked_without_a_new_field_is_pulled_again(fdic_api, monkeypatch, capsys):
     ingest_ffiec.download_call([2023])
     monkeypatch.setitem(ingest_ffiec.CALL_FIELDS, "NEWFLD", "call_new_field_usd")
