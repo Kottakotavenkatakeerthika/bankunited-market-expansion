@@ -76,7 +76,40 @@ The checks also warn where SOD and CRA disagree with the Call Reports. In 2015�
 
 SOD's and the Call Reports' top holders, `sod_top_holder_rssd_id` and `call_top_holder_rssd_id` (June 30), agree for 98.6% of the 37,204 bank-years that have both, and for at least 99.2% in each year from 2016 on. 2015 is the exception at 93.7%: in 249 of its 276 differences, SOD lists the bank as its own top holder while the Call Report names a holding company. To group banks into organizations next to their financials, use `call_top_holder_rssd_id`.
 
-**The peer set.** `data/reference/peer_organizations.csv` lists the organizations with $10B–$100B in total assets at one quarter end (`PEER_ASSETS_USD` in `src/config.py`): 126 organizations with 168 banks at June 30, 2026. An organization is a top holder, as `call_top_holder_rssd_id` groups banks. Each row has the organization's banks' RSSD IDs and certificates, largest bank first, and its ticker, exchange and SEC CIK from `data/reference/holder_listings.csv`. That file is checked by hand against SEC's company ticker list and each company's filings, and its `checked` column dates each row. 101 of the 126 have a ticker. `listing_note` says why the rest don't (no SEC-registered stock, a mutual, or a foreign parent without SEC registration), and whose ticker it is when the listed company isn't the top holder itself, such as a nonbank parent or the bank itself. `organization_type` marks the six insured U.S. branches of foreign banks, which file the FFIEC 002 instead of a Call Report. After a new quarter, `python -m src.peers` rewrites the file and names any organization that enters the band without a row in `holder_listings.csv`; add its row before using the file. Owner: Austin. Added 2026-10-26.
+**The peer set.** `data/reference/peer_organizations.csv` lists the organizations with $10B–$100B in total assets at one quarter end (`PEER_ASSETS_USD` in `src/config.py`): 126 organizations with 168 banks at June 30, 2026. An organization is a top holder, as `call_top_holder_rssd_id` groups banks, and the band applies to its banks' assets combined. That's the rule the sponsor confirmed on 10/19: the pod's 10/15 question proposed "$10B–$100B in assets as the peer band," counted as 126 organizations at 6/30/26, and Elliot agreed. Counting banks one by one would instead give 133 banks in 129 organizations: Bank of America, BNY Mellon, Charles Schwab, RBC and TD would come in through one bank each, and Pinnacle Bancorp and Wintrust, whose banks are each under $10B, would drop out. The 126 include the six insured U.S. branches of foreign banks, which file the FFIEC 002 instead of a Call Report and aren't stand-alone banks; `organization_type` marks them, so leave them out of a peer set of banks.
+
+Each row has the organization's banks' RSSD IDs and certificates, largest bank first, and its ticker, exchange and SEC CIK from `data/reference/holder_listings.csv`. That file is checked by hand against SEC's company ticker list and each company's filings, and its `checked` column dates each row. The ticker is the listed common stock (or ADR). SEC's list also files listed notes and preferred issues under the same CIK; Dime's DCBG and Customers' CUBB are subordinated notes, for example, so their tickers are DCOM and CUBI. 101 of the 126 have a ticker. `listing_note` says why the rest don't (no SEC-registered stock, a mutual, or a foreign parent without SEC registration), and whose ticker it is when the listed company isn't the top holder itself. `ticker_owner` says the same in one word, so a filter can keep the 88 organizations whose ticker is their own holding company's (84) or the bank's (4) stock and leave out the 13 whose ticker belongs to a nonbank parent (5), a foreign parent (4) or a company the top holder controls (4). Tickers, exchanges and CIKs are as of each row's `checked` date, not `as_of`: Texas Capital, International Bancshares and Origin moved to the Texas Stock Exchange in October 2026, and Webster and Stellar were delisted in mid-2026 (each `listing_note` says when).
+
+Join on `top_holder_rssd_id`, never on the name: names aren't unique. FIRST BCORP, for one, is two organizations, First BanCorp in Puerto Rico (RSSD 2744894, FBP) and First Bancorp in North Carolina (RSSD 1076431, FBNC). After a new quarter, `python -m src.peers` rewrites the file and names any organization that enters the band without a row in `holder_listings.csv`; add its row before using the file. Owner: Austin. Added 2026-10-26, extended 2026-10-28.
+
+`peer_organizations.csv`, one row per organization:
+
+| Column | Type | Definition | Source |
+|---|---|---|---|
+| as_of | date | Quarter end the assets and bank lists are for (2026-06-30) | `python -m src.peers --quarter`, else the latest quarter in `bank_quarter` |
+| top_holder_rssd_id | string | RSSD ID of the organization: its banks' top holding company, or the bank itself if it has none. The key | `call_top_holder_rssd_id` in `bank_quarter` |
+| top_holder_name | string | The organization's name, for reading only | `call_top_holder_name` |
+| total_assets_usd | numeric | Total assets of the organization's banks combined, in dollars; the band applies to this | `call_total_assets_usd`, summed |
+| bank_count | int | Number of the organization's banks | `bank_quarter` |
+| largest_bank_name | string | Name of its largest bank by total assets | `call_bank_name` |
+| bank_rssd_ids | string | Its banks' RSSD IDs, separated by `;`, largest bank first | `rssd_id` |
+| fdic_certs | string | Its banks' FDIC certificate numbers, separated by `;`, in the same order as `bank_rssd_ids` | `call_cert` |
+| organization_type, ticker, ticker_owner, exchange, sec_cik, sec_name, listing_note | string | As in `holder_listings.csv`, below | `holder_listings.csv` |
+
+`holder_listings.csv`, one row per top holder, kept by hand:
+
+| Column | Type | Definition | Source |
+|---|---|---|---|
+| top_holder_rssd_id | string | The organization's RSSD ID. The key | FDIC BankFind `/financials`, `RSSDHCR`, or the bank's `RSSDID` |
+| top_holder_name | string | Its name, for reading only | FDIC `NAMEHCR`, or the bank's name |
+| organization_type | string | `holding company`, `mutual holding company`, `bank, no holding company`, `insured branch of a foreign bank` (an FFIEC 002 filer) or `foreign parent` | Checked by hand |
+| ticker | string | Ticker of the listed common stock or ADR; empty if none | SEC `company_tickers_exchange.json` |
+| ticker_owner | string | Whose stock the ticker is: `holding company` (the top holder's own), `bank` (the bank itself, which has no holding company), `nonbank parent` (a parent that isn't a bank holding company, so FDIC lists the bank as its own top holder), `foreign parent` (its U.S. listing) or `controlled company` (a listed company between the top holder and the bank). Empty if no ticker | Checked by hand against SEC filings |
+| exchange | string | Exchange of that listing: NYSE, Nasdaq or TXSE | SEC `company_tickers_exchange.json` |
+| sec_cik | string | SEC Central Index Key of the listed company; empty if it has none (TowneBank files with the FDIC) | SEC `company_tickers_exchange.json` |
+| sec_name | string | The listed company's name as SEC gives it | SEC `company_tickers_exchange.json` |
+| listing_note | string | Why there's no ticker, whose ticker it is when it isn't the top holder's own, or a listing change | Hand-written |
+| checked | date | When the row was last checked against SEC's list and filings | |
 
 ## msa_year: one row per metro per year
 

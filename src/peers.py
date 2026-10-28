@@ -15,11 +15,14 @@ Tickers and SEC CIKs come from data/reference/holder_listings.csv, one row per t
 checked by hand against SEC's company ticker list
 (https://www.sec.gov/files/company_tickers_exchange.json) and each company's SEC filings: the
 SEC's business address state matches FDIC's holding company state, and the SEC industry code is
-a financial one. Its listing_note says why a holder has no ticker (privately held, mutual, or a
-foreign parent without a U.S. listing), or whose ticker it is when the listed company isn't the
-top holder itself (a non-bank parent, or a listed company the top holder controls).
-organization_type separates the six insured U.S. branches of foreign banks (FFIEC 002 filers),
-which aren't stand-alone banks, from the holding companies and banks.
+a financial one. The ticker is the listed common stock (or ADR), never a listed note or preferred
+issue that SEC files under the same CIK. Its listing_note says why a holder has no ticker
+(privately held, mutual, or a foreign parent without a U.S. listing), or whose ticker it is when
+the listed company isn't the top holder itself (a non-bank parent, or a listed company the top
+holder controls). ticker_owner says the same in one word for filtering: holding company, bank,
+nonbank parent, foreign parent or controlled company. organization_type separates the six
+insured U.S. branches of foreign banks (FFIEC 002 filers), which aren't stand-alone banks, from
+the holding companies and banks.
 
 After a new quarter, a holder that enters the band without a row in holder_listings.csv is
 printed, so a row can be added before the file is used.
@@ -33,7 +36,8 @@ import pandas as pd
 
 from src import config
 
-LISTING_COLUMNS = ["organization_type", "ticker", "exchange", "sec_cik", "sec_name", "listing_note"]
+LISTING_COLUMNS = ["organization_type", "ticker", "ticker_owner", "exchange", "sec_cik", "sec_name", "listing_note"]
+TICKER_OWNERS = {"holding company", "bank", "nonbank parent", "foreign parent", "controlled company"}
 
 
 def peer_organizations(bank_quarter: pd.DataFrame, quarter_end, listings: pd.DataFrame | None = None) -> pd.DataFrame:

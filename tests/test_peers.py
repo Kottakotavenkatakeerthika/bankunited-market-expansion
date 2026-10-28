@@ -28,8 +28,8 @@ BANKS = pd.DataFrame([
 
 def test_organizations_are_top_holders_summed_over_their_banks():
     listings = pd.DataFrame({"top_holder_rssd_id": ["100", "51"], "organization_type": ["holding company", "bank, no holding company"],
-                             "ticker": ["HLD", ""], "exchange": ["NYSE", ""], "sec_cik": ["123", ""], "sec_name": ["HOLDER 100 INC", ""],
-                             "listing_note": ["", "Privately held"]})
+                             "ticker": ["HLD", ""], "ticker_owner": ["holding company", ""], "exchange": ["NYSE", ""],
+                             "sec_cik": ["123", ""], "sec_name": ["HOLDER 100 INC", ""], "listing_note": ["", "Privately held"]})
     out = peers.peer_organizations(BANKS, "2026-06-30", listings)
     assert list(out["top_holder_rssd_id"]) == ["300", "51", "100"]  # largest first
     assert set(out["as_of"]) == {"2026-06-30"}
@@ -37,13 +37,15 @@ def test_organizations_are_top_holders_summed_over_their_banks():
     assert holder["total_assets_usd"] == pytest.approx(11e9) and holder["bank_count"] == 2
     assert (holder["bank_rssd_ids"], holder["fdic_certs"]) == ("12;11", "902;901")  # largest bank first
     assert holder["largest_bank_name"] == "Bank 12" and holder["ticker"] == "HLD"
+    assert holder["ticker_owner"] == "holding company"
     assert pd.isna(out.set_index("top_holder_rssd_id").loc["300", "ticker"])  # no listing row yet
 
 
 def test_build_writes_the_file_and_names_holders_without_a_listing(project, capsys):
     BANKS.to_parquet(project["PROCESSED"] / "bank_quarter.parquet", index=False)
     pd.DataFrame({"top_holder_rssd_id": ["100"], "top_holder_name": ["Holder 100"], "organization_type": ["holding company"],
-                  "ticker": ["HLD"], "exchange": ["NYSE"], "sec_cik": ["123"], "sec_name": ["HOLDER 100 INC"],
+                  "ticker": ["HLD"], "ticker_owner": ["holding company"], "exchange": ["NYSE"], "sec_cik": ["123"],
+                  "sec_name": ["HOLDER 100 INC"],
                   "listing_note": [""], "checked": ["2026-10-26"]}).to_csv(project["HOLDER_LISTINGS"], index=False)
 
     path = peers.build()  # the latest quarter by default
@@ -64,6 +66,12 @@ def test_the_committed_listings_cover_every_committed_peer_organization():
     # Every holder either has a ticker or says why not, and every CIK comes with a ticker
     assert ((listings["ticker"] != "") | (listings["listing_note"] != "")).all()
     assert (listings.loc[listings["sec_cik"] != "", "ticker"] != "").all()
+    # Every ticker says whose stock it is, and only tickers do
+    assert set(listings["ticker_owner"]) <= peers.TICKER_OWNERS | {""}
+    assert ((listings["ticker_owner"] != "") == (listings["ticker"] != "")).all()
+    # A ticker that isn't the top holder's own stock or the bank's says whose it is
+    others = listings["ticker_owner"].isin({"nonbank parent", "foreign parent", "controlled company"})
+    assert (listings.loc[others, "listing_note"] != "").all()
     if set(peer_file["as_of"]) == {"2026-06-30"}:
         assert len(peer_file) == 126  # the plan's peer band at 6/30/26, confirmed by the sponsor 10/19
 
