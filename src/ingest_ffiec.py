@@ -51,14 +51,22 @@ Call Reports (checked 2026-10-12):
     negative for a few insolvent banks, so its column is _usd_net. Since
     2020, banks that elect the community bank leverage ratio (CBLRIND = 1; 1,717
     banks in 2025 Q2) report no risk-based capital, and FDIC shows 0 for RBC,
-    RBCRWAJ and IDT1CER; those are left empty. DEPUNA is the estimated uninsured
-    deposits (RCON5597), which only banks with $1 billion or more in total
-    assets report; FDIC shows 0 for the rest (99.5% of smaller banks in 2015 Q2),
-    so a 0 is left empty. LNNDEPD is loans to nondepository financial
-    institutions in domestic offices (J454), filled for every form since 2015;
-    the consolidated version (LNNDEPC) starts later, so it isn't used. ILNQ is
-    the quarter's own interest and fee income on loans (RIAD4010); banks report
-    year to date, so a quarter's figure can be negative.
+    RBCRWAJ and IDT1CER; those are left empty. A bank can keep the framework for
+    up to two quarters after it stops qualifying (FDIC FIL-35-2020), so a few
+    of these bank-quarters are over $10 billion: Merchants Bank of Indiana in
+    2021 Q3, Q4 and 2022 Q2, and Capitol Federal Savings Bank in 2023 Q1 and Q2
+    (checked 2026-10-28). DEPUNA is the estimated uninsured deposits (RCON5597),
+    which only banks with $1 billion or more in total assets report; FDIC shows
+    0 for the rest (99.5% of smaller banks in 2015 Q2). FDIC also shows 0 for
+    some larger banks (72 of $1 billion or more in 2026 Q2: 52 FFIEC 051 filers,
+    5 foreign-bank branches, and trust companies such as The Depository Trust
+    Company), so every 0 is left empty, whatever the bank's size. LNNDEPD is
+    loans to nondepository financial institutions in domestic offices (J454),
+    filled for every form since 2015; the consolidated version (LNNDEPC) starts
+    later, so it isn't used. ILNQ is the quarter's own interest and fee income on
+    loans (RIAD4010); banks report year to date, so a quarter's figure can be
+    negative. It is exactly 0 for 94 banks in 2026 Q2: 90 hold no loans, and the
+    other 4 hold under $3.1 million each; those zeros are kept as published.
   - More zeros that mean "not reported" (checked 2026-10-26 against data-v0.4 and
     FDIC's 2026 Q2 data): FFIEC 002 filers (17 insured U.S. branches of foreign
     banks) file no capital schedule and no income statement. FDIC leaves their
@@ -220,7 +228,7 @@ OVER_1M = {
 }
 # Fields FDIC shows as 0 for banks that don't report them (see the docstring)
 RISK_BASED_FIELDS = ["RBC", "IDT1CER", "RBCRWAJ"]  # not reported by community bank leverage ratio banks
-LARGE_BANK_ONLY_FIELDS = ["DEPUNA"]  # reported only by banks with $1 billion or more in total assets
+LARGE_BANK_ONLY_FIELDS = ["DEPUNA"]  # reported only by banks with $1 billion or more; every 0 is left empty
 FOREIGN_BRANCH_FORM = "002"  # insured U.S. branches of foreign banks: no capital schedule or income statement
 FOREIGN_BRANCH_ZERO_FIELDS = ["RBC1AAJ", "IDT1CER", "RBCRWAJ", "ROA", "NIMY", "EEFFR", "NTLNLSR"]  # 0 there
 
@@ -473,8 +481,9 @@ def _blank_not_reported(banks: pd.DataFrame, cblr_flag: pd.Series) -> pd.DataFra
     """Empty the values FDIC shows as 0 for banks that don't report them.
 
     A community bank leverage ratio bank reports no risk-based capital, a bank under
-    $1 billion doesn't report uninsured deposits, and an insured branch of a foreign bank
-    files no capital schedule or income statement. FDIC also shows a CET1 ratio of 0 for
+    $1 billion doesn't report uninsured deposits (FDIC shows 0 for some larger banks too,
+    so every 0 there is left empty), and an insured branch of a foreign bank files no
+    capital schedule or income statement. FDIC also shows a CET1 ratio of 0 for
     some banks whose total risk-based capital ratio it does compute, nearly all trust
     companies. A 0 there would read as "no capital" or "no uninsured deposits" and pull
     any average toward 0.
@@ -504,7 +513,7 @@ def _blank_not_reported(banks: pd.DataFrame, cblr_flag: pd.Series) -> pd.DataFra
         zero = banks[column].eq(0).fillna(False)
         if zero.any():
             print(f"[call] {int(zero.sum()):,} bank-quarters show 0 for {field}, which banks under "
-                  f"$1 billion don't report; {column} left empty there")
+                  f"$1 billion don't report; {column} left empty there, whatever the bank's size")
         banks[column] = banks[column].mask(zero)
     return banks
 
