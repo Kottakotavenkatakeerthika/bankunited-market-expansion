@@ -40,12 +40,14 @@ sod_home_banking_office_deposits_usd isolates those.
 Concentration (msa_year): each metro-year's deposit HHI and the share held by its three
 largest banking organizations, plus that share's change from three years earlier. An
 organization is a bank's top holding company, or the bank itself if it has none, so
-affiliated banks count as one competitor. Each measure comes twice: on deposits as
-reported, and with every main office and every home-banking office left out (the
-_ex_main_office columns), the simplest adjustment for the booked-at-headquarters
-problem above. The modeling sub-pod (Sonia and Matt) chose on 2026-10-26 to leave the
-home-banking offices out too, so a bank that moves its booked deposits from its main
-office to such an office (USAA in San Antonio in 2024) doesn't jump the measure.
+affiliated banks count as one competitor. Shares are plain deposit shares: banks and
+savings institutions count alike, and credit unions aren't in SOD. Each measure comes
+twice: on deposits as reported, and with every main office and every home-banking
+office left out (the _ex_main_office columns), the simplest adjustment for the
+booked-at-headquarters problem above. The modeling sub-pod (Sonia and Matt) chose on
+2026-10-26 to leave the home-banking offices out too, so a bank that moves its booked
+deposits from its main office to such an office (USAA in San Antonio in 2024) doesn't
+jump the measure.
 """
 from __future__ import annotations
 

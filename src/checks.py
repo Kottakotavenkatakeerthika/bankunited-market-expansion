@@ -7,7 +7,8 @@ what was tested" for the weekly Integration & Delivery Updates.
 
 Column-name suffixes drive the range checks (see docs/data_dictionary.md):
 _count and _usd must be >= 0, _pct must be 0-100, _share must be 0-1, _hhi must be 0-10,000.
-_net: can be negative; no range check.
+_net: can be negative; no range check, except that a change in a share (_share_..._change_net,
+such as sod_top3_deposit_share_3y_change_net) must be within -1 to 1.
 The data dictionary drives the schema checks: every processed column needs exactly
 one row in docs/data_dictionary.md, and its values must fit that row's Type (int,
 numeric, string, string(N) or date). A documented column that isn't built yet is
@@ -176,6 +177,9 @@ def check_table(table: str, df: pd.DataFrame) -> list[Result]:
         if col.endswith("_hhi"):
             bad = int(((values < 0) | (values > 10_000)).sum())
             results.append(Result(table, f"{col} within 0-10,000", bad == 0, f"{bad} out of range" if bad else ""))
+        if re.search(r"_share_\w*change_net$", col):  # a change in a 0-1 share
+            bad = int(((values < -1) | (values > 1)).sum())
+            results.append(Result(table, f"{col} within -1 to 1", bad == 0, f"{bad} out of range" if bad else ""))
 
     for col in df.columns:
         if col in keys or not len(df):
