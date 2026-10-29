@@ -1,0 +1,189 @@
+{
+  "run_date": "2026-10-29",
+  "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
+  "scenario": "no_industry_hhi",
+  "weights_source": "weights/scenarios/no_industry_hhi.toml",
+  "pillars_in_run": [
+    "pillar1",
+    "pillar2",
+    "pillar3",
+    "pillar4"
+  ],
+  "pillars_missing": [],
+  "weights_entered": {
+    "pillars": {
+      "pillar1": 25.0,
+      "pillar2": 25.0,
+      "pillar3": 25.0,
+      "pillar4": 25.0
+    },
+    "metrics": {
+      "pillar1": {
+        "local_ci_growth": 5.0,
+        "local_cre_growth": 5.0,
+        "local_loans_to_deposits": 5.0,
+        "allocated_loan_growth": 10.0,
+        "mm_establishments": 25.0,
+        "mm_growth": 15.0,
+        "mm_share": 5.0,
+        "multifamily_lending": 10.0,
+        "multifamily_permits": 10.0,
+        "cre_payroll_growth": 10.0
+      },
+      "pillar2": {
+        "deposits_per_capita": 10.0,
+        "deposit_growth": 10.0,
+        "deposits_per_branch": 10.0,
+        "wage_bill": 10.0,
+        "wage_bill_growth": 10.0,
+        "payroll_per_establishment": 10.0,
+        "income_per_capita": 10.0,
+        "income_growth": 10.0,
+        "incumbent_nib_share": 10.0,
+        "incumbent_uninsured_share": 10.0
+      },
+      "pillar3": {
+        "deposit_hhi": 1.0,
+        "top3_share": 1.0,
+        "competitors_per_billion": 1.0,
+        "branches_per_billion": 1.0,
+        "leader_share_change": 1.0
+      },
+      "pillar4": {
+        "gdp_growth": 12.5,
+        "gdp_volatility": 12.5,
+        "unemployment_level": 12.5,
+        "unemployment_volatility": 12.5,
+        "industry_hhi": 0.0,
+        "establishment_growth": 12.5,
+        "population_growth": 12.5,
+        "net_migration_rate": 12.5
+      }
+    },
+    "fill": {}
+  },
+  "weights_effective": {
+    "pillar1": 0.25,
+    "pillar2": 0.25,
+    "pillar3": 0.25,
+    "pillar4": 0.25
+  },
+  "metric_weights_effective": {
+    "pillar1": {
+      "local_ci_growth": 0.0625,
+      "local_cre_growth": 0.0625,
+      "local_loans_to_deposits": 0.0625,
+      "allocated_loan_growth": 0.125,
+      "mm_establishments": 0.3125,
+      "mm_growth": 0.1875,
+      "mm_share": 0.0625,
+      "cre_payroll_growth": 0.125
+    },
+    "pillar2": {
+      "deposits_per_capita": 0.1,
+      "deposit_growth": 0.1,
+      "deposits_per_branch": 0.1,
+      "wage_bill": 0.1,
+      "wage_bill_growth": 0.1,
+      "payroll_per_establishment": 0.1,
+      "income_per_capita": 0.1,
+      "income_growth": 0.1,
+      "incumbent_nib_share": 0.1,
+      "incumbent_uninsured_share": 0.1
+    },
+    "pillar3": {
+      "deposit_hhi": 0.2,
+      "top3_share": 0.2,
+      "competitors_per_billion": 0.2,
+      "branches_per_billion": 0.2,
+      "leader_share_change": 0.2
+    },
+    "pillar4": {
+      "gdp_growth": 0.142857,
+      "gdp_volatility": 0.142857,
+      "unemployment_level": 0.142857,
+      "unemployment_volatility": 0.142857,
+      "establishment_growth": 0.142857,
+      "population_growth": 0.142857,
+      "net_migration_rate": 0.142857
+    }
+  },
+  "fill": null,
+  "compared_to_baseline": true,
+  "entered_complete_set": 73,
+  "left_complete_set": 39,
+  "settings": {
+    "normalize": "percentile",
+    "min_pillar_coverage": 0.5,
+    "sensitivity": 0.25
+  },
+  "inputs": {
+    "pillar1": {
+      "file": "outputs/pillar_scores/pillar1_scores.csv",
+      "rows": 387,
+      "complete": 321,
+      "matches_notebook_weights": true,
+      "notebook_run_date": "2026-10-29",
+      "notebook_weights": {
+        "local_ci_growth": 0.0625,
+        "local_cre_growth": 0.0625,
+        "local_loans_to_deposits": 0.0625,
+        "allocated_loan_growth": 0.125,
+        "mm_establishments": 0.3125,
+        "mm_growth": 0.1875,
+        "mm_share": 0.0625,
+        "cre_payroll_growth": 0.125
+      }
+    },
+    "pillar2": {
+      "file": "outputs/pillar_scores/pillar2_scores.csv",
+      "rows": 387,
+      "complete": 382,
+      "matches_notebook_weights": true,
+      "notebook_run_date": "2026-10-29",
+      "notebook_weights": {
+        "deposits_per_capita": 0.1,
+        "deposit_growth": 0.1,
+        "deposits_per_branch": 0.1,
+        "wage_bill": 0.1,
+        "wage_bill_growth": 0.1,
+        "payroll_per_establishment": 0.1,
+        "income_per_capita": 0.1,
+        "income_growth": 0.1,
+        "incumbent_nib_share": 0.1,
+        "incumbent_uninsured_share": 0.1
+      }
+    },
+    "pillar3": {
+      "file": "outputs/pillar_scores/pillar3_scores.csv",
+      "rows": 393,
+      "complete": 388,
+      "matches_notebook_weights": true,
+      "notebook_run_date": "2026-10-29",
+      "notebook_weights": {
+        "deposit_hhi": 0.2,
+        "top3_share": 0.2,
+        "competitors_per_billion": 0.2,
+        "branches_per_billion": 0.2,
+        "leader_share_change": 0.2
+      }
+    },
+    "pillar4": {
+      "file": "outputs/pillar_scores/pillar4_scores.csv",
+      "rows": 387,
+      "complete": 382,
+      "matches_notebook_weights": false,
+      "notebook_run_date": null,
+      "notebook_weights": null
+    }
+  },
+  "msas": 393,
+  "complete_msas": 321,
+  "warnings": [
+    "pillar1: ['multifamily_lending', 'multifamily_permits'] not available in data/processed; left out and the rest rescaled",
+    "pillar4: metric weights differ from the notebook's last run; pillar rescored here",
+    "pillar1: 6 MSAs listed by other pillars are not in this export",
+    "pillar2: 6 MSAs listed by other pillars are not in this export",
+    "pillar4: 6 MSAs listed by other pillars are not in this export"
+  ]
+}

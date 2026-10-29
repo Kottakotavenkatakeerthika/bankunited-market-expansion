@@ -1,0 +1,8 @@
+scenario,complete_msas,rank_corr_vs_baseline,top25_shared_with_baseline,msas_moved_10plus,corr_with_population,charlotte_rank,bankunited_ranked,bankunited_median_rank,top5
+baseline,287,1.0,25,0,0.69,12.0,13,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+fill_local_lender,287,1.0,25,0,0.69,12.0,13,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+lending_led,248,0.995,22,56,0.69,13.0,11,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+no_industry_hhi,321,0.997,21,30,0.71,14.0,11,17.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+no_local_lender,287,0.996,23,50,0.69,11.0,13,17.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+no_scale_metrics,248,0.969,20,134,0.52,14.0,11,23.0,Austin; Raleigh; Nashville; Indianapolis; Phoenix
+pillar3_off,248,0.962,18,153,0.64,12.0,11,22.0,Austin; Phoenix; Raleigh; Fayetteville; Boise City

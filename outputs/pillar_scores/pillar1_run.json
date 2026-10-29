@@ -1,0 +1,40 @@
+{
+  "pillar": "pillar1",
+  "run_date": "2026-10-29",
+  "effective_weights": {
+    "local_ci_growth": 0.0625,
+    "local_cre_growth": 0.0625,
+    "local_loans_to_deposits": 0.0625,
+    "allocated_loan_growth": 0.125,
+    "mm_establishments": 0.3125,
+    "mm_growth": 0.1875,
+    "mm_share": 0.0625,
+    "cre_payroll_growth": 0.125
+  },
+  "entered_weights": {
+    "local_ci_growth": 0.05,
+    "local_cre_growth": 0.05,
+    "local_loans_to_deposits": 0.05,
+    "allocated_loan_growth": 0.1,
+    "mm_establishments": 0.25,
+    "mm_growth": 0.15,
+    "mm_share": 0.05,
+    "multifamily_lending": 0.1,
+    "multifamily_permits": 0.1,
+    "cre_payroll_growth": 0.1
+  },
+  "settings": {
+    "local_lender_threshold": 0.5,
+    "growth_cap": 0.25,
+    "base_quarter": "2019-06-30",
+    "end_quarter": "2024-06-30",
+    "cbp_start": 2018,
+    "cbp_end": 2023,
+    "exclude_home_banking_offices": true
+  },
+  "complete_msas": 321,
+  "not_available": [
+    "multifamily_lending",
+    "multifamily_permits"
+  ]
+}

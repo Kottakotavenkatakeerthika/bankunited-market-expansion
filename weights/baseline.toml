@@ -48,7 +48,6 @@ deposit_hhi             = 1   # P3-01 deposit concentration (lower is better)
 top3_share              = 1   # P3-02 top-3 holding companies' share
 competitors_per_billion = 1   # P3-03
 branches_per_billion    = 1   # P3-04
-peer_share              = 1   # P3-05 peer-set share of deposits
 leader_share_change     = 1   # P3-07 3-year change in leaders' share
 
 [pillar4]  # Market quality and durability
@@ -60,3 +59,6 @@ industry_hhi            = 12.5   # blank for 95 MSAs (CBP suppression); set to 0
 establishment_growth    = 12.5
 population_growth       = 12.5
 net_migration_rate      = 12.5
+
+[fill]  # missing values for these metrics count as the 50th percentile
+pillar1 = ["local_ci_growth", "local_cre_growth", "local_loans_to_deposits"]

@@ -269,3 +269,64 @@ def test_cli_show_weights(with_metrics, monkeypatch, capsys):
     printed = capsys.readouterr().out
     assert "18.8%" in printed and "notebook score as exported" in printed   # 25% x 75% for pillar1 size
     assert not (with_metrics / "outputs/final_scores").exists()
+
+
+# --- Filling missing metrics ------------------------------------------------------------------------------
+P1_GAP = {"size": [100, 75, 50, 25, 0], "growth": [0, np.nan, 50, 75, 100]}
+
+
+@pytest.fixture
+def with_gap(tmp_path):
+    """Pillar 1 has one MSA (20000) missing 'growth'."""
+    write_standard(tmp_path, "pillar1", None, pct=P1_GAP)
+    write_standard(tmp_path, "pillar2", [10, 30, 50, 70, 90])
+    write_standard(tmp_path, "pillar3", [80, 60, 40, 20, 0])
+    write_pillar4(tmp_path, None, pct=P4_PCT)
+    return tmp_path
+
+
+def test_fill_scores_missing_metric_at_the_50th_percentile(with_gap):
+    plain, _ = ma.run(root=with_gap, weights={"pillars": EQUAL, "metrics": {"pillar1": {"size": 1, "growth": 1}}},
+                      write=False)
+    assert plain.loc["20000", "pillar1_status"] == "partial"
+    assert plain.loc["20000", "pillar1_score"] == 75                   # renormalized over 'size' alone
+    w = {"pillars": EQUAL, "metrics": {"pillar1": {"size": 1, "growth": 1}}, "fill": {"pillar1": ["growth"]}}
+    out, report = ma.run(root=with_gap, weights=w, write=False)
+    assert out.loc["20000", "pillar1_status"] == "complete"
+    assert out.loc["20000", "pillar1_score"] == pytest.approx((75 + 50) / 2)
+    assert out.loc["20000", "filled_metrics"] == "pillar1: growth"
+    assert out.loc["10000", "filled_metrics"] == ""
+    assert report["fill"]["pillars"]["pillar1"]["msas_filled"] == 1
+    assert report["inputs"]["pillar1"]["matches_notebook_weights"] is True   # weights unchanged, only filled
+    assert any("set to the 50th percentile" in x for x in report["warnings"])
+
+
+def test_fill_from_weights_file(with_gap):
+    path = write_toml(with_gap / "weights/fill.toml", EQUAL, {"pillar1": {"size": 1, "growth": 1}})
+    path.write_text(path.read_text() + '\n[fill]\npillar1 = ["growth"]\n')
+    out, report = ma.run(root=with_gap, weights_file=path, write=False)
+    assert report["weights_entered"]["fill"] == {"pillar1": ["growth"]}
+    assert out.loc["20000", "pillar1_status"] == "complete"
+
+
+def test_fill_with_zero_weight_warns_and_does_nothing(with_gap):
+    w = {"pillars": EQUAL, "metrics": {"pillar1": {"size": 1, "growth": 0}}, "fill": {"pillar1": ["growth"]}}
+    out, report = ma.run(root=with_gap, weights=w, write=False)
+    assert any("weight 0, so filling them does nothing" in x for x in report["warnings"])
+    assert out.loc["20000", "pillar1_score"] == 75
+
+
+def test_fill_unknown_metric_fails_the_gate(with_gap):
+    w = {"pillars": EQUAL, "metrics": {"pillar1": {"size": 1, "growth": 1}}, "fill": {"pillar1": ["grwoth"]}}
+    with pytest.raises(ma.GateError, match="grwoth"):
+        ma.run(root=with_gap, weights=w, write=False)
+
+
+@pytest.mark.parametrize("fill, message", [
+    ({"pillar9": ["x"]}, "unknown pillar"),
+    ({"pillar1": "growth"}, "must be a list"),
+    ({"pillar2": ["x"]}, r"needs a \[pillar2\] section"),
+])
+def test_bad_fill_settings_are_rejected(fill, message):
+    with pytest.raises(ValueError, match=message):
+        ma.normalize_weights({"pillars": EQUAL, "metrics": {"pillar1": {"size": 1}}, "fill": fill})

@@ -1,0 +1,53 @@
+# Scenario: drop Pillar 4's industry HHI.
+# Question: how much of the incomplete-MSA problem is this one metric, and do the newly ranked
+# MSAs (e.g. Huntsville, Wilmington NC) belong near the top?
+# Change: [pillar4] industry_hhi 12.5 -> 0. It is blank for ~95 MSAs because of CBP suppression.
+# Everything else is the baseline (weights/baseline.toml as of 2026-10-29).
+# Run:  python -m src.market_attractiveness --weights weights/scenarios/no_industry_hhi.toml
+
+[pillars]
+pillar1 = 25   # Commercial lending
+pillar2 = 25   # Deposits and treasury
+pillar3 = 25   # Competition and entry windows
+pillar4 = 25   # Market quality and durability
+
+[pillar1]  # Commercial lending (V2, reliability weights adopted 2026-10-20)
+local_ci_growth         = 5    # local-lender C&I growth, 2019-24
+local_cre_growth        = 5    # local-lender CRE growth, 2019-24
+local_loans_to_deposits = 5    # local-lender commercial loans / deposits, 2024
+allocated_loan_growth   = 10   # all banks' C&I + CRE allocated by non-HQ deposit share, growth
+mm_establishments       = 25   # establishments with 20-249 employees (the size metric)
+mm_growth               = 15   # growth in that count, 2018-23
+mm_share                = 5    # its share of all establishments
+multifamily_lending     = 10   # HMDA 5+ units: not in data/processed yet, skipped and the rest rescaled
+multifamily_permits     = 10   # Census permits 5+ units: not in data/processed yet, skipped
+cre_payroll_growth      = 10   # nonresidential CRE payroll growth, 2018-23
+
+[pillar2]  # Deposits and treasury (V1)
+deposits_per_capita       = 10   # non-HQ deposits per resident, 2024
+deposit_growth            = 10   # non-HQ deposit growth, 2019-24
+deposits_per_branch       = 10   # deposits per non-HQ branch
+wage_bill                 = 10   # QCEW total wages, 2024 (the size metric)
+wage_bill_growth          = 10   # wage bill growth, 2019-24
+payroll_per_establishment = 10   # CBP payroll per establishment
+income_per_capita         = 10   # BEA personal income per capita
+income_growth             = 10   # personal income growth, 2019-24
+incumbent_nib_share       = 10   # deposit-weighted non-interest-bearing share of incumbents
+incumbent_uninsured_share = 10   # deposit-weighted uninsured share of incumbents
+
+[pillar3]  # Competition and entry windows
+deposit_hhi             = 1   # P3-01 deposit concentration (lower is better)
+top3_share              = 1   # P3-02 top-3 holding companies' share
+competitors_per_billion = 1   # P3-03
+branches_per_billion    = 1   # P3-04
+leader_share_change     = 1   # P3-07 3-year change in leaders' share
+
+[pillar4]  # Market quality and durability
+gdp_growth              = 12.5
+gdp_volatility          = 12.5
+unemployment_level      = 12.5
+unemployment_volatility = 12.5
+industry_hhi            = 0     # blank for 95 MSAs (CBP suppression); set to 0 to score them complete
+establishment_growth    = 12.5
+population_growth       = 12.5
+net_migration_rate      = 12.5

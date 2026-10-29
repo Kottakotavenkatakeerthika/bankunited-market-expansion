@@ -1,0 +1,42 @@
+{
+  "pillar": "pillar2",
+  "run_date": "2026-10-29",
+  "effective_weights": {
+    "deposits_per_capita": 0.1,
+    "deposit_growth": 0.1,
+    "deposits_per_branch": 0.1,
+    "wage_bill": 0.1,
+    "wage_bill_growth": 0.1,
+    "payroll_per_establishment": 0.1,
+    "income_per_capita": 0.1,
+    "income_growth": 0.1,
+    "incumbent_nib_share": 0.1,
+    "incumbent_uninsured_share": 0.1
+  },
+  "entered_weights": {
+    "deposits_per_capita": 0.1,
+    "deposit_growth": 0.1,
+    "deposits_per_branch": 0.1,
+    "wage_bill": 0.1,
+    "wage_bill_growth": 0.1,
+    "payroll_per_establishment": 0.1,
+    "income_per_capita": 0.1,
+    "income_growth": 0.1,
+    "incumbent_nib_share": 0.1,
+    "incumbent_uninsured_share": 0.1
+  },
+  "settings": {
+    "sod_start": 2019,
+    "sod_end": 2024,
+    "call_quarter": "2024-06-30",
+    "qcew_start": 2019,
+    "qcew_end": 2024,
+    "bea_start": 2019,
+    "bea_end": 2024,
+    "cbp_year": 2023,
+    "exclude_home_banking_offices": true,
+    "min_call_coverage": 0.5
+  },
+  "complete_msas": 382,
+  "not_available": []
+}

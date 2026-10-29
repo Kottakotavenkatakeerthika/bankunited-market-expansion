@@ -35,6 +35,9 @@ Method (same conventions as the pillar notebooks):
        rank is among complete MSAs only.
     4. best_rank / worst_rank: rank range when each pillar weight alone moves +/-25%, as in the notebooks.
 
+Optional [fill] table in the weights file: metrics listed there count as the FILL_PERCENTILE (50th) where an
+MSA has no value, instead of leaving the pillar partial. Filled metrics are listed per MSA in filled_metrics.
+
 This is Market Attractiveness only. The Fit & Feasibility gate (src/bankunited_fit.py) is applied after it.
 """
 from __future__ import annotations
@@ -60,6 +63,7 @@ DEFAULT_PILLAR_WEIGHTS = {"pillar1": 0.25, "pillar2": 0.25, "pillar3": 0.25, "pi
 NORMALIZE = "percentile"      # "percentile" (default) or "none" to average the pillar scores as published
 MIN_PILLAR_COVERAGE = 0.50    # a partial pillar score counts only if it covers this share of the pillar's weight
 SENSITIVITY = 0.25            # +/- shock to each pillar weight for best_rank / worst_rank
+FILL_PERCENTILE = 50.0        # value given to a missing metric listed under [fill] in the weights file
 EXAMPLE_CBSA = "16740"        # Charlotte, the pilot
 
 # Markets BankUnited serves from offices with no branch, which SOD can't see (same list as the pillar notebooks).
@@ -108,12 +112,14 @@ def load_weights(path: Path) -> dict:
     """Read a weights TOML: a [pillars] table, plus an optional [pillarN] table of metric weights per pillar."""
     with open(path, "rb") as f:
         cfg = tomllib.load(f)
-    return normalize_weights({"pillars": cfg.get("pillars", {}),
-                              "metrics": {k: v for k, v in cfg.items() if k != "pillars"}}, source=str(path))
+    return normalize_weights({"pillars": cfg.get("pillars", {}), "fill": cfg.get("fill", {}),
+                              "metrics": {k: v for k, v in cfg.items() if k not in ("pillars", "fill")}},
+                             source=str(path))
 
 
 def normalize_weights(weights: dict | None, source: str = "weights") -> dict:
-    """Accept {pillar: w} or {"pillars": {...}, "metrics": {pillar: {metric: w}}}; check and return the long form."""
+    """Accept {pillar: w} or {"pillars": {...}, "metrics": {pillar: {metric: w}}, "fill": {pillar: [metric]}};
+    check and return the long form."""
     if weights is None:
         weights = {"pillars": DEFAULT_PILLAR_WEIGHTS}
     elif "pillars" not in weights:
@@ -132,7 +138,18 @@ def normalize_weights(weights: dict | None, source: str = "weights") -> dict:
     for k, m in metrics.items():
         if m and sum(m.values()) <= 0 and pillars[k] > 0:
             raise ValueError(f"{source}: every metric weight in [{k}] is 0; set the pillar weight to 0 instead")
-    return {"pillars": pillars, "metrics": metrics}
+    fill = weights.get("fill") or {}
+    if not isinstance(fill, dict):
+        raise ValueError(f"{source}: [fill] must map pillars to lists of metrics, e.g. pillar1 = [\"local_ci_growth\"]")
+    for k, ms in fill.items():
+        if k not in PILLAR_KEYS:
+            raise ValueError(f"{source}: [fill] has unknown pillar {k!r}; use pillar1..pillar4")
+        if not isinstance(ms, list) or not all(isinstance(m, str) for m in ms):
+            raise ValueError(f"{source}: [fill] {k} must be a list of metric names in quotes")
+        if ms and not metrics.get(k):
+            raise ValueError(f"{source}: [fill] {k} needs a [{k}] section of metric weights, since filling "
+                             f"rebuilds the pillar from its metrics")
+    return {"pillars": pillars, "metrics": metrics, "fill": {k: list(v) for k, v in fill.items() if v}}
 
 
 def scenario_name(name: str) -> str:
@@ -186,15 +203,18 @@ def load_pillar(p: Pillar, path: Path) -> tuple[pd.DataFrame, pd.DataFrame, list
 
 
 def rescore_pillar(key: str, t: pd.DataFrame, pct: pd.DataFrame, metric_weights: dict[str, float],
-                   not_available: list[str]):
+                   not_available: list[str], fill: list[str] | None = None):
     """Rebuild a pillar's scores from its metric percentiles with new weights (same rule as the notebooks).
 
-    Returns (table, effective metric weights, matches_notebook, errors, warnings).
+    Metrics in `fill` count as FILL_PERCENTILE where missing. matches_notebook compares the weights only
+    (before filling). Returns (table, effective metric weights, matches_notebook, errors, warnings, filled),
+    where filled lists the filled metrics per MSA ("" if none).
     """
+    fill = fill or []
     errors, warnings = [], []
     if pct.empty:
         return t, None, None, [f"{key}: the export has no metric percentile columns, so its metric weights "
-                               f"can't be changed here; delete [{key}] from the weights file"], []
+                               f"can't be changed here; delete [{key}] from the weights file"], [], None
     unknown = [m for m in metric_weights if m not in pct.columns and m not in not_available]
     if unknown:
         errors.append(f"{key}: {unknown} not in the export (check the spelling; in pillars 1-3 a metric is "
@@ -205,25 +225,40 @@ def rescore_pillar(key: str, t: pd.DataFrame, pct: pd.DataFrame, metric_weights:
     unweighted = [m for m in pct.columns if m not in metric_weights]
     if unweighted:
         warnings.append(f"{key}: exported metrics not in the weights file, so weighted 0: {unweighted}")
+    bad_fill = [m for m in fill if m not in pct.columns]
+    if bad_fill:
+        errors.append(f"{key}: [fill] lists {bad_fill}, which are not in the export. Exported: {list(pct.columns)}")
     w = pd.Series({m: v for m, v in metric_weights.items() if m in pct.columns and v > 0}, dtype=float)
     if w.empty and not errors:
         errors.append(f"{key}: no weighted metric is in the export")
     if errors:
-        return t, None, None, errors, warnings
+        return t, None, None, errors, warnings, None
+    unweighted_fill = [m for m in fill if m not in w.index]
+    if unweighted_fill:
+        warnings.append(f"{key}: [fill] lists {unweighted_fill}, which have weight 0, so filling them does nothing")
     w = w / w.sum()
+
+    def scores(P):
+        have = P.notna()
+        cover = have.mul(w, axis=1).sum(axis=1)
+        available = P.fillna(0).mul(w, axis=1).sum(axis=1) / cover.where(cover > 0)
+        return available.where(have.all(axis=1)), available, cover, have
+
     P = pct[w.index].reindex(t.index)
-    have = P.notna()
-    cover = have.mul(w, axis=1).sum(axis=1)
-    available = P.fillna(0).mul(w, axis=1).sum(axis=1) / cover.where(cover > 0)
-    complete = available.where(have.all(axis=1))
+    complete, available, _, _ = scores(P)
     matches = bool(np.allclose(available, t["available_score"], atol=1e-6, equal_nan=True)
                    and complete.notna().equals(t["complete_score"].notna()))
+    to_fill = [m for m in fill if m in w.index]
+    was_missing = P[to_fill].isna()
+    P[to_fill] = P[to_fill].fillna(FILL_PERCENTILE)
+    complete, available, cover, have = scores(P)
+    filled = was_missing.apply(lambda r: ", ".join(c for c in r.index if r[c]), axis=1).reindex(t.index).fillna("")
     out = t.copy()
     out["complete_score"], out["available_score"], out["weight_coverage"] = complete, available, cover
     out["rank"] = complete.rank(ascending=False, method="min")
     out["valid_metrics"] = have.sum(axis=1)
     out["missing_metrics"] = have.apply(lambda r: ", ".join(c for c in r.index if not r[c]), axis=1)
-    return out, w, matches, [], warnings
+    return out, w, matches, [], warnings, filled
 
 
 def percentile(s: pd.Series) -> pd.Series:
@@ -331,7 +366,7 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
             name = name or BASELINE
     name = scenario_name(name)
 
-    errors, warnings, inputs, tables, metric_eff = [], [], {}, {}, {}
+    errors, warnings, inputs, tables, metric_eff, filled, fill_report = [], [], {}, {}, {}, {}, {}
     processed = root / "data" / "processed" / "msa_year.parquet"
     for p in PILLARS:
         if cfg["pillars"][p.key] == 0:
@@ -350,8 +385,9 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         meta = json.loads(run_json.read_text()) if run_json.exists() else {}
         matches = None
         if cfg["metrics"].get(p.key):
-            df, eff, matches, errs, warns = rescore_pillar(p.key, df, pct, cfg["metrics"][p.key],
-                                                          meta.get("not_available", []))
+            df, eff, matches, errs, warns, fl = rescore_pillar(p.key, df, pct, cfg["metrics"][p.key],
+                                                              meta.get("not_available", []),
+                                                              cfg["fill"].get(p.key))
             errors += errs
             warnings += warns
             if errs:
@@ -359,6 +395,12 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
             metric_eff[p.key] = eff.round(6).to_dict()
             if not matches:
                 warnings.append(f"{p.key}: metric weights differ from the notebook's last run; pillar rescored here")
+            if cfg["fill"].get(p.key):
+                filled[p.key] = fl
+                n = int((fl != "").sum())
+                fill_report[p.key] = {"metrics": cfg["fill"][p.key], "msas_filled": n}
+                warnings.append(f"{p.key}: {n} MSAs had missing {', '.join(cfg['fill'][p.key])} "
+                                f"set to the {FILL_PERCENTILE:g}th percentile")
         tables[p.key] = df
         inputs[p.key] = {"file": path.relative_to(root).as_posix(), "rows": len(df),
                          "complete": int(df["complete_score"].notna().sum()),
@@ -393,6 +435,9 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         [f"Complete ({len(tables)}/{len(tables)} pillars)", "Partial"], "No pillar scores")
     out["missing_or_partial_pillars"] = status.apply(
         lambda r: ", ".join(f"{k} {v}" for k, v in r.items() if v != "complete"), axis=1)
+    if filled:
+        fl = pd.DataFrame({k: v.reindex(universe).fillna("") for k, v in filled.items()})
+        out["filled_metrics"] = fl.apply(lambda r: "; ".join(f"{k}: {v}" for k, v in r.items() if v), axis=1)
     for k in tables:
         out[f"{k}_score"] = used[k]
         out[f"{k}_status"] = status[k]
@@ -431,6 +476,7 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         "weights_entered": cfg,
         "weights_effective": wn.round(6).to_dict(),
         "metric_weights_effective": metric_eff,
+        "fill": {"percentile": FILL_PERCENTILE, "pillars": fill_report} if fill_report else None,
         "compared_to_baseline": compared,
         **report_extra,
         "settings": {"normalize": normalize, "min_pillar_coverage": min_coverage, "sensitivity": SENSITIVITY},
@@ -462,7 +508,8 @@ def summary(out: pd.DataFrame, report: dict, n: int = 15) -> str:
         cols += ["baseline_rank", "rank_change"]
     lines += ["", f"Top {n}:", out[cols].head(n).round(1).to_string()]
     bu = out[out.bankunited_market.notna()]
-    lines += ["", "BankUnited markets:", bu[cols + ["bankunited_market"]].round(1).to_string()]
+    bu_cols = cols + ["bankunited_market"] + (["filled_metrics"] if "filled_metrics" in out else [])
+    lines += ["", "BankUnited markets:", bu[bu_cols].round(1).to_string()]
     if report["compared_to_baseline"]:
         movers = out.dropna(subset=["rank_change"]).reindex(
             out["rank_change"].abs().dropna().sort_values(ascending=False).index[:10])
