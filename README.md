@@ -50,6 +50,8 @@ python -m pytest                             # tests for the pipeline code
 
 The checks write `data/processed/checks_report.md` and exit with code 1 if anything fails.
 
+Each source publishes on its own schedule. [Refresh cadence](docs/refresh_cadence.md) says when to rerun each one and what a refresh takes.
+
 ## Using the data (modelers)
 
 ```python
