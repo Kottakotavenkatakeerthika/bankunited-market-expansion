@@ -1,9 +1,13 @@
 """Checks on data/reference/release_dates.csv, the first-release date of every source, dataset and year."""
 import csv
+import re
 from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
+
+from src import config
+from src.checks import read_dictionary
 
 PATH = Path(__file__).resolve().parents[1] / "data" / "reference" / "release_dates.csv"
 COLUMNS = ["source", "dataset", "year", "quarter_end", "release_type", "release_date", "link", "note"]
@@ -78,3 +82,20 @@ def test_every_bea_history_year_has_a_first_release(rows, dataset):
 def test_every_pep_year_has_a_first_release(rows):
     years = {int(r["year"]) for r in rows if r["source"] == "pep" and r["release_type"] == "initial" and r["release_date"]}
     assert years >= set(range(2015, 2025))
+
+
+def test_released_cells_of_the_county_sources_are_dated():
+    """The Released cell of every cbp_, bea_, bls_, fred_, cra_ (not cra_bank_), cre_ and pep_ column holds a year."""
+    lines = config.DATA_DICTIONARY.read_text(encoding="utf-8").splitlines()
+    tables = read_dictionary()
+    problems, checked = [], 0
+    for table in ("msa_year", "msa_naics_year", "msa_year_history"):
+        for row in tables[table]:
+            if not re.match(r"(cbp|bea|bls|fred|cra|cre|pep)_", row.column) or row.column.startswith("cra_bank_"):
+                continue
+            checked += 1
+            released = [cell.strip() for cell in lines[row.line - 1].strip().strip("|").split("|")][5]
+            if not re.search(r"\d{4}", released):
+                problems.append(f"{table}.{row.column} (line {row.line}): {released!r}")
+    assert checked >= 43
+    assert not problems, "Released cells with no year:\n" + "\n".join(problems)
