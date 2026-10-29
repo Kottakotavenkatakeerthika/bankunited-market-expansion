@@ -265,14 +265,66 @@ def _write_report(results: list[Result]) -> None:
     (config.PROCESSED / "checks_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def identifier_checks(bank_quarter: pd.DataFrame, bank_msa_year: pd.DataFrame) -> list[Result]:
+    """Do a bank's IDs line up across the Call Reports (bank_quarter) and SOD and CRA (bank_msa_year)?
+
+    An FDIC certificate number that maps to two RSSD IDs in one quarter fails the build. The
+    cross-source checks are warnings with counts, because FDIC's own data has a few known cases
+    (see "Bank identifiers and the peer set" in the dictionary): SOD rows whose cert isn't the
+    bank's June 30 Call Report cert, SOD bank-years with no June 30 Call Report, and CRA
+    lender-years with no Call Report that year.
+    """
+    table = "bank_quarter + bank_msa_year"
+    results: list[Result] = []
+    calls = bank_quarter.assign(quarter_end=pd.to_datetime(bank_quarter["quarter_end"]))
+    if "call_cert" not in calls:
+        return results
+    shared = calls.dropna(subset=["call_cert"]).groupby(["quarter_end", "call_cert"])["rssd_id"].nunique()
+    shared = shared[shared > 1]
+    results.append(Result("bank_quarter", "each FDIC cert belongs to one RSSD ID per quarter", shared.empty,
+                          "" if shared.empty else f"{len(shared)} cert-quarters, e.g. cert {shared.index[0][1]} "
+                                                  f"on {shared.index[0][0]:%Y-%m-%d}"))
+    empty = int(calls["call_cert"].isna().sum())
+    results.append(Result("bank_quarter", "every bank-quarter has an FDIC cert", empty == 0,
+                          f"{empty} bank-quarters without one" if empty else "", level="warning"))
+
+    june = calls.loc[calls["quarter_end"].dt.month.eq(6), ["rssd_id", "quarter_end", "call_cert"]]
+    june = june.assign(year=june.pop("quarter_end").dt.year)
+    if "sod_cert" in bank_msa_year:
+        sod = bank_msa_year.dropna(subset=["sod_cert"])[["rssd_id", "cbsa_code", "year", "sod_cert"]]
+        sod = sod.merge(june, on=["rssd_id", "year"], how="left", validate="many_to_one")
+        other = sod["call_cert"].notna() & sod["sod_cert"].ne(sod["call_cert"])
+        results.append(Result(table, "SOD certs match the bank's June 30 Call Report cert", not other.any(),
+                              _examples(sod.loc[other], "bank-metro-years"), level="warning"))
+        missing = sod.loc[sod["call_cert"].isna()].drop_duplicates(["rssd_id", "year"])
+        results.append(Result(table, "every SOD bank has a June 30 Call Report", missing.empty,
+                              _examples(missing, "bank-years"), level="warning"))
+    if "cra_bank_small_business_loan_count" in bank_msa_year:
+        cra = bank_msa_year.dropna(subset=["cra_bank_small_business_loan_count"])[["rssd_id", "year"]].drop_duplicates()
+        filed = calls[["rssd_id"]].assign(year=calls["quarter_end"].dt.year).drop_duplicates()
+        cra = cra.merge(filed, on=["rssd_id", "year"], how="left", indicator=True)
+        missing = cra.loc[cra.pop("_merge").eq("left_only")]
+        results.append(Result(table, "every CRA lender filed a Call Report that year", missing.empty,
+                              _examples(missing, "lender-years"), level="warning"))
+    return results
+
+
+def _examples(rows: pd.DataFrame, what: str) -> str:
+    if rows.empty:
+        return ""
+    shown = "; ".join(f"RSSD {r.rssd_id} {r.year}" for r in rows.drop_duplicates(["rssd_id", "year"]).head(3).itertuples())
+    return f"{len(rows)} {what}, e.g. {shown}"
+
+
 def run_checks(write_report: bool = True) -> bool:
     results: list[Result] = []
     dictionary = read_dictionary() if config.DATA_DICTIONARY.exists() else None
+    frames: dict[str, pd.DataFrame] = {}
     for table in config.TABLES:
         path = config.PROCESSED / f"{table}.parquet"
         if not path.exists():
             continue
-        df = pd.read_parquet(path)
+        df = frames[table] = pd.read_parquet(path)
         results += check_table(table, df)
         if dictionary is None:
             results.append(Result(table, "every column has a dictionary row", False,
@@ -283,6 +335,8 @@ def run_checks(write_report: bool = True) -> bool:
             results += spot_checks(df)
         if table == "bank_quarter":
             results += bank_spot_checks(df)
+    if "bank_quarter" in frames and "bank_msa_year" in frames:
+        results += identifier_checks(frames["bank_quarter"], frames["bank_msa_year"])
     if not results:
         print("[checks] no processed tables to check yet")
         return True

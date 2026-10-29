@@ -44,6 +44,7 @@ cp .env.example .env               # then add your API keys to .env
 python -m src.run_pipeline                   # crosswalk -> ingest -> build -> checks
 python -m src.run_pipeline --sources fdic    # one source, then rebuild and check
 python -m src.run_pipeline --skip-ingest     # rebuild processed tables from interim files
+python -m src.peers                          # the peer set and its identifiers, after a new quarter
 python -m pytest                             # tests for the pipeline code
 ```
 
@@ -60,6 +61,8 @@ duckdb.sql("SELECT * FROM 'data/processed/msa_year.parquet' WHERE cbsa_code = '1
 ```
 
 Each table's grain, key and joins are under [Tables and keys](docs/data_dictionary.md#tables-and-keys) in the data dictionary, which defines every column.
+
+The peer set, every organization with $10B–$100B in total assets, is in `data/reference/peer_organizations.csv`, with each organization's RSSD IDs, FDIC certificates, ticker and SEC CIK. See [Bank identifiers and the peer set](docs/data_dictionary.md#bank-identifiers-and-the-peer-set).
 
 Never edit files in `data/processed/`. Note the data version tag (e.g. `data-v0.1`) you used for each model run. Need a new variable? Ask data engineering to add it to the build rather than creating it in a notebook.
 
