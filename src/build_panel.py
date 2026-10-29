@@ -5,6 +5,10 @@
 msa_year is built on the full MSA-universe x years grid, so a value a source
 doesn't report shows up as an empty cell rather than a missing row.
 
+build_all() first writes data/interim/msa_year/bankunited.parquet from the
+bank_msa_year interim files (src/bankunited.py), so BankUnited's own footprint
+lands in msa_year without a download of its own.
+
     python -m src.build_panel
 """
 from __future__ import annotations
@@ -13,7 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src import config
+from src import bankunited, config
 from src.utils import standardize_keys
 
 # zstd instead of pandas' default snappy: with 2015 Q1 to 2026 Q2, bank_quarter is 53.6 MiB with
@@ -22,20 +26,26 @@ from src.utils import standardize_keys
 PARQUET_OPTIONS = {"compression": "zstd", "compression_level": 9}
 
 
-def universe_grid() -> pd.DataFrame:
-    """Every metro in data/reference/msa_universe.csv x every year in config.YEARS."""
+def grid_years(table: str) -> list[int] | None:
+    """The years a table built on the MSA-universe grid covers, or None for a table that isn't."""
+    return {"msa_year": config.YEARS, "msa_year_history": config.HISTORY_YEARS}.get(table)
+
+
+def universe_grid(years: list[int] | None = None) -> pd.DataFrame:
+    """Every metro in data/reference/msa_universe.csv x every year given (config.YEARS by default)."""
     universe = pd.read_csv(config.MSA_UNIVERSE, dtype=str)
     universe = standardize_keys(universe[["cbsa_code", "cbsa_title"]].dropna(subset=["cbsa_code"]))
     if universe["cbsa_code"].duplicated().any():
         raise ValueError("msa_universe.csv lists a metro more than once")
-    years = pd.DataFrame({"year": list(config.YEARS)})
+    years = pd.DataFrame({"year": list(config.YEARS if years is None else years)})
     return standardize_keys(universe.merge(years, how="cross"))
 
 
 def build_table(table: str) -> Path | None:
     keys = config.TABLES[table]
     files = sorted((config.INTERIM / table).glob("*.parquet"))
-    base = universe_grid() if table == "msa_year" else None
+    years = grid_years(table)
+    base = universe_grid(years) if years is not None else None
     if not files and base is None:
         print(f"[build] {table}: no interim files yet, skipped")
         return None
@@ -72,6 +82,7 @@ def build_table(table: str) -> Path | None:
 
 
 def build_all() -> dict[str, Path | None]:
+    bankunited.build_presence()  # derived from bank_msa_year's interim files, so it goes first
     return {table: build_table(table) for table in config.TABLES}
 
 

@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from openpyxl import Workbook
 
-from src import config, ingest_bea_bls
+from src import build_panel, checks, config, ingest_bea_bls
 from src.crosswalk import load_crosswalk
 
 REAL_COMBINED_AREAS = config.BEA_COMBINED_AREAS     # read before any test repoints config
@@ -44,6 +44,37 @@ def test_bea_missing_markers_and_state_rows_do_not_enter_the_metro_total(project
     row = bea_result(project).loc[("16740", 2023)]
     assert row["bea_personal_income_usd"] == 1_000_000      # York's "(NA)" adds nothing; the state value is not included
     assert row["bea_gdp_usd"] == 10_000
+
+
+def test_bea_zeros_mean_not_reported_so_they_stay_empty(project, crosswalk_csv, capsys):
+    # BEA's API answers 0 for Connecticut's planning regions before 2024; no county really has zero GDP or income
+    income = write_bea_json(project, "cainc1", [("37119", "2023", "0"), ("45091", "2023", "100")])
+    gdp = write_bea_json(project, "cagdp2", [("37119", "2023", "0"), ("45091", "2023", "0")])
+    ingest_bea_bls._transform_bea([income, gdp], [2023])
+    row = bea_result(project).loc[("16740", 2023)]
+    assert row["bea_personal_income_usd"] == 100_000    # the zero adds nothing
+    assert pd.isna(row["bea_gdp_usd"])                   # every county zero: empty, not $0
+    out = capsys.readouterr().out
+    # One of Charlotte's two counties is empty, so its income total is low, and the run says so
+    assert ("[bea] msa_year: 1 metro-years have bea_personal_income_usd for only some of their counties, "
+            "so their totals are low (e.g. 16740 2023)") in out
+    assert "bea_gdp_usd for only some" not in out        # an all-empty metro-year isn't partly empty
+
+
+def test_bea_years_before_the_panel_go_to_their_own_table(project, crosswalk_csv):
+    income = write_bea_json(project, "cainc1", [("37119", "2014", "1,000"), ("37119", "2015", "2,000")])
+    gdp = write_bea_json(project, "cagdp2", [("37119", "2014", "30"), ("37119", "2015", "40")])
+    path = ingest_bea_bls._transform_bea([income, gdp], config.HISTORY_YEARS, table="msa_year_history")
+    assert path == project["INTERIM"] / "msa_year_history" / "bea.parquet"
+    history = pd.read_parquet(path).set_index(["cbsa_code", "year"])
+    assert list(history.index) == [("16740", 2014)]     # 2015 belongs to msa_year
+    assert history.loc[("16740", 2014), "bea_personal_income_usd"] == 1_000_000
+
+    build_panel.build_all()
+    table = pd.read_parquet(project["PROCESSED"] / "msa_year_history.parquet")
+    assert len(table) == 2 * len(config.HISTORY_YEARS)  # the universe's two metros in every history year
+    assert table["bea_gdp_usd"].notna().sum() == 1
+    assert checks.run_checks()
 
 
 def test_bea_download_asks_for_the_current_dollar_gdp_table_and_personal_income(project, monkeypatch):
@@ -140,8 +171,9 @@ def test_a_county_that_is_also_inside_a_combined_area_is_rejected_so_it_is_not_c
         ingest_bea_bls._transform_bea([income, gdp], [2023])
 
 
-# Every part of BEA's 23 Virginia combination areas, matched by name from BEA's area names to the Virginia
-# counties and independent cities in the BLS LAUS county file. A change to the reference file shows up here.
+# Every part of BEA's 24 combination areas (23 in Virginia, plus Maui + Kalawao in Hawaii), matched by name from
+# BEA's area names to the counties and independent cities in the BLS LAUS county file. A change to the reference
+# file shows up here.
 EXPECTED_COMBINED_AREA_PARTS = {
     "15901": {"15005", "15009"},
     "51901": {"51003", "51540"},

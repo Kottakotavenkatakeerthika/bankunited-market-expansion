@@ -264,6 +264,67 @@ def test_small_loans_are_left_empty_where_the_form_doesnt_report_them(fdic_api, 
     assert checks.run_checks()
 
 
+def test_zeros_for_values_a_bank_doesnt_report_are_left_empty(fdic_api, capsys):
+    fdic_api.rows = [
+        # A community bank leverage ratio bank: FDIC shows 0 for its risk-based capital and ratios
+        bank("20231231", 1, 601, CBLRIND=1, RBC=0, RBCRWAJ=0, IDT1CER=0, RBC1AAJ=11.2, DEPUNA=0, ASSET=400_000),
+        # A bank on the risk-based rules keeps its values; its 0s for LNNDEPD and NTLNLSR are real 0s
+        bank("20231231", 2, 602, CBLRIND=0, RBC=150_000, RBCRWAJ=14.2, IDT1CER=12.5, DEPUNA=300_000,
+             ASSET=1_500_000, LNNDEPD=0, ILNQ=-3, NTLNLSR=0),
+        # FDIC leaves the flag empty before 2020: values are kept as published
+        bank("20230930", 3, 603, CBLRIND=None, RBC=90_000, RBCRWAJ=13.1, IDT1CER=11.9, DEPUNA=25_000),
+        # An insured branch of a foreign bank (FFIEC 002): no capital or income statement, but FDIC shows 0 ratios
+        bank("20231231", 4, 604, CALLFORM=2, CBLRIND=None, EQ=None, RBC=None, RBC1AAJ=0, IDT1CER=0, RBCRWAJ=0,
+             ROA=0, NIMY=0, EEFFR=0, NTLNLSR=0, DEPUNA=50_000, ASSET=20_000_000),
+        # A trust company: FDIC computes its total risk-based capital ratio but shows 0 for CET1
+        bank("20231231", 5, 605, CBLRIND=0, DEP=0, RBC1AAJ=66.4, IDT1CER=0, RBCRWAJ=126.5),
+    ]
+    call_reports_only([2023])
+    out = capsys.readouterr().out
+    assert "1 bank-quarters use the community bank leverage ratio" in out
+    assert "1 bank-quarters show 0 for DEPUNA" in out
+    assert "1 bank-quarters are insured U.S. branches of foreign banks (FFIEC 002)" in out
+    assert "1 bank-quarters show a CET1 ratio of 0 next to a positive total risk-based capital ratio" in out
+    rows = pd.read_parquet(config.INTERIM / "bank_quarter" / "call.parquet").set_index(["rssd_id", "quarter_end"])
+    risk_based = ["call_total_risk_based_capital_usd_net", "call_total_risk_based_capital_ratio", "call_cet1_ratio"]
+
+    cblr = rows.loc[("601", pd.Timestamp("2023-12-31"))]
+    assert cblr[risk_based + ["call_uninsured_deposits_usd"]].isna().all()
+    assert cblr["call_leverage_ratio"] == 11.2  # still reported under the leverage ratio framework
+
+    large = rows.loc[("602", pd.Timestamp("2023-12-31"))]
+    assert large["call_total_risk_based_capital_usd_net"] == 150_000_000
+    assert large["call_total_risk_based_capital_ratio"] == 14.2
+    assert large["call_cet1_ratio"] == 12.5
+    assert large["call_uninsured_deposits_usd"] == 300_000_000
+    assert large["call_nondepository_fi_loans_usd"] == 0
+    assert large["call_quarter_loan_interest_income_usd_net"] == -3_000
+    assert large["call_ytd_net_charge_off_ratio"] == 0  # only a branch's 0 means "not reported"
+
+    no_flag = rows.loc[("603", pd.Timestamp("2023-09-30"))]
+    assert no_flag["call_total_risk_based_capital_usd_net"] == 90_000_000
+    assert no_flag["call_cet1_ratio"] == 11.9
+    assert no_flag["call_uninsured_deposits_usd"] == 25_000_000
+
+    branch = rows.loc[("604", pd.Timestamp("2023-12-31"))]
+    assert branch["call_report_form"] == "002"
+    assert branch[["call_leverage_ratio", "call_cet1_ratio", "call_total_risk_based_capital_ratio",
+                   "call_ytd_return_on_assets_ratio", "call_ytd_net_interest_margin_ratio",
+                   "call_ytd_efficiency_ratio", "call_ytd_net_charge_off_ratio",
+                   "call_total_risk_based_capital_usd_net", "call_equity_capital_usd_net"]].isna().all()
+    assert branch["call_uninsured_deposits_usd"] == 50_000_000  # a reported amount stays
+
+    trust = rows.loc[("605", pd.Timestamp("2023-12-31"))]
+    assert pd.isna(trust["call_cet1_ratio"])
+    assert (trust["call_total_risk_based_capital_ratio"], trust["call_leverage_ratio"]) == (126.5, 66.4)
+
+    pulls = [hit for hit in fdic_api.hits if hit.get("limit") == str(ingest_ffiec.PAGE_SIZE)]
+    assert pulls and all("CBLRIND" in hit["fields"].split(",") for hit in pulls)
+
+    build_panel.build_all()
+    assert checks.run_checks()
+
+
 def test_a_saved_quarter_asked_without_a_new_field_is_pulled_again(fdic_api, monkeypatch, capsys):
     ingest_ffiec.download_call([2023])
     monkeypatch.setitem(ingest_ffiec.CALL_FIELDS, "NEWFLD", "call_new_field_usd")
@@ -411,6 +472,7 @@ def test_cra_lending_rolls_lenders_up_to_banks_by_metro(ffiec_site, capsys):
     out = capsys.readouterr().out
     assert "2023: 3 lenders, 95.4% of the dollars matched to an RSSD ID" in out  # 1 - 0.2M / 4.36M
     assert "within 2% for 3 of 3 metro-years; every year's total is within 0.00%" in out
+    assert "holders left empty: data/interim/bank_quarter/call.parquet isn't built yet" in out  # CRA alone
 
     bank = pd.read_parquet(config.INTERIM / "bank_msa_year" / "cra_bank.parquet").set_index(["rssd_id", "cbsa_code", "year"])
     assert len(bank) == 4  # the lender without an RSSD ID and the micropolitan county are left out
@@ -486,10 +548,46 @@ def test_cra_needs_the_transmittal_for_rssd_ids(ffiec_site):
         ingest_ffiec.transform(paths, [2023])
 
 
-def test_full_ffiec_run_fills_both_bank_tables(fdic_api, ffiec_site):
+def test_full_ffiec_run_fills_both_bank_tables(fdic_api, ffiec_site, capsys):
     bhavanas_totals()
     outputs = ingest_ffiec.run(years=[2022, 2023])
     assert sorted(p.relative_to(config.INTERIM).as_posix() for p in outputs) == [
         "bank_msa_year/cra_bank.parquet", "bank_quarter/call.parquet"]
+    # The Call Reports are built first, so CRA lenders get their holding company from them
+    assert "2 lender-years have no Call Report from the previous December 31 through December 31" in capsys.readouterr().out
+    bank = pd.read_parquet(config.INTERIM / "bank_msa_year" / "cra_bank.parquet").set_index(["rssd_id", "cbsa_code", "year"])
+    holder = bank[["cra_bank_top_holder_rssd_id", "cra_bank_top_holder_name"]]
+    assert tuple(holder.loc[("480228", "16740", 2023)]) == ("1073757", "Holding A")  # its December 31, 2023 report
+    assert holder.loc[("480228", "16740", 2022)].isna().all()  # the fake publishes no 2022 quarters
+    assert holder.loc[("999", "13820", 2023)].isna().all()  # no Call Report at all
     build_panel.build_all()
     assert checks.run_checks()
+
+
+def test_cra_lenders_take_the_holder_on_their_last_call_report_of_the_year(project, capsys):
+    from src.utils import write_interim
+
+    write_interim(pd.DataFrame({
+        "rssd_id": ["1", "1", "2", "3", "5", "6", "7"],
+        "quarter_end": pd.to_datetime(["2022-12-31", "2023-06-30", "2023-12-31", "2022-12-31", "2024-03-31",
+                                       "2019-12-31", "2021-12-31"]),
+        "call_top_holder_rssd_id": ["100", "200", "2", "300", "500", "600", "700"],
+        "call_top_holder_name": ["Old Holding", "New Holding", "Bank 2", "Holding 3", "Holding 5", "Holding 6",
+                                 "Holding 7"],
+    }), "call", "bank_quarter")
+    bank = pd.DataFrame({"rssd_id": ["1", "1", "2", "3", "5", "6", "7"], "cbsa_code": "16740",
+                         "year": [2022, 2023, 2023, 2023, 2023, 2020, 2023],
+                         "cra_bank_lender_name": "A lender", "cra_bank_small_business_loan_count": 1})
+
+    out = ingest_ffiec._add_top_holders(bank)
+    assert list(out.columns[:6]) == ["rssd_id", "cbsa_code", "year", "cra_bank_lender_name",
+                                     "cra_bank_top_holder_rssd_id", "cra_bank_top_holder_name"]
+    holders = out.set_index(["rssd_id", "year"])["cra_bank_top_holder_rssd_id"]
+    assert holders[("1", 2022)] == "100"  # December 31
+    assert holders[("1", 2023)] == "200"  # stopped filing after June: its last report that year
+    assert holders[("2", 2023)] == "2"  # no holding company: the bank itself, as the Call Report gives it
+    assert holders[("3", 2023)] == "300"  # no 2023 report: the previous December 31's, 365 days earlier
+    assert holders[("6", 2020)] == "600"  # the same in a leap year: 366 days, the oldest allowed
+    assert pd.isna(holders[("5", 2023)])  # only a later report, which isn't used
+    assert pd.isna(holders[("7", 2023)])  # its last report is two years old, too old to date the holder
+    assert "2 lender-years have no Call Report from the previous December 31 through December 31" in capsys.readouterr().out

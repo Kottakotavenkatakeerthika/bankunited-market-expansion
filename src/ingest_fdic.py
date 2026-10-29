@@ -20,8 +20,9 @@ Source (checked 2026-10-04):
     and set FDIC_API_KEY in .env. fetch() keeps it out of the manifest.
   - Fields: YEAR, CERT, RSSDID, RSSDHCR (top regulatory holding company, 0 = none),
     NAMEFULL, NAMEHCR, BRNUM, UNINUMBR, BKMO (1 = main office), BRSERTYP (service
-    type: 11 = full-service brick and mortar, 12 = full-service retail office;
-    main offices carry one of these too, so they count as branches),
+    type: 11 = full-service brick and mortar, 12 = full-service retail office,
+    13 = full-service home banking; nearly all main offices are 11, so they count
+    as branches),
     STALPBR, STCNTYBR (branch state + county FIPS), DEPSUMBR (branch deposits,
     in $1,000s: converted to whole dollars), MSABR (FDIC's own metro code, used
     only as a cross-check on our crosswalk).
@@ -32,6 +33,21 @@ online accounts) at their main office. Headquarters metros look far bigger and
 far more concentrated than they are; Charlotte is the extreme case. The
 as-reported columns match FDIC's published figures, and sod_main_office_deposits_usd
 isolates the booked-at-headquarters part so an adjustment can be chosen later.
+Some banks book large deposits at a home-banking office (BRSERTYP 13) that isn't
+their main office instead, e.g. Capital One in Wilmington, DE and USAA in San Antonio;
+sod_home_banking_office_deposits_usd isolates those.
+
+Concentration (msa_year): each metro-year's deposit HHI and the share held by its three
+largest banking organizations, plus that share's change from three years earlier. An
+organization is a bank's top holding company, or the bank itself if it has none, so
+affiliated banks count as one competitor. Shares are plain deposit shares: banks and
+savings institutions count alike, and credit unions aren't in SOD. Each measure comes
+twice: on deposits as reported, and with every main office and every home-banking
+office left out (the _ex_main_office columns), the simplest adjustment for the
+booked-at-headquarters problem above. The modeling sub-pod (Sonia and Matt) chose on
+2026-10-26 to leave the home-banking offices out too, so a bank that moves its booked
+deposits from its main office to such an office (USAA in San Antonio in 2024) doesn't
+jump the measure.
 """
 from __future__ import annotations
 
@@ -69,7 +85,10 @@ STATE_CODES = [
 ]
 
 FULL_SERVICE_BRANCH_TYPES = [11, 12]  # brick and mortar, retail office (main offices included)
+HOME_BANKING_TYPE = 13  # full-service home banking: no branch, but some banks book large deposits there
 NATIONAL_CHECK_FILE = "national_check.json"  # written once a year's states match FDIC's national count
+TOP_HOLDERS = 3  # the top-3 share counts this many organizations
+CHANGE_YEARS = 3  # the top-3 share's change is measured against this many years earlier
 
 KEY_HINT = ("FDIC's API may be refusing requests without a key: get a free one at "
             "https://api.data.gov/signup/ and set FDIC_API_KEY in .env")
@@ -269,21 +288,70 @@ def _summarize(data: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
     return pd.DataFrame({
         "sod_deposits_usd": grouped["deposits_usd"].sum(min_count=1),  # all empty stays empty
         "sod_main_office_deposits_usd": grouped["main_office_deposits_usd"].sum(),
+        "sod_home_banking_office_deposits_usd": grouped["home_banking_office_deposits_usd"].sum(),
         "sod_offices_count": grouped.size(),
         "sod_branches_count": grouped["full_service"].sum(),
     })
+
+
+def _concentration(data: pd.DataFrame) -> pd.DataFrame:
+    """Deposit HHI, top-3 share and the top-3 share's 3-year change, one row per metro and year.
+
+    Organizations are top holders, as sod_top_holder_rssd_id in bank_msa_year. An office with
+    no RSSD ID counts with its institution (CERT), so shares are of every deposit in the
+    metro and add up to 1. Empty deposits add nothing; a metro-year with no deposits on a
+    basis gets empty measures on that basis. The _ex_main_office basis leaves out main
+    offices and home-banking offices (service type 13), where banks book non-local deposits.
+    """
+    keys = ["cbsa_code", "year"]
+    holder = data["hc_rssd_id"].fillna(data["rssd_id"]).fillna("cert " + data["cert"]).fillna("unknown")
+    booked = data["main_office"] | data["service_type"].eq(HOME_BANKING_TYPE).fillna(False)
+    bases = {
+        "deposit": data["deposits_usd"],
+        "deposit_ex_main_office": data["deposits_usd"].mask(booked, 0),
+    }
+    by_holder = pd.DataFrame({"cbsa_code": data["cbsa_code"], "year": data["year"], "holder": holder,
+                              **bases}).groupby(keys + ["holder"]).sum()  # sum() skips empty deposits
+
+    out = pd.DataFrame(index=by_holder.index.droplevel("holder").unique())
+    for base in bases:
+        amounts = by_holder[base]
+        total = amounts.groupby(level=keys).sum()
+        total = total.where(total > 0)  # no deposits on this basis: the measures stay empty
+        share = amounts / amounts.groupby(level=keys).transform("sum").where(lambda s: s > 0)
+        out[f"sod_{base}_hhi"] = ((share * 100) ** 2).groupby(level=keys).sum(min_count=1)
+        top = amounts.sort_values(ascending=False).groupby(level=keys).head(TOP_HOLDERS)
+        # Dollars over dollars, so a metro with three organizations or fewer comes out exactly 1
+        out[f"sod_top3_{base}_share"] = top.groupby(level=keys).sum() / total
+
+    out = out.reset_index()
+    for base in bases:
+        column = f"sod_top3_{base}_share"
+        earlier = out[keys + [column]].assign(year=out["year"] + CHANGE_YEARS)
+        out = out.merge(earlier, on=keys, how="left", suffixes=("", "_earlier"), validate="one_to_one")
+        out[f"{column}_3y_change_net"] = out[column] - out.pop(f"{column}_earlier")
+
+    undefined = int(out["sod_deposit_ex_main_office_hhi"].isna().sum())
+    if undefined:
+        print(f"[sod] {undefined:,} metro-years have no deposits outside main and home-banking offices: "
+              "their _ex_main_office concentration is left empty")
+    measures = ["sod_{}_hhi", "sod_top3_{}_share", "sod_top3_{}_share_3y_change_net"]
+    return out.set_index(keys)[[measure.format(base) for measure in measures for base in bases]]
 
 
 def build_tables(offices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Office rows (with cbsa_code) -> (msa_year, bank_msa_year)."""
     data = offices.assign(
         main_office_deposits_usd=offices["deposits_usd"].where(offices["main_office"], 0),
+        # A main office of this type stays with the main offices, so the two parts never overlap
+        home_banking_office_deposits_usd=offices["deposits_usd"].where(
+            offices["service_type"].eq(HOME_BANKING_TYPE).fillna(False) & ~offices["main_office"], 0),
         full_service=offices["service_type"].isin(FULL_SERVICE_BRANCH_TYPES),
     )
 
     metro = _summarize(data, ["cbsa_code", "year"])
     metro["sod_institutions_count"] = data.groupby(["cbsa_code", "year"])["cert"].nunique()
-    metro = metro.reset_index()
+    metro = metro.join(_concentration(data), validate="one_to_one").reset_index()
 
     no_id = data["rssd_id"].isna()
     if no_id.any():
@@ -308,7 +376,8 @@ def build_tables(offices: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     metro[count_columns + ["sod_institutions_count"]] = metro[count_columns + ["sod_institutions_count"]].astype("int64")
     bank[count_columns] = bank[count_columns].astype("int64")
     bank_columns = keys + ["sod_cert", "sod_bank_name", "sod_top_holder_rssd_id", "sod_top_holder_name",
-                           "sod_deposits_usd", "sod_main_office_deposits_usd", "sod_offices_count",
+                           "sod_deposits_usd", "sod_main_office_deposits_usd",
+                           "sod_home_banking_office_deposits_usd", "sod_offices_count",
                            "sod_branches_count", "sod_deposit_share"]
     return metro, bank[bank_columns]
 

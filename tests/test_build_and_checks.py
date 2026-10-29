@@ -47,6 +47,31 @@ def test_checks_pass_then_catch_a_negative_amount(project):
     assert not checks.run_checks()
 
 
+def test_an_hhi_outside_0_to_10000_fails(project):
+    table = pd.DataFrame({"cbsa_code": ["16740", "13820"], "year": [2023, 2023], "sod_deposit_hhi": [10_000.0, 0.0]})
+
+    def hhi_check():
+        return next(r for r in checks.check_table("msa_year", table) if r.check == "sod_deposit_hhi within 0-10,000")
+
+    assert hhi_check().passed  # both ends are allowed
+    table.loc[0, "sod_deposit_hhi"] = 10_000.5
+    assert not hhi_check().passed
+
+
+def test_a_change_in_a_share_outside_minus_1_to_1_fails(project):
+    column = "sod_top3_deposit_share_3y_change_net"
+    table = pd.DataFrame({"cbsa_code": ["16740", "13820"], "year": [2023, 2023], column: [1.0, -1.0]})
+
+    def change_check():
+        return next(r for r in checks.check_table("msa_year", table) if r.check == f"{column} within -1 to 1")
+
+    assert change_check().passed  # both ends are allowed: a share can go from 0 to 1
+    table.loc[1, column] = -1.2  # a year shifted onto the wrong metro could do this
+    assert not change_check().passed
+    other = pd.DataFrame({"cbsa_code": ["16740"], "year": [2023], "pep_net_migration_net": [-5_000.0]})
+    assert not any("within -1 to 1" in r.check for r in checks.check_table("msa_year", other))  # other _net columns aren't held to it
+
+
 def test_spot_checks_compare_with_published_figures(project):
     seed(project)
     build_panel.build_all()

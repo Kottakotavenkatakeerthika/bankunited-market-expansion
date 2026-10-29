@@ -68,6 +68,13 @@ def test_every_panel_year_has_a_first_release(rows, source, dataset, last_year):
     assert years >= set(range(2015, last_year + 1))
 
 
+@pytest.mark.parametrize("dataset", ["cagdp2", "cainc1"])
+def test_every_bea_history_year_has_a_first_release(rows, dataset):
+    years = {int(r["year"]) for r in rows
+             if (r["source"], r["dataset"], r["release_type"]) == ("bea", dataset, "initial") and r["release_date"]}
+    assert years >= set(range(2010, 2015))  # msa_year_history
+
+
 def test_every_pep_year_has_a_first_release(rows):
     years = {int(r["year"]) for r in rows if r["source"] == "pep" and r["release_type"] == "initial" and r["release_date"]}
     assert years >= set(range(2015, 2025))

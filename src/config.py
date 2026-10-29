@@ -45,6 +45,10 @@ DATA_DICTIONARY = ROOT / "docs" / "data_dictionary.md"  # the checks hold every 
 START_YEAR = 2015
 END_YEAR = 2024
 YEARS = list(range(START_YEAR, END_YEAR + 1))
+# Years before the panel, for the ML pod's 10-year volatility measures. Only BEA goes back this
+# far so far, in its own table (msa_year_history), so msa_year keeps one set of years for every source.
+HISTORY_START_YEAR = 2010
+HISTORY_YEARS = list(range(HISTORY_START_YEAR, START_YEAR))
 
 # One OMB delineation vintage for every source and every year.
 # July 2023 = OMB Bulletin 23-01; check census.gov's delineation-files page for a newer one.
@@ -61,6 +65,10 @@ PEER_ASSETS_USD = (10_000_000_000, 100_000_000_000)
 # Ingest modules run by run_pipeline, in this order: src/ingest_<name>.py
 SOURCES = ["census", "pep", "bea_bls", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: cre reads the QCEW files that bea_bls downloads
 
+# The bank the back-test is about: BankUnited, N.A. (FDIC cert 58979). src/bankunited.py
+# filters bank_msa_year to it for the bankunited_ columns in msa_year.
+BANKUNITED_RSSD_ID = "3938186"
+
 # Processed tables and their keys. build_panel joins every
 # data/interim/<table>/<source>.parquet into data/processed/<table>.parquet.
 TABLES = {
@@ -68,6 +76,7 @@ TABLES = {
     "bank_quarter": ["rssd_id", "quarter_end"],
     "bank_msa_year": ["rssd_id", "cbsa_code", "year"],
     "msa_naics_year": ["cbsa_code", "naics_code", "year"],
+    "msa_year_history": ["cbsa_code", "year"],
 }
 
 # --- Secrets ----------------------------------------------------------------
