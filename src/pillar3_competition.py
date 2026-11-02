@@ -31,6 +31,8 @@ OUTPUT_COLUMNS = ["metric_id", *KEYS, "value", "flags"]
 HQ_DISTORTION_SHARE = 0.5
 TOP_N = 3
 CHANGE_WINDOW_YEARS = 3
+LOAN_GROWTH_WINDOW_YEARS = 5
+MIN_CALL_COVERAGE = 0.5
 
 
 @dataclass(frozen=True)
@@ -50,10 +52,32 @@ def load_tables(processed=None) -> dict[str, pd.DataFrame]:
     """Read processed tables. Missing tables come back empty."""
     folder = processed or config.PROCESSED
     tables = {}
-    for name in ("msa_year", "bank_msa_year"):
+    for name in ("msa_year", "bank_msa_year", "bank_quarter"):
         path = folder / f"{name}.parquet"
         tables[name] = standardize_keys(pd.read_parquet(path)) if path.exists() else pd.DataFrame()
     return tables
+
+
+def _empty_metric(bank_msa_year: pd.DataFrame, metric_id: str) -> pd.DataFrame:
+    """Metro-year grid with missing values when Call Report inputs are unavailable."""
+    grid = bank_msa_year[KEYS].drop_duplicates().copy()
+    if grid.empty:
+        return pd.DataFrame(columns=OUTPUT_COLUMNS)
+    grid["value"] = pd.NA
+    return _finish(grid, metric_id, bank_msa_year)
+
+
+def _june_call(bank_quarter: pd.DataFrame, year: int) -> pd.DataFrame:
+    """Call Report rows for June 30 of `year`, indexed by rssd_id."""
+    if bank_quarter.empty:
+        return pd.DataFrame()
+    q = bank_quarter.copy()
+    q["quarter_end"] = pd.to_datetime(q["quarter_end"])
+    target = pd.Timestamp(year=int(year), month=6, day=30)
+    snap = q[q["quarter_end"] == target].copy()
+    if snap.empty:
+        return pd.DataFrame()
+    return snap.drop_duplicates("rssd_id").set_index("rssd_id")
 
 
 def _booked_office_deposits(sod: pd.DataFrame) -> pd.Series:
@@ -173,6 +197,141 @@ def leader_share_change(tables, hq_adjusted: bool = True) -> pd.DataFrame:
     return _finish(values, "P3-07", bank)
 
 
+def incumbent_nib_share(tables, hq_adjusted: bool = True,
+                        min_call_coverage: float = MIN_CALL_COVERAGE) -> pd.DataFrame:
+    """P3-08: deposit-weighted incumbent non-interest-bearing share (Call Report NIB × SOD weights).
+
+    Bank-level NIB ratios are applied to each bank's local (HQ-adjusted) deposits in the metro.
+    Empty when Call coverage of metro deposits is below `min_call_coverage`.
+    """
+    bank = tables["bank_msa_year"]
+    call = tables.get("bank_quarter", pd.DataFrame())
+    if bank.empty or call.empty:
+        return _empty_metric(bank, "P3-08")
+    needed = {"call_total_deposits_usd", "call_noninterest_bearing_deposits_usd"}
+    if not needed.issubset(call.columns):
+        return _empty_metric(bank, "P3-08")
+
+    rows = []
+    for year in sorted(bank["year"].dropna().unique()):
+        snap = _june_call(call, int(year))
+        if snap.empty:
+            continue
+        tot = snap["call_total_deposits_usd"].where(snap["call_total_deposits_usd"] > 0)
+        nib = (snap["call_noninterest_bearing_deposits_usd"] / tot).astype("float64")
+        sod = bank[(bank["year"] == year) & bank["sod_deposits_usd"].notna()].copy()
+        if sod.empty:
+            continue
+        deposits = sod["sod_deposits_usd"].astype("float64")
+        booked = _booked_office_deposits(sod)
+        sod["w"] = (deposits - booked).clip(lower=0) if hq_adjusted else deposits
+        sod["nib"] = sod["rssd_id"].map(nib)
+        sod["w_nib"] = sod["w"].where(sod["nib"].notna(), 0.0)
+        sod["x_nib"] = sod["w"] * sod["nib"].fillna(0.0)
+        g = sod.groupby("cbsa_code", as_index=False)[["w", "w_nib", "x_nib"]].sum()
+        ok = (g["w_nib"] > 0) & (g["w"] > 0) & (g["w_nib"] / g["w"] >= min_call_coverage)
+        g["value"] = (g["x_nib"] / g["w_nib"]).where(ok)
+        g["year"] = int(year)
+        rows.append(g[[*KEYS, "value"]])
+    if not rows:
+        return _empty_metric(bank, "P3-08")
+    values = pd.concat(rows, ignore_index=True)
+    grid = bank[KEYS].drop_duplicates()
+    values = grid.merge(values, on=KEYS, how="left")
+    return _finish(values, "P3-08", bank)
+
+
+def _allocated_commercial(bank_msa_year: pd.DataFrame, book: pd.DataFrame,
+                          year: int, hq_adjusted: bool = True) -> pd.Series:
+    """Allocate each bank's C&I+CRE to metros by non-booked deposit share (Pillar 1 method)."""
+    a = bank_msa_year[(bank_msa_year["year"] == year) & bank_msa_year["sod_deposits_usd"].notna()].copy()
+    if a.empty or book.empty:
+        return pd.Series(dtype="float64")
+    booked = _booked_office_deposits(a) if hq_adjusted else 0.0
+    a["booked"] = booked
+    a["booked_total"] = a.groupby("rssd_id")["booked"].transform("sum")
+    a = a.join(book, on="rssd_id", how="left")
+    den = a["domestic_deposits"] - a["booked_total"]
+    local = (a["sod_deposits_usd"].astype("float64") - a["booked"]).clip(lower=0)
+    a["share"] = 0.0
+    ok = den > 0
+    a.loc[ok, "share"] = (local[ok] / den[ok]).clip(upper=1.0)
+    commercial = a["ci"].fillna(0.0) + a["cre"].fillna(0.0)
+    a["alloc"] = a["share"] * commercial
+    return a.groupby("cbsa_code")["alloc"].sum()
+
+
+def _loan_book(snap: pd.DataFrame) -> pd.DataFrame:
+    """C&I + CRE book and domestic deposits from one Call Report snapshot."""
+    cols = {
+        "ci": "call_ci_loans_usd",
+        "cre_construction": "call_construction_loans_usd",
+        "cre_mf": "call_multifamily_loans_usd",
+        "cre_nfnr": "call_nonfarm_nonres_loans_usd",
+        "domestic_deposits": "call_domestic_deposits_usd",
+    }
+    if any(c not in snap.columns for c in cols.values()):
+        return pd.DataFrame()
+    out = pd.DataFrame(index=snap.index)
+    out["ci"] = snap[cols["ci"]]
+    out["cre"] = (
+        snap[cols["cre_construction"]].fillna(0)
+        + snap[cols["cre_mf"]].fillna(0)
+        + snap[cols["cre_nfnr"]].fillna(0)
+    )
+    out["domestic_deposits"] = snap[cols["domestic_deposits"]]
+    return out
+
+
+def loan_growth_vs_market(tables, hq_adjusted: bool = True,
+                          window_years: int = LOAN_GROWTH_WINDOW_YEARS) -> pd.DataFrame:
+    """P3-09: allocated commercial loan CAGR minus local-deposit CAGR over `window_years`.
+
+    Positive = metro lending (C&I+CRE allocated by non-HQ deposits) grew faster than the
+    local deposit market.
+    """
+    bank = tables["bank_msa_year"]
+    call = tables.get("bank_quarter", pd.DataFrame())
+    if bank.empty or call.empty:
+        return _empty_metric(bank, "P3-09")
+
+    holders = holder_deposits(bank, hq_adjusted)
+    deposits = holders.groupby(KEYS)["deposits"].sum().rename("deposits")
+    years = sorted(bank["year"].dropna().astype(int).unique())
+    rows = []
+    for year in years:
+        base_year = int(year) - int(window_years)
+        if base_year not in years:
+            continue
+        book1 = _loan_book(_june_call(call, int(year)))
+        book0 = _loan_book(_june_call(call, base_year))
+        if book0.empty or book1.empty:
+            continue
+        alloc0 = _allocated_commercial(bank, book0, base_year, hq_adjusted)
+        alloc1 = _allocated_commercial(bank, book1, int(year), hq_adjusted)
+        dep0 = deposits[deposits.index.get_level_values("year") == base_year]
+        dep0.index = dep0.index.get_level_values("cbsa_code")
+        dep1 = deposits[deposits.index.get_level_values("year") == int(year)]
+        dep1.index = dep1.index.get_level_values("cbsa_code")
+
+        metros = sorted(set(alloc0.index) | set(alloc1.index) | set(dep0.index) | set(dep1.index))
+        a0, a1 = alloc0.reindex(metros), alloc1.reindex(metros)
+        d0, d1 = dep0.reindex(metros), dep1.reindex(metros)
+        loan_ok = (a0 > 0) & (a1 > 0)
+        dep_ok = (d0 > 0) & (d1 > 0)
+        loan_cagr = ((a1 / a0) ** (1 / window_years) - 1).where(loan_ok)
+        dep_cagr = ((d1 / d0) ** (1 / window_years) - 1).where(dep_ok)
+        value = (loan_cagr - dep_cagr).where(loan_ok & dep_ok)
+        part = pd.DataFrame({"cbsa_code": metros, "year": int(year), "value": value.to_numpy()})
+        rows.append(part)
+    if not rows:
+        return _empty_metric(bank, "P3-09")
+    values = pd.concat(rows, ignore_index=True)
+    grid = bank[KEYS].drop_duplicates()
+    values = grid.merge(values, on=KEYS, how="left")
+    return _finish(values, "P3-09", bank)
+
+
 METRICS: dict[str, Metric] = {
     m.metric_id: m
     for m in (
@@ -196,12 +355,26 @@ METRICS: dict[str, Metric] = {
                ("sod_deposits_usd", "sod_main_office_deposits_usd",
                 "sod_home_banking_office_deposits_usd", "sod_top_holder_rssd_id"), leader_share_change,
                notes="Falling incumbent share signals an opening for a new entrant.", flags=("HQ_DISTORTION",)),
+        Metric("P3-08", "Incumbent non-interest-bearing deposit share", "higher", "share",
+               ("sod_deposits_usd", "sod_main_office_deposits_usd",
+                "sod_home_banking_office_deposits_usd", "call_noninterest_bearing_deposits_usd",
+                "call_total_deposits_usd"), incumbent_nib_share,
+               notes="deposit mix: Call Report NIB weighted by local SOD deposits.",
+               flags=("HQ_DISTORTION", "SUPPRESSED_INPUTS"), score_both_ways=False),
+        Metric("P3-09", "Commercial loan growth vs local deposit market", "higher", "cagr_gap",
+               ("sod_deposits_usd", "sod_main_office_deposits_usd",
+                "sod_home_banking_office_deposits_usd", "call_ci_loans_usd",
+                "call_construction_loans_usd", "call_multifamily_loans_usd",
+                "call_nonfarm_nonres_loans_usd", "call_domestic_deposits_usd"),
+               loan_growth_vs_market,
+               notes="loan growth vs market: allocated C&I+CRE CAGR minus local-deposit CAGR.",
+               flags=("HQ_DISTORTION", "SUPPRESSED_INPUTS"), score_both_ways=False),
     )
 }
 
 
 def compute_all(tables, hq_adjusted: bool = True) -> pd.DataFrame:
-    """Stack every Pillar 3 metric in long format (P3-01..04, P3-07)."""
+    """Stack every Pillar 3 metric in long format (P3-01..04, P3-07..09)."""
     frames = [metric.compute(tables, hq_adjusted=hq_adjusted) for metric in METRICS.values()]
     return pd.concat(frames, ignore_index=True)
 
@@ -221,7 +394,9 @@ def metric_catalog() -> pd.DataFrame:
     """METRICS as a table for the metric-ID-to-column mapping."""
     return pd.DataFrame([
         {"metric_id": m.metric_id, "pillar": "P3", "name": m.name, "direction": m.direction,
-         "score_both_ways": m.score_both_ways, "unit": m.unit, "table": "bank_msa_year",
+         "score_both_ways": m.score_both_ways, "unit": m.unit,
+         "table": ("bank_msa_year + bank_quarter" if m.metric_id in {"P3-08", "P3-09"}
+                   else "bank_msa_year"),
          "columns": ", ".join(m.columns), "flags": ", ".join(m.flags), "notes": m.notes}
         for m in METRICS.values()
     ])
