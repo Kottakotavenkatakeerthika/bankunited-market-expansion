@@ -19,14 +19,12 @@
     },
     "metrics": {
       "pillar1": {
-        "local_ci_growth": 5.0,
-        "local_cre_growth": 5.0,
-        "local_loans_to_deposits": 5.0,
-        "allocated_loan_growth": 10.0,
-        "mm_establishments": 25.0,
-        "mm_growth": 15.0,
-        "mm_share": 5.0,
-        "cre_payroll_growth": 10.0
+        "local_ci_growth": 10.0,
+        "local_cre_growth": 10.0,
+        "allocated_loan_growth": 20.0,
+        "mm_establishments": 20.0,
+        "mm_growth": 20.0,
+        "cre_payroll_growth": 20.0
       },
       "pillar2": {
         "deposits_per_capita": 10.0,
@@ -36,9 +34,7 @@
         "wage_bill_growth": 10.0,
         "payroll_per_establishment": 10.0,
         "income_per_capita": 10.0,
-        "income_growth": 10.0,
-        "incumbent_nib_share": 10.0,
-        "incumbent_uninsured_share": 10.0
+        "income_growth": 10.0
       },
       "pillar3": {
         "deposit_hhi": 1.0,
@@ -61,8 +57,7 @@
     "fill": {
       "pillar1": [
         "local_ci_growth",
-        "local_cre_growth",
-        "local_loans_to_deposits"
+        "local_cre_growth"
       ]
     }
   },
@@ -74,26 +69,22 @@
   },
   "metric_weights_effective": {
     "pillar1": {
-      "local_ci_growth": 0.0625,
-      "local_cre_growth": 0.0625,
-      "local_loans_to_deposits": 0.0625,
-      "allocated_loan_growth": 0.125,
-      "mm_establishments": 0.3125,
-      "mm_growth": 0.1875,
-      "mm_share": 0.0625,
-      "cre_payroll_growth": 0.125
+      "local_ci_growth": 0.1,
+      "local_cre_growth": 0.1,
+      "allocated_loan_growth": 0.2,
+      "mm_establishments": 0.2,
+      "mm_growth": 0.2,
+      "cre_payroll_growth": 0.2
     },
     "pillar2": {
-      "deposits_per_capita": 0.1,
-      "deposit_growth": 0.1,
-      "deposits_per_branch": 0.1,
-      "wage_bill": 0.1,
-      "wage_bill_growth": 0.1,
-      "payroll_per_establishment": 0.1,
-      "income_per_capita": 0.1,
-      "income_growth": 0.1,
-      "incumbent_nib_share": 0.1,
-      "incumbent_uninsured_share": 0.1
+      "deposits_per_capita": 0.125,
+      "deposit_growth": 0.125,
+      "deposits_per_branch": 0.125,
+      "wage_bill": 0.125,
+      "wage_bill_growth": 0.125,
+      "payroll_per_establishment": 0.125,
+      "income_per_capita": 0.125,
+      "income_growth": 0.125
     },
     "pillar3": {
       "deposit_hhi": 0.2,
@@ -119,8 +110,7 @@
       "pillar1": {
         "metrics": [
           "local_ci_growth",
-          "local_cre_growth",
-          "local_loans_to_deposits"
+          "local_cre_growth"
         ],
         "msas_filled": 61
       }
@@ -142,14 +132,12 @@
       "matches_notebook_weights": true,
       "notebook_run_date": "2026-11-04",
       "notebook_weights": {
-        "local_ci_growth": 0.0625,
-        "local_cre_growth": 0.0625,
-        "local_loans_to_deposits": 0.0625,
-        "allocated_loan_growth": 0.125,
-        "mm_establishments": 0.3125,
-        "mm_growth": 0.1875,
-        "mm_share": 0.0625,
-        "cre_payroll_growth": 0.125
+        "local_ci_growth": 0.1,
+        "local_cre_growth": 0.1,
+        "allocated_loan_growth": 0.2,
+        "mm_establishments": 0.2,
+        "mm_growth": 0.2,
+        "cre_payroll_growth": 0.2
       }
     },
     "pillar2": {
@@ -159,16 +147,14 @@
       "matches_notebook_weights": true,
       "notebook_run_date": "2026-11-04",
       "notebook_weights": {
-        "deposits_per_capita": 0.1,
-        "deposit_growth": 0.1,
-        "deposits_per_branch": 0.1,
-        "wage_bill": 0.1,
-        "wage_bill_growth": 0.1,
-        "payroll_per_establishment": 0.1,
-        "income_per_capita": 0.1,
-        "income_growth": 0.1,
-        "incumbent_nib_share": 0.1,
-        "incumbent_uninsured_share": 0.1
+        "deposits_per_capita": 0.125,
+        "deposit_growth": 0.125,
+        "deposits_per_branch": 0.125,
+        "wage_bill": 0.125,
+        "wage_bill_growth": 0.125,
+        "payroll_per_establishment": 0.125,
+        "income_per_capita": 0.125,
+        "income_growth": 0.125
       }
     },
     "pillar3": {
@@ -197,10 +183,7 @@
   "msas": 393,
   "complete_msas": 287,
   "warnings": [
-    "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth, local_loans_to_deposits set to the 50th percentile",
-    "pillar2: export is older than data/processed/msa_year.parquet; rerun the notebook",
-    "pillar3: export is older than data/processed/msa_year.parquet; rerun the notebook",
-    "pillar4: export is older than data/processed/msa_year.parquet; rerun the notebook",
+    "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth set to the 50th percentile",
     "pillar1: 6 MSAs listed by other pillars are not in this export",
     "pillar2: 6 MSAs listed by other pillars are not in this export",
     "pillar4: 6 MSAs listed by other pillars are not in this export"

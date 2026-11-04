@@ -2,16 +2,14 @@
   "pillar": "pillar2",
   "run_date": "2026-11-04",
   "effective_weights": {
-    "deposits_per_capita": 0.1,
-    "deposit_growth": 0.1,
-    "deposits_per_branch": 0.1,
-    "wage_bill": 0.1,
-    "wage_bill_growth": 0.1,
-    "payroll_per_establishment": 0.1,
-    "income_per_capita": 0.1,
-    "income_growth": 0.1,
-    "incumbent_nib_share": 0.1,
-    "incumbent_uninsured_share": 0.1
+    "deposits_per_capita": 0.125,
+    "deposit_growth": 0.125,
+    "deposits_per_branch": 0.125,
+    "wage_bill": 0.125,
+    "wage_bill_growth": 0.125,
+    "payroll_per_establishment": 0.125,
+    "income_per_capita": 0.125,
+    "income_growth": 0.125
   },
   "entered_weights": {
     "deposits_per_capita": 0.1,
@@ -22,8 +20,8 @@
     "payroll_per_establishment": 0.1,
     "income_per_capita": 0.1,
     "income_growth": 0.1,
-    "incumbent_nib_share": 0.1,
-    "incumbent_uninsured_share": 0.1
+    "incumbent_nib_share": 0.0,
+    "incumbent_uninsured_share": 0.0
   },
   "settings": {
     "sod_start": 2019,
