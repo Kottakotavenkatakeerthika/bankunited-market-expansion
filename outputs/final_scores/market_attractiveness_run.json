@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-29",
+  "run_date": "2026-11-04",
   "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
   "scenario": "baseline",
   "weights_source": "weights/baseline.toml",
@@ -26,8 +26,6 @@
         "mm_establishments": 25.0,
         "mm_growth": 15.0,
         "mm_share": 5.0,
-        "multifamily_lending": 10.0,
-        "multifamily_permits": 10.0,
         "cre_payroll_growth": 10.0
       },
       "pillar2": {
@@ -140,7 +138,7 @@
       "rows": 387,
       "complete": 381,
       "matches_notebook_weights": true,
-      "notebook_run_date": "2026-10-29",
+      "notebook_run_date": "2026-11-04",
       "notebook_weights": {
         "local_ci_growth": 0.0625,
         "local_cre_growth": 0.0625,
@@ -157,7 +155,7 @@
       "rows": 387,
       "complete": 382,
       "matches_notebook_weights": true,
-      "notebook_run_date": "2026-10-29",
+      "notebook_run_date": "2026-11-04",
       "notebook_weights": {
         "deposits_per_capita": 0.1,
         "deposit_growth": 0.1,
@@ -176,7 +174,7 @@
       "rows": 393,
       "complete": 388,
       "matches_notebook_weights": true,
-      "notebook_run_date": "2026-10-29",
+      "notebook_run_date": "2026-11-04",
       "notebook_weights": {
         "deposit_hhi": 0.2,
         "top3_share": 0.2,
@@ -197,8 +195,10 @@
   "msas": 393,
   "complete_msas": 287,
   "warnings": [
-    "pillar1: ['multifamily_lending', 'multifamily_permits'] not available in data/processed; left out and the rest rescaled",
     "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth, local_loans_to_deposits set to the 50th percentile",
+    "pillar2: export is older than data/processed/msa_year.parquet; rerun the notebook",
+    "pillar3: export is older than data/processed/msa_year.parquet; rerun the notebook",
+    "pillar4: export is older than data/processed/msa_year.parquet; rerun the notebook",
     "pillar1: 6 MSAs listed by other pillars are not in this export",
     "pillar2: 6 MSAs listed by other pillars are not in this export",
     "pillar4: 6 MSAs listed by other pillars are not in this export"

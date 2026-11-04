@@ -20,8 +20,6 @@ allocated_loan_growth   = 10   # all banks' C&I + CRE allocated by non-HQ deposi
 mm_establishments       = 25   # establishments with 20-249 employees (the size metric)
 mm_growth               = 15   # growth in that count, 2018-23
 mm_share                = 5    # its share of all establishments
-multifamily_lending     = 10   # HMDA 5+ units: not in data/processed yet, skipped and the rest rescaled
-multifamily_permits     = 10   # Census permits 5+ units: not in data/processed yet, skipped
 cre_payroll_growth      = 10   # nonresidential CRE payroll growth, 2018-23
 
 [pillar2]  # Deposits and treasury (V1)

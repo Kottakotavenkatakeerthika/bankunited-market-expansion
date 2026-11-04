@@ -1,6 +1,6 @@
 {
   "pillar": "pillar1",
-  "run_date": "2026-10-29",
+  "run_date": "2026-11-04",
   "effective_weights": {
     "local_ci_growth": 0.0625,
     "local_cre_growth": 0.0625,
@@ -19,8 +19,6 @@
     "mm_establishments": 0.25,
     "mm_growth": 0.15,
     "mm_share": 0.05,
-    "multifamily_lending": 0.1,
-    "multifamily_permits": 0.1,
     "cre_payroll_growth": 0.1
   },
   "settings": {
@@ -33,8 +31,5 @@
     "exclude_home_banking_offices": true
   },
   "complete_msas": 321,
-  "not_available": [
-    "multifamily_lending",
-    "multifamily_permits"
-  ]
+  "not_available": []
 }

@@ -1,0 +1,8 @@
+scenario,w_pillar1,w_pillar2,w_pillar3,w_pillar4,complete_msas,same_as_baseline,rank_corr_vs_baseline,top25_shared_with_baseline,msas_moved_10plus,corr_with_population,charlotte_rank,charlotte_best_rank,charlotte_worst_rank,bankunited_ranked,bankunited_median_rank,top5
+baseline (balanced franchise),25.0,25.0,25.0,25.0,287,False,1.0,25,0,0.69,12.0,10.0,14.0,13,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+ci_led,35.0,25.0,20.0,20.0,287,False,0.995,23,65,0.71,12.0,11.0,14.0,13,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+cre_led,35.0,15.0,20.0,30.0,287,False,0.991,23,112,0.66,12.0,11.0,12.0,13,21.0,Austin; Raleigh; Phoenix; Nashville; Boise City
+deposit_led,20.0,40.0,20.0,20.0,287,False,0.992,22,95,0.71,11.0,9.0,11.0,13,17.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+talent_led,25.0,25.0,25.0,25.0,287,True,1.0,25,0,0.69,12.0,10.0,14.0,13,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+adjacency,25.0,25.0,25.0,25.0,287,True,1.0,25,0,0.69,12.0,10.0,14.0,13,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+emerging_market,25.0,20.0,20.0,35.0,287,False,0.991,23,107,0.63,11.0,10.0,12.0,13,19.0,Austin; Raleigh; Phoenix; Nashville; Boise City

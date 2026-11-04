@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-29",
+  "run_date": "2026-11-04",
   "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
   "scenario": "pillar3_off",
   "weights_source": "weights/scenarios/pillar3_off.toml",
@@ -25,8 +25,6 @@
         "mm_establishments": 25.0,
         "mm_growth": 15.0,
         "mm_share": 5.0,
-        "multifamily_lending": 10.0,
-        "multifamily_permits": 10.0,
         "cre_payroll_growth": 10.0
       },
       "pillar2": {
@@ -59,7 +57,13 @@
         "net_migration_rate": 12.5
       }
     },
-    "fill": {}
+    "fill": {
+      "pillar1": [
+        "local_ci_growth",
+        "local_cre_growth",
+        "local_loans_to_deposits"
+      ]
+    }
   },
   "weights_effective": {
     "pillar1": 0.333333,
@@ -100,10 +104,22 @@
       "net_migration_rate": 0.125
     }
   },
-  "fill": null,
+  "fill": {
+    "percentile": 50.0,
+    "pillars": {
+      "pillar1": {
+        "metrics": [
+          "local_ci_growth",
+          "local_cre_growth",
+          "local_loans_to_deposits"
+        ],
+        "msas_filled": 61
+      }
+    }
+  },
   "compared_to_baseline": true,
   "entered_complete_set": 0,
-  "left_complete_set": 39,
+  "left_complete_set": 0,
   "settings": {
     "normalize": "percentile",
     "min_pillar_coverage": 0.5,
@@ -113,9 +129,9 @@
     "pillar1": {
       "file": "outputs/pillar_scores/pillar1_scores.csv",
       "rows": 387,
-      "complete": 321,
+      "complete": 381,
       "matches_notebook_weights": true,
-      "notebook_run_date": "2026-10-29",
+      "notebook_run_date": "2026-11-04",
       "notebook_weights": {
         "local_ci_growth": 0.0625,
         "local_cre_growth": 0.0625,
@@ -132,7 +148,7 @@
       "rows": 387,
       "complete": 382,
       "matches_notebook_weights": true,
-      "notebook_run_date": "2026-10-29",
+      "notebook_run_date": "2026-11-04",
       "notebook_weights": {
         "deposits_per_capita": 0.1,
         "deposit_growth": 0.1,
@@ -156,9 +172,11 @@
     }
   },
   "msas": 387,
-  "complete_msas": 248,
+  "complete_msas": 287,
   "warnings": [
-    "pillar1: ['multifamily_lending', 'multifamily_permits'] not available in data/processed; left out and the rest rescaled",
-    "pillar3: weight is 0, left out"
+    "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth, local_loans_to_deposits set to the 50th percentile",
+    "pillar2: export is older than data/processed/msa_year.parquet; rerun the notebook",
+    "pillar3: weight is 0, left out",
+    "pillar4: export is older than data/processed/msa_year.parquet; rerun the notebook"
   ]
 }
