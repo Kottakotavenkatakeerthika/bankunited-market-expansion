@@ -165,6 +165,21 @@ def scenario_name(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_") or "custom"
 
 
+# Scenario runs are written to a subfolder of outputs/final_scores named for their group
+SCENARIO_OUTPUT_DIRS = {"weights/scenarios": "scenario", "weights/strategy": "strategy"}
+
+
+def scenario_subdir(root: Path, weights_file) -> str | None:
+    """'scenario' or 'strategy' for a weights file in one of the scenario folders, else None."""
+    if weights_file is None:
+        return None
+    try:
+        folder = Path(weights_file).resolve().parent.relative_to(Path(root).resolve()).as_posix()
+    except ValueError:
+        return None
+    return SCENARIO_OUTPUT_DIRS.get(folder)
+
+
 def output_paths(out_dir: Path, name: str) -> tuple[Path, Path]:
     stem = "market_attractiveness" if name == BASELINE else f"market_attractiveness_{name}"
     return out_dir / f"{stem}_scores.csv", out_dir / f"{stem}_run.json"
@@ -604,7 +619,11 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         "warnings": warnings,
     }
     if write:
-        out_dir = out_dir or root / "outputs" / "final_scores"
+        if out_dir is None:
+            out_dir = root / "outputs" / "final_scores"
+            sub = scenario_subdir(root, weights_file)
+            if sub:
+                out_dir = out_dir / sub
         out_dir.mkdir(parents=True, exist_ok=True)
         csv_path, json_path = output_paths(out_dir, name)
         out.to_csv(csv_path)

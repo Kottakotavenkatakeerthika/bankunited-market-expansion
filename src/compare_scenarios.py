@@ -13,9 +13,11 @@ fresh and on the same inputs. Without it, the comparison reads whatever is in ou
 --as-of YYYY-MM-DD rebuilds every pillar from data released by that date and writes everything to
 outputs/as_of/<date>/final_scores/ instead, so point-in-time runs never overwrite the current ones.
 
-Writes, per group, to outputs/final_scores/:
-    sensitivity: scenario_summary.csv and scenario_bankunited_ranks.csv (names kept from before the groups)
-    strategy:    scenario_summary_strategy.csv and scenario_bankunited_ranks_strategy.csv
+Writes the baseline to outputs/final_scores/, and each group's runs and comparison tables to a subfolder:
+    sensitivity: outputs/final_scores/scenario/  market_attractiveness_<name>_*, scenario_summary.csv,
+                 scenario_bankunited_ranks.csv
+    strategy:    outputs/final_scores/strategy/  market_attractiveness_<name>_*, scenario_summary_strategy.csv,
+                 scenario_bankunited_ranks_strategy.csv
 summary: one row per scenario, with its pillar weights; bankunited_ranks: BankUnited markets' rank in each.
 """
 from __future__ import annotations
@@ -29,6 +31,7 @@ import numpy as np
 import pandas as pd
 
 from src import config
+from src import market_attractiveness as ma
 
 PREFIX = "market_attractiveness"
 EXAMPLE_CBSA = "16740"  # Charlotte
@@ -49,9 +52,13 @@ def group_of(weights_source: str | None) -> str | None:
 
 
 def load_runs(folder: Path) -> dict[str, tuple[pd.DataFrame, dict]]:
-    """Every saved run: name -> (scores, run report). The name is the weights file's stem."""
+    """Every saved run in folder (the baseline) and its scenario/ and strategy/ subfolders:
+    name -> (scores, run report). The name is the weights file's stem."""
     runs = {}
-    for f in sorted(folder.glob(f"{PREFIX}*_scores.csv")):
+    files = sorted(folder.glob(f"{PREFIX}*_scores.csv"))
+    for sub in ma.SCENARIO_OUTPUT_DIRS.values():
+        files += sorted((folder / sub).glob(f"{PREFIX}*_scores.csv"))
+    for f in files:
         name = f.name[len(PREFIX):-len("_scores.csv")].lstrip("_") or BASELINE
         report_path = f.with_name(f.name.replace("_scores.csv", "_run.json"))
         report = json.loads(report_path.read_text()) if report_path.exists() else {}
@@ -120,25 +127,28 @@ def bankunited_ranks(runs: dict[str, tuple[pd.DataFrame, dict]]) -> pd.DataFrame
 
 
 def final_dir(root: Path, as_of=None) -> Path:
-    """outputs/final_scores, or outputs/as_of/<date>/final_scores for a point-in-time run."""
+    """outputs/final_scores (the baseline), or outputs/as_of/<date>/final_scores for a point-in-time run."""
     if as_of is None:
         return root / "outputs" / "final_scores"
     return root / "outputs" / "as_of" / str(pd.Timestamp(as_of).date()) / "final_scores"
 
 
+def group_dir(root: Path, group: str, as_of=None) -> Path:
+    """Where a group's scenario runs and comparison tables go: final_scores/scenario or final_scores/strategy."""
+    return final_dir(root, as_of) / ma.SCENARIO_OUTPUT_DIRS[GROUPS[group]]
+
+
 def run_group(root: Path, group: str, as_of=None) -> list[str]:
     """Rerun the baseline and every weights file in the group. Returns the scenario names run."""
-    from src import market_attractiveness as ma
     files = sorted((root / GROUPS[group]).glob("*.toml"))
     if not files:
         raise FileNotFoundError(f"no weights files in {GROUPS[group]}/")
     clash = [f.stem for f in files if f.stem == BASELINE]
     if clash:
         raise ValueError(f"{GROUPS[group]}/ has a file named {BASELINE}.toml; rename it")
-    out_dir = final_dir(root, as_of)
-    ma.run(root=root, compare_baseline=False, as_of=as_of, out_dir=out_dir)
+    ma.run(root=root, compare_baseline=False, as_of=as_of, out_dir=final_dir(root, as_of))
     for f in files:
-        ma.run(root=root, weights_file=f, as_of=as_of, out_dir=out_dir)
+        ma.run(root=root, weights_file=f, as_of=as_of, out_dir=group_dir(root, group, as_of))
     return [f.stem for f in files]
 
 
@@ -164,7 +174,8 @@ def compare(root: Path, group: str, pop: pd.Series | None, runs: dict,
     if label:
         summary = summary.rename(index={BASELINE: label})
         bu = bu.rename(columns={BASELINE: label})
-    folder = final_dir(root, as_of)
+    folder = group_dir(root, group, as_of)
+    folder.mkdir(parents=True, exist_ok=True)
     sfx = OUTPUT_SUFFIX[group]
     summary.to_csv(folder / f"scenario_summary{sfx}.csv")
     bu.to_csv(folder / f"scenario_bankunited_ranks{sfx}.csv")
@@ -208,7 +219,7 @@ def main(argv=None) -> int:
         same = summary.index[summary["same_as_baseline"]].tolist()
         if same:
             print(f"note: same ranking as the baseline (same Market Attractiveness weights): {', '.join(same)}\n")
-        print(f"wrote {final_dir(root, args.as_of).relative_to(root).as_posix()}/scenario_summary{OUTPUT_SUFFIX[g]}.csv and "
+        print(f"wrote {group_dir(root, g, args.as_of).relative_to(root).as_posix()}/scenario_summary{OUTPUT_SUFFIX[g]}.csv and "
               f"scenario_bankunited_ranks{OUTPUT_SUFFIX[g]}.csv\n")
     return 0 if wrote else 1
 

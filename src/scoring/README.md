@@ -58,8 +58,9 @@ To look at a pillar, open its report in `notebooks/` and run all cells.
 | `weights/scenarios/*.toml` | Sensitivity tests | change or add a sensitivity test |
 | `notebooks/pillar*.ipynb` | Read-only reports, one per pillar | nothing; they only display results |
 | `outputs/pillar_scores/` | Pillar files and the metric catalog (written by each run) | nothing |
-| `outputs/final_scores/` | Final scores and scenario comparisons (written by each run) | nothing |
-| `outputs/as_of/<date>/` | Point-in-time runs (written by `--as-of`; not committed) | nothing |
+| `outputs/final_scores/` | The baseline final score (written by each run) | nothing |
+| `outputs/final_scores/strategy/`, `scenario/` | Each strategy and sensitivity scenario, and that group's comparison tables | nothing |
+| `outputs/as_of/<date>/` | Point-in-time runs, same layout (written by `--as-of`; not committed) | nothing |
 
 **Rule of thumb:** *how a metric is built* lives in the pillar script and `config/settings.toml`; *how much it
 counts* lives in the weights files. A metric with weight 0 is still built and shown everywhere, just not
@@ -280,7 +281,8 @@ python -m src.scoring.run --as-of 2025-06-30
 This rebuilds every pillar from what was public on that date. For each source it uses the latest year whose
 first release (from `data/reference/release_dates.csv`) came out by the date and that `data/processed` holds.
 Every window keeps the length set in `config/settings.toml` and ends at that year. Results go to
-`outputs/as_of/<date>/`, so a back-test never overwrites the current results.
+`outputs/as_of/<date>/` (with the same `final_scores/`, `strategy/` and `scenario/` layout), so a back-test
+never overwrites the current results.
 
 - **Windows can shorten.** If a window would start before the data does (most series start in 2015), it's
   shortened, and the run file lists every shortening under `as_of`.
@@ -305,10 +307,11 @@ All are rewritten by every run.
 | File | One row per | Contents |
 |---|---|---|
 | `outputs/final_scores/market_attractiveness_scores.csv` | metro (387) | the baseline; load this into the dashboard |
-| `outputs/final_scores/market_attractiveness_<scenario>_scores.csv` | metro | each scenario, plus `baseline_rank` and `rank_change` |
-| `outputs/final_scores/market_attractiveness[_<scenario>]_run.json` | run | weights, settings, size floor, as-of choices, warnings |
-| `outputs/final_scores/scenario_summary_strategy.csv`, `scenario_summary.csv` | scenario | pillar weights, size floor, rank correlation with the baseline, metros moved 10+ places, correlation with population, Charlotte's rank and range, BankUnited markets' median rank, top 5 |
-| `outputs/final_scores/scenario_bankunited_ranks_strategy.csv`, `scenario_bankunited_ranks.csv` | BankUnited market | its rank in each scenario |
+| `outputs/final_scores/market_attractiveness_run.json` | run | the baseline's weights, settings, size floor, as-of choices, warnings |
+| `outputs/final_scores/strategy/market_attractiveness_<scenario>_scores.csv` (and `_run.json`) | metro | each strategy scenario, plus `baseline_rank` and `rank_change` |
+| `outputs/final_scores/strategy/scenario_summary_strategy.csv` | scenario | pillar weights, size floor, rank correlation with the baseline, metros moved 10+ places, correlation with population, Charlotte's rank and range, BankUnited markets' median rank, top 5 |
+| `outputs/final_scores/strategy/scenario_bankunited_ranks_strategy.csv` | BankUnited market | its rank in each strategy scenario |
+| `outputs/final_scores/scenario/` | | the same three kinds of file for the sensitivity scenarios (`scenario_summary.csv`, `scenario_bankunited_ranks.csv`) |
 | `outputs/pillar_scores/pillarN_scores.csv` | metro | the pillar score under the baseline weights, `raw_` and `pct_` values for *every* metric, and the pillar's diagnostics |
 | `outputs/pillar_scores/pillarN_run.json` | pillar | settings, effective weights, coverage |
 | `outputs/pillar_scores/metric_catalog.csv` | metric (31) | pillar, label, direction, period, source, coverage, baseline weight |
@@ -366,7 +369,8 @@ needed for the chart, and the report still runs without it.
 `python -m src.market_attractiveness --min-population 250000`.
 
 **Add a scenario.** Copy a file in `weights/strategy/` or `weights/scenarios/`, give it a new name, edit it, then
-`python -m src.scoring.run`. It appears in that group's summary.
+`python -m src.scoring.run`. Its results go to `outputs/final_scores/strategy/` or `outputs/final_scores/scenario/`
+and it appears in that group's summary.
 
 **Drop a metric.** Set its weight to 0 in every weights file that lists it. It stays computed and visible.
 

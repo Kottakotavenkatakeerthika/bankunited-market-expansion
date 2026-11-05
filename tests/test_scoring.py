@@ -95,7 +95,8 @@ def test_baseline_matches_committed_final_scores():
 @pytest.mark.parametrize("path", [p for p in WEIGHTS if p.stem != "baseline"], ids=lambda p: p.stem)
 def test_scenarios_match_committed_final_scores(path):
     new, _ = ma.run(weights_file=path, write=False)
-    old = pd.read_csv(FINAL / f"market_attractiveness_{path.stem}_scores.csv",
+    sub = ma.scenario_subdir(config.ROOT, path)
+    old = pd.read_csv(FINAL / sub / f"market_attractiveness_{path.stem}_scores.csv",
                       dtype={"cbsa_code": str}).set_index("cbsa_code")
     assert differences(as_csv(new), old) == []
 
