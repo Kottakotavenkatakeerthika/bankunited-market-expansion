@@ -28,7 +28,10 @@ def build_metric_sets(root=config.ROOT, settings_file=None) -> dict:
     """Every pillar's MetricSet (raw values of all its metrics) from data/processed."""
     settings = load_settings(settings_file)
     tables = load_tables(Path(root) / "data" / "processed", names=TABLES)
-    return {key: build(tables, settings[key]) for key, build in BUILDERS.items()}
+    sets = {key: build(tables, settings[key]) for key, build in BUILDERS.items()}
+    # composite metrics, which combine metrics from more than one pillar
+    sets["pillar3"] = pillar3.add_competition_growth(sets["pillar3"], sets, settings["pillar3"])
+    return sets
 
 
 def write_pillar_files(root=config.ROOT, out_dir=None, weights_file=None) -> dict:

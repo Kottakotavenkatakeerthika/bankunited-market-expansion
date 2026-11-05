@@ -5,18 +5,34 @@
   "run_date": "2026-11-05",
   "weights_file": "weights/baseline.toml",
   "effective_weights": {
-    "deposit_hhi": 0.2,
-    "top3_share": 0.2,
-    "competitors_per_billion": 0.2,
-    "branches_per_billion": 0.2,
+    "competition_growth": 0.8,
     "leader_share_change": 0.2
   },
-  "unweighted_metrics": [],
+  "unweighted_metrics": [
+    "deposit_hhi",
+    "top3_share",
+    "competitors_per_billion",
+    "branches_per_billion"
+  ],
   "weighted_but_not_available": [],
   "not_available": [],
   "settings": {
     "score_year": 2024,
-    "hq_adjusted": true
+    "hq_adjusted": true,
+    "competition_growth": {
+      "concentration_metric": "deposit_hhi",
+      "growth_metrics": [
+        "pillar2.deposit_growth",
+        "pillar1.mm_growth",
+        "pillar4.gdp_growth"
+      ],
+      "corners": {
+        "few_growing": 100,
+        "many_growing": 50,
+        "few_stable": 0,
+        "many_stable": 50
+      }
+    }
   },
   "metros": 387,
   "complete_msas": 382,

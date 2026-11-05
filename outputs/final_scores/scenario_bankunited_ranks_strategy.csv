@@ -1,14 +1,14 @@
 cbsa_code,msa,baseline (balanced franchise),ci_led,cre_led,deposit_led,talent_led,adjacency,emerging_market
-35840,North Port-Bradenton-Sarasota,8.0,10.0,9.0,8.0,8.0,8.0,9.0
-15980,Cape Coral-Fort Myers,11.0,11.0,11.0,12.0,11.0,11.0,11.0
-12060,Atlanta-Sandy Springs-Roswell,12.0,12.0,14.0,11.0,12.0,12.0,15.0
-34940,Naples-Marco Island,14.0,19.0,18.0,17.0,14.0,14.0,16.0
-45300,Tampa-St. Petersburg-Clearwater,16.0,23.0,23.0,16.0,16.0,16.0,19.0
-16740,Charlotte-Concord-Gastonia,17.0,18.0,16.0,15.0,17.0,17.0,14.0
-36740,Orlando-Kissimmee-Sanford,18.0,20.0,22.0,18.0,18.0,18.0,22.0
-19100,Dallas-Fort Worth-Arlington,20.0,15.0,20.0,14.0,20.0,20.0,17.0
-33100,Miami-Fort Lauderdale-West Palm Beach,32.0,35.0,44.0,27.0,32.0,32.0,41.0
-38940,Port St. Lucie,50.0,67.0,65.0,51.0,50.0,50.0,53.0
-26420,Houston-Pasadena-The Woodlands,59.0,57.0,63.0,49.0,59.0,59.0,62.0
-42680,Sebastian-Vero Beach-West Vero Corridor,77.0,97.0,97.0,75.0,77.0,77.0,80.0
-35620,New York-Newark-Jersey City,182.0,191.0,214.0,151.0,182.0,182.0,197.0
+19100,Dallas-Fort Worth-Arlington,7.0,8.0,9.0,6.0,7.0,7.0,8.0
+16740,Charlotte-Concord-Gastonia,10.0,16.0,12.0,10.0,10.0,10.0,10.0
+12060,Atlanta-Sandy Springs-Roswell,11.0,9.0,18.0,8.0,11.0,11.0,19.0
+36740,Orlando-Kissimmee-Sanford,22.0,24.0,27.0,21.0,22.0,22.0,26.0
+35840,North Port-Bradenton-Sarasota,25.0,25.0,24.0,24.0,25.0,25.0,24.0
+15980,Cape Coral-Fort Myers,30.0,27.0,28.0,32.0,30.0,30.0,28.0
+26420,Houston-Pasadena-The Woodlands,35.0,33.0,41.0,25.0,35.0,35.0,39.0
+45300,Tampa-St. Petersburg-Clearwater,37.0,41.0,42.0,30.0,37.0,37.0,34.0
+34940,Naples-Marco Island,52.0,47.0,46.0,48.0,52.0,52.0,46.0
+38940,Port St. Lucie,69.0,85.0,83.0,65.0,69.0,69.0,72.0
+33100,Miami-Fort Lauderdale-West Palm Beach,72.0,65.0,82.0,57.0,72.0,72.0,76.0
+42680,Sebastian-Vero Beach-West Vero Corridor,101.0,111.0,109.0,90.0,101.0,101.0,97.0
+35620,New York-Newark-Jersey City,224.0,220.0,238.0,181.0,224.0,224.0,226.0

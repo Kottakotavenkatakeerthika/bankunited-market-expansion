@@ -37,11 +37,12 @@
         "income_growth": 10.0
       },
       "pillar3": {
-        "deposit_hhi": 1.0,
-        "top3_share": 1.0,
-        "competitors_per_billion": 1.0,
-        "branches_per_billion": 1.0,
-        "leader_share_change": 1.0
+        "competition_growth": 80.0,
+        "leader_share_change": 20.0,
+        "deposit_hhi": 0.0,
+        "top3_share": 0.0,
+        "competitors_per_billion": 0.0,
+        "branches_per_billion": 0.0
       },
       "pillar4": {
         "gdp_growth": 12.5,
@@ -87,10 +88,7 @@
       "income_growth": 0.125
     },
     "pillar3": {
-      "deposit_hhi": 0.2,
-      "top3_share": 0.2,
-      "competitors_per_billion": 0.2,
-      "branches_per_billion": 0.2,
+      "competition_growth": 0.8,
       "leader_share_change": 0.2
     },
     "pillar4": {
@@ -165,11 +163,25 @@
       "source": "src.scoring.pillar3",
       "rows": 387,
       "complete": 382,
-      "metrics_defined": 5,
-      "metrics_weighted": 5,
+      "metrics_defined": 6,
+      "metrics_weighted": 2,
       "settings": {
         "score_year": 2024,
-        "hq_adjusted": true
+        "hq_adjusted": true,
+        "competition_growth": {
+          "concentration_metric": "deposit_hhi",
+          "growth_metrics": [
+            "pillar2.deposit_growth",
+            "pillar1.mm_growth",
+            "pillar4.gdp_growth"
+          ],
+          "corners": {
+            "few_growing": 100,
+            "many_growing": 50,
+            "few_stable": 0,
+            "many_stable": 50
+          }
+        }
       }
     },
     "pillar4": {

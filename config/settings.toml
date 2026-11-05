@@ -5,6 +5,12 @@
 score_year  = 2024
 hq_adjusted = true   # leave out main-office and home-banking-office bookings
 
+[pillar3.competition_growth]   # competition x growth (T70): how much "few competitors" is worth depends on growth
+concentration_metric = "deposit_hhi"                                              # fewness = HHI percentile, 100 = most concentrated
+growth_metrics       = ["pillar2.deposit_growth", "pillar1.mm_growth", "pillar4.gdp_growth"]  # growth = their mean percentile
+# Score at each corner of fewness x growth (0-100); metros in between are interpolated.
+corners = { few_growing = 100, many_growing = 50, few_stable = 0, many_stable = 50 }
+
 [pillar1]
 local_lender_threshold       = 0.50          # a bank is a local lender in a metro holding >= this share of its domestic deposits
 growth_cap                   = 0.25          # max annual same-bank loan growth counted (so acquisitions don't read as demand)

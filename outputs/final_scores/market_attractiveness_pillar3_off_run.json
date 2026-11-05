@@ -36,11 +36,12 @@
         "income_growth": 10.0
       },
       "pillar3": {
-        "deposit_hhi": 1.0,
-        "top3_share": 1.0,
-        "competitors_per_billion": 1.0,
-        "branches_per_billion": 1.0,
-        "leader_share_change": 1.0
+        "competition_growth": 80.0,
+        "leader_share_change": 20.0,
+        "deposit_hhi": 0.0,
+        "top3_share": 0.0,
+        "competitors_per_billion": 0.0,
+        "branches_per_billion": 0.0
       },
       "pillar4": {
         "gdp_growth": 12.5,

@@ -127,3 +127,35 @@ def test_weights_for_undefined_metric_are_rejected():
         pillar, registry = "pillar1", {"a": None}
     with pytest.raises(ValueError, match="doesn't define"):
         engine.pillar_weights(FakeSet(), {"metrics": {"pillar1": {"b": 1}}})
+
+
+# --- competition x growth (Pillar 3, T70) ------------------------------------------------------------
+from src.scoring import pillar3  # noqa: E402
+
+CORNERS = {"few_growing": 100, "many_growing": 50, "few_stable": 0, "many_stable": 50}
+
+
+def test_corner_score_hits_each_corner_and_interpolates():
+    s = pd.Series
+    f = pillar3.corner_score(s([100, 0, 100, 0, 50]), s([100, 100, 0, 0, 50]), CORNERS)
+    assert f.tolist() == [100, 50, 0, 50, 50]
+
+
+def test_fewness_helps_only_where_the_market_grows():
+    few, many = pd.Series([90.0]), pd.Series([10.0])
+    growing, stable = pd.Series([90.0]), pd.Series([10.0])
+    assert pillar3.corner_score(few, growing, CORNERS)[0] > pillar3.corner_score(many, growing, CORNERS)[0]
+    assert pillar3.corner_score(few, stable, CORNERS)[0] < pillar3.corner_score(many, stable, CORNERS)[0]
+
+
+@needs_data
+def test_competition_growth_is_built_from_the_other_pillars(sets):
+    ms = sets["pillar3"]
+    assert "competition_growth" in ms.registry and ms.registry["competition_growth"].metric_id == "P3-08"
+    v = ms.values["competition_growth"]
+    assert v.between(0, 100).all() or v.dropna().between(0, 100).all()
+    # blank exactly where a growth input or HHI is missing (the 5 Connecticut metros)
+    growth_inputs = pd.concat([sets["pillar2"].values.deposit_growth, sets["pillar1"].values.mm_growth,
+                               sets["pillar4"].values.gdp_growth, ms.values.deposit_hhi], axis=1)
+    assert v.isna().equals(growth_inputs.isna().any(axis=1))
+    assert {"competition_fewness", "market_growth"} <= set(ms.diagnostics.columns)
