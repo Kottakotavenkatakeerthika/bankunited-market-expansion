@@ -159,3 +159,72 @@ def test_competition_growth_is_built_from_the_other_pillars(sets):
                                sets["pillar4"].values.gdp_growth, ms.values.deposit_hhi], axis=1)
     assert v.isna().equals(growth_inputs.isna().any(axis=1))
     assert {"competition_fewness", "market_growth"} <= set(ms.diagnostics.columns)
+
+
+# --- size floor -------------------------------------------------------------------------------------------
+@needs_data
+def test_size_floor_ranks_only_metros_above_it():
+    base, _ = ma.run(write=False, compare_baseline=False)
+    out, report = ma.run(write=False, compare_baseline=False, min_population=250_000)
+    eligible = base["rank"].notna() & (base["population"] >= 250_000)
+    assert out["rank"].notna().reindex(eligible.index).equals(eligible)
+    assert sorted(out["rank"].dropna().astype(int)) == list(range(1, int(eligible.sum()) + 1))
+    below = out[out["below_size_floor"]]
+    assert below["available_score"].notna().all() and below["complete_score"].isna().all()
+    assert (below.loc[base.loc[below.index, "rank"].notna(), "coverage_status"] == "Below size floor (250,000)").all()
+    assert report["universe"] == {"min_population": 250_000, "population_year": 2024,
+                                  "below_size_floor": int((base["rank"].notna() & ~eligible).sum())}
+    # option (a): scores don't move, ranks close up
+    keep = eligible[eligible].index
+    assert (out.loc[keep, "available_score"] - base.loc[keep, "available_score"]).abs().max() < 1e-12
+
+
+def test_universe_table_is_checked():
+    w = {"pillars": {f"pillar{i}": 25 for i in range(1, 5)}}
+    assert ma.normalize_weights(w)["universe"] == {"min_population": 0}
+    assert ma.normalize_weights({**w, "universe": {"min_population": 100_000}})["universe_set"] is True
+    with pytest.raises(ValueError, match="min_population"):
+        ma.normalize_weights({**w, "universe": {"min_population": -1}})
+    with pytest.raises(ValueError, match="only takes"):
+        ma.normalize_weights({**w, "universe": {"max_population": 1}})
+
+
+# --- as-of -------------------------------------------------------------------------------------------------
+from src.scoring import asof  # noqa: E402
+from src.scoring.common import load_settings, load_tables  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def tables():
+    return load_tables(PROCESSED, names=run.TABLES)
+
+
+@needs_data
+def test_as_of_today_reproduces_the_settings_file(tables):
+    s, report = asof.settings_as_of(load_settings(), "2026-11-05", tables)
+    assert all(s[k] == load_settings()[k] for k in ("pillar1", "pillar2", "pillar3", "pillar4"))
+    assert report["windows_shortened"] == []
+
+
+@needs_data
+def test_as_of_mid_2025_uses_only_released_data(tables):
+    s, report = asof.settings_as_of(load_settings(), "2025-06-30", tables)
+    years = report["latest_year_used"]
+    assert years["bea_gdp"] == 2023 and years["bea_income"] == 2023   # 2024 county GDP/income came out 2026-02-05
+    assert years["sod"] == 2024 and years["cbp"] == 2023 and years["pep"] == 2024
+    assert s["pillar4"]["end_year"] == 2023 and s["pillar2"]["bea_end"] == 2023
+    assert s["pillar1"]["end_quarter"] == "2024-06-30"
+
+
+@needs_data
+def test_as_of_before_the_data_is_rejected(tables):
+    with pytest.raises(ValueError, match="pick a later date"):
+        asof.settings_as_of(load_settings(), "2015-01-01", tables)
+
+
+@needs_data
+def test_as_of_run_drops_markets_entered_later():
+    out, report = ma.run(write=False, compare_baseline=False, as_of="2025-06-30")
+    assert report["as_of"]["as_of"] == "2025-06-30"
+    assert "16740" not in out.index[out["bankunited_market"].notna()]      # Charlotte entered July 2025
+    assert "12060" in out.index[out["bankunited_market"].notna()]          # Atlanta entered 2022

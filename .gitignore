@@ -23,3 +23,5 @@ __pycache__/
 !outputs/pillar_scores/*.csv
 # Executed notebook copies: not tracked
 outputs/executed/
+# Point-in-time (--as-of) runs: regenerate them, don't commit them
+outputs/as_of/

@@ -60,7 +60,11 @@
         "local_ci_growth",
         "local_cre_growth"
       ]
-    }
+    },
+    "universe": {
+      "min_population": 0
+    },
+    "universe_set": false
   },
   "weights_effective": {
     "pillar1": 0.25,
@@ -121,6 +125,12 @@
     "sensitivity": 0.25,
     "source": "metrics"
   },
+  "universe": {
+    "min_population": 0,
+    "population_year": 2024,
+    "below_size_floor": 0
+  },
+  "as_of": null,
   "inputs": {
     "pillar1": {
       "source": "src.scoring.pillar1",

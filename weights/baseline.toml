@@ -12,6 +12,10 @@
 # Baseline = equal 25% pillars (methodology). Pillar 3 = competition x growth 80%, leader share change 20%
 # (T70, 2026-11-05); its previous design is weights/scenarios/pillar3_current.toml.
 
+[universe]
+min_population = 0   # size floor: metros below this population are scored but not ranked. 0 = off.
+                     # Scenario files without a [universe] table use this value.
+
 [pillars]
 pillar1 = 25   # Commercial lending
 pillar2 = 25   # Deposits and treasury

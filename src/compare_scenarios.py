@@ -9,7 +9,9 @@ The baseline (weights/baseline.toml) is in both. In the strategy group it is the
     python -m src.compare_scenarios --group strategy --run   # rerun the baseline and the group, then compare
 
 --run calls src.market_attractiveness for the baseline and each weights file in the group, so the runs are
-fresh and on the same pillar exports. Without it, the comparison reads whatever is in outputs/final_scores.
+fresh and on the same inputs. Without it, the comparison reads whatever is in outputs/final_scores.
+--as-of YYYY-MM-DD rebuilds every pillar from data released by that date and writes everything to
+outputs/as_of/<date>/final_scores/ instead, so point-in-time runs never overwrite the current ones.
 
 Writes, per group, to outputs/final_scores/:
     sensitivity: scenario_summary.csv and scenario_bankunited_ranks.csv (names kept from before the groups)
@@ -91,6 +93,7 @@ def summarize(runs: dict[str, tuple[pd.DataFrame, dict]], pop: pd.Series | None)
         rows.append({
             "scenario": name,
             **pillar_weights(report),
+            "min_population": (report.get("universe") or {}).get("min_population", 0),
             "complete_msas": int(d["complete_score"].notna().sum()),
             "same_as_baseline": same,
             "rank_corr_vs_baseline": round(now.corr(before, method="spearman"), 3),
@@ -116,7 +119,14 @@ def bankunited_ranks(runs: dict[str, tuple[pd.DataFrame, dict]]) -> pd.DataFrame
     return table.sort_values(BASELINE)
 
 
-def run_group(root: Path, group: str) -> list[str]:
+def final_dir(root: Path, as_of=None) -> Path:
+    """outputs/final_scores, or outputs/as_of/<date>/final_scores for a point-in-time run."""
+    if as_of is None:
+        return root / "outputs" / "final_scores"
+    return root / "outputs" / "as_of" / str(pd.Timestamp(as_of).date()) / "final_scores"
+
+
+def run_group(root: Path, group: str, as_of=None) -> list[str]:
     """Rerun the baseline and every weights file in the group. Returns the scenario names run."""
     from src import market_attractiveness as ma
     files = sorted((root / GROUPS[group]).glob("*.toml"))
@@ -125,9 +135,10 @@ def run_group(root: Path, group: str) -> list[str]:
     clash = [f.stem for f in files if f.stem == BASELINE]
     if clash:
         raise ValueError(f"{GROUPS[group]}/ has a file named {BASELINE}.toml; rename it")
-    ma.run(root=root, compare_baseline=False)
+    out_dir = final_dir(root, as_of)
+    ma.run(root=root, compare_baseline=False, as_of=as_of, out_dir=out_dir)
     for f in files:
-        ma.run(root=root, weights_file=f)
+        ma.run(root=root, weights_file=f, as_of=as_of, out_dir=out_dir)
     return [f.stem for f in files]
 
 
@@ -142,7 +153,8 @@ def check_names(root: Path) -> None:
             seen[f.stem] = folder
 
 
-def compare(root: Path, group: str, pop: pd.Series | None, runs: dict) -> tuple[pd.DataFrame, pd.DataFrame] | None:
+def compare(root: Path, group: str, pop: pd.Series | None, runs: dict,
+            as_of=None) -> tuple[pd.DataFrame, pd.DataFrame] | None:
     picked = runs_in_group(runs, group)
     if len(picked) == 1:
         return None
@@ -152,7 +164,7 @@ def compare(root: Path, group: str, pop: pd.Series | None, runs: dict) -> tuple[
     if label:
         summary = summary.rename(index={BASELINE: label})
         bu = bu.rename(columns={BASELINE: label})
-    folder = root / "outputs" / "final_scores"
+    folder = final_dir(root, as_of)
     sfx = OUTPUT_SUFFIX[group]
     summary.to_csv(folder / f"scenario_summary{sfx}.csv")
     bu.to_csv(folder / f"scenario_bankunited_ranks{sfx}.csv")
@@ -163,6 +175,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Compare weight scenarios against the baseline.")
     ap.add_argument("--group", choices=[*GROUPS, "all"], default="all")
     ap.add_argument("--run", action="store_true", help="rerun the baseline and the group's scenarios first")
+    ap.add_argument("--as-of", help="decision date (YYYY-MM-DD): data released by then; writes outputs/as_of/<date>/")
     args = ap.parse_args(argv)
     root = config.ROOT
     groups = list(GROUPS) if args.group == "all" else [args.group]
@@ -170,18 +183,18 @@ def main(argv=None) -> int:
         check_names(root)
         if args.run:
             for g in groups:
-                print(f"running {g}: {', '.join(run_group(root, g))}")
+                print(f"running {g}: {', '.join(run_group(root, g, args.as_of))}")
     except (ValueError, FileNotFoundError) as e:
         print(e, file=sys.stderr)
         return 1
-    runs = load_runs(root / "outputs" / "final_scores")
+    runs = load_runs(final_dir(root, args.as_of))
     if BASELINE not in runs:
         print("No baseline run found; run python -m src.market_attractiveness first.", file=sys.stderr)
         return 1
     pop = population(root)
     wrote = 0
     for g in groups:
-        result = compare(root, g, pop, runs)
+        result = compare(root, g, pop, runs, args.as_of)
         if result is None:
             print(f"[{g}] no runs found; run with --run, or run its weights files in {GROUPS[g]}/\n")
             continue
@@ -195,7 +208,7 @@ def main(argv=None) -> int:
         same = summary.index[summary["same_as_baseline"]].tolist()
         if same:
             print(f"note: same ranking as the baseline (same Market Attractiveness weights): {', '.join(same)}\n")
-        print(f"wrote outputs/final_scores/scenario_summary{OUTPUT_SUFFIX[g]}.csv and "
+        print(f"wrote {final_dir(root, args.as_of).relative_to(root).as_posix()}/scenario_summary{OUTPUT_SUFFIX[g]}.csv and "
               f"scenario_bankunited_ranks{OUTPUT_SUFFIX[g]}.csv\n")
     return 0 if wrote else 1
 

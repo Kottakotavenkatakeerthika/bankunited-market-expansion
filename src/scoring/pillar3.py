@@ -2,7 +2,7 @@
 
 Self-contained, like the other pillar builders: gathers the metrics only. Directions are part of each
 metric's definition; weights live in weights/baseline.toml; settings in config/settings.toml [pillar3].
-Ported from src/pillar3_competition.py (2026-11-05), which now only re-exports this module for the old notebook.
+Ported from src/pillar3_competition.py on 2026-11-05 (that module has since been removed).
 
 Deposits leave out main-office and home-banking-office bookings when hq_adjusted is true (matching the
 data-v0.5 `_ex_main_office` columns). Competitors are top holding companies (`sod_top_holder_rssd_id`), so
