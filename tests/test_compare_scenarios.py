@@ -3,7 +3,16 @@ import pandas as pd
 import pytest
 
 from src import compare_scenarios as cs
+from src import market_attractiveness as ma
 from tests.test_market_attractiveness import four_pillars, write_toml  # noqa: F401 (fixture)
+
+
+
+@pytest.fixture(autouse=True)
+def _read_exports(monkeypatch):
+    """Synthetic notebook-format exports: read them instead of building metrics."""
+    monkeypatch.setattr(ma, "DEFAULT_SOURCE", "exports")
+
 
 EQUAL = {"pillar1": 25, "pillar2": 25, "pillar3": 25, "pillar4": 25}
 

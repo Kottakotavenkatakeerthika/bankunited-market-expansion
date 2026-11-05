@@ -1,0 +1,32 @@
+pillar,pillar_label,metric,metric_id,label,group,direction,period,source,available,metros_with_value,baseline_weight_entered,baseline_weight_in_pillar
+pillar1,Commercial lending,local_ci_growth,,Local-lender C&I growth,Bank-reported lending,Higher,2019–24 CAGR,bank_quarter + bank_msa_year,True,326,10.0,0.1
+pillar1,Commercial lending,local_cre_growth,,Local-lender CRE growth,Bank-reported lending,Higher,2019–24 CAGR,bank_quarter + bank_msa_year,True,330,10.0,0.1
+pillar1,Commercial lending,local_loans_to_deposits,,Local-lender commercial loans / deposits,Bank-reported lending,Higher,June 2024,bank_quarter + bank_msa_year,True,332,0.0,0.0
+pillar1,Commercial lending,allocated_loan_growth,,Allocated commercial loan growth,Bank-reported lending,Higher,2019–24 CAGR,bank_quarter + bank_msa_year,True,382,20.0,0.2
+pillar1,Commercial lending,mm_establishments,,Middle-market establishments (20–249),Middle-market borrowers,Higher,2023,msa_year.cbp_establishments_20_249_count,True,387,20.0,0.2
+pillar1,Commercial lending,mm_growth,,Middle-market establishment growth,Middle-market borrowers,Higher,2018–23 CAGR,msa_year.cbp_establishments_20_249_count,True,382,20.0,0.2
+pillar1,Commercial lending,mm_share,,Middle-market share of establishments,Middle-market borrowers,Higher,2023,msa_year.cbp_establishments_*,True,387,0.0,0.0
+pillar1,Commercial lending,cre_payroll_growth,,Commercial real estate payroll growth,CRE lending,Higher,2018–23 CAGR,msa_year.cre_* (NAICS 531 + 2362),True,381,20.0,0.2
+pillar2,Deposits and treasury,deposits_per_capita,,Deposits per capita (ex-HQ),Deposit market,Higher,June 2024,msa_year.sod_* + pep,True,387,10.0,0.125
+pillar2,Deposits and treasury,deposit_growth,,Deposit growth (ex-HQ),Deposit market,Higher,2019–24 CAGR,msa_year.sod_*,True,382,10.0,0.125
+pillar2,Deposits and treasury,deposits_per_branch,,Deposits per non-HQ branch,Deposit market,Higher,June 2024,msa_year.sod_* + bank_msa_year,True,387,10.0,0.125
+pillar2,Deposits and treasury,wage_bill,,Total wage bill,Operating-deposit demand,Higher,2024,msa_year.bls_qcew_total_wages_usd,True,387,10.0,0.125
+pillar2,Deposits and treasury,wage_bill_growth,,Wage bill growth,Operating-deposit demand,Higher,2019–24 CAGR,msa_year.bls_qcew_total_wages_usd,True,382,10.0,0.125
+pillar2,Deposits and treasury,payroll_per_establishment,,Payroll per establishment,Operating-deposit demand,Higher,2023,msa_year.cbp_*,True,387,10.0,0.125
+pillar2,Deposits and treasury,income_per_capita,,Personal income per capita,Household deposit base,Higher,2024,msa_year.bea_* + pep,True,387,10.0,0.125
+pillar2,Deposits and treasury,income_growth,,Personal income growth,Household deposit base,Higher,2019–24 CAGR,msa_year.bea_personal_income_usd,True,382,10.0,0.125
+pillar2,Deposits and treasury,incumbent_nib_share,,Incumbent non-interest-bearing share,Incumbent franchise,Higher,June 2024,bank_quarter × bank_msa_year,True,387,0.0,0.0
+pillar2,Deposits and treasury,incumbent_uninsured_share,,Incumbent uninsured share,Incumbent franchise,Higher,June 2024,bank_quarter × bank_msa_year,True,387,0.0,0.0
+pillar3,Competition and entry windows,deposit_hhi,P3-01,Deposit HHI across holding companies,Concentration,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,top3_share,P3-02,Top-3 holding-company deposit share,Concentration,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,competitors_per_billion,P3-03,Competitors per $1B of local deposits,Market thinness,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,branches_per_billion,P3-04,Full-service branches per $1B of local deposits,Market thinness,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,leader_share_change,P3-07,3-year change in leaders' deposit share,Opening,Lower,2021→2024,bank_msa_year SOD,True,382,1.0,0.2
+pillar4,Market quality and durability,gdp_growth,,GDP growth,,Higher,2019–2024 CAGR,bea_gdp_usd,True,382,12.5,0.125
+pillar4,Market quality and durability,gdp_volatility,,GDP volatility,,Lower,2016–2024 annual growth; sample SD,bea_gdp_usd,True,382,12.5,0.125
+pillar4,Market quality and durability,unemployment_level,,Unemployment level,,Lower,2024 annual rate / 100,bls_unemployment_rate_pct,True,387,12.5,0.125
+pillar4,Market quality and durability,unemployment_volatility,,Unemployment volatility,,Lower,2015–2024 annual rates / 100; sample SD,bls_unemployment_rate_pct,True,387,12.5,0.125
+pillar4,Market quality and durability,industry_hhi,,Industry HHI,,Lower,2023 CBP; 19 sectors grouped into 10 categories,msa_naics_year: cbp_employment_count,True,292,12.5,0.125
+pillar4,Market quality and durability,establishment_growth,,Establishment growth,,Higher,"2018–2023 CAGR, all employer establishments",cbp_establishments_count,True,382,12.5,0.125
+pillar4,Market quality and durability,population_growth,,Population growth,,Higher,2019–2024 CAGR,pep_population_count,True,382,12.5,0.125
+pillar4,Market quality and durability,net_migration_rate,,"Net migration /1,000",,Higher,"2024 net migration / average 2023–2024 population × 1,000",pep_migration_net; pep_population_count,True,387,12.5,0.125

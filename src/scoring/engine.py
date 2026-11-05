@@ -1,14 +1,18 @@
-"""Scoring engine: metric percentiles and pillar scores from a pillar's raw metrics.
+"""Scoring engine helpers: effective metric weights, pillar scores, and the per-pillar files.
 
-score_pillar() applies the same rules as the pillar notebooks:
-  - each metric becomes an oriented percentile among the metros that have it;
-  - the available-data score is the weighted mean of the percentiles a metro has, weights rescaled
-    over those metrics; the complete score needs every weighted metric;
-  - rank is among complete metros only.
+The final score (src/market_attractiveness.py) builds each pillar from its MetricSet directly. The files
+written here are for reading, the app and the dashboard; nothing reads them back:
 
-write_export() writes the notebook-format files (outputs/pillar_scores/<pillar>_scores.csv and
-<pillar>_run.json) that src/market_attractiveness.py reads today. It goes away once the final score
-reads metric tables directly.
+    outputs/pillar_scores/<pillar>_scores.csv   one row per metro: the pillar score under the baseline
+                                                weights, then raw_<metric> and pct_<metric> for EVERY metric
+                                                (weighted or not), then any diagnostics the pillar reports
+    outputs/pillar_scores/<pillar>_run.json     settings, effective weights and coverage for that file
+    outputs/pillar_scores/metric_catalog.csv    one row per metric: pillar, label, direction, period, source,
+                                                baseline weight
+
+score_pillar() applies the pillar notebooks' rule: each metric becomes an oriented percentile among the
+metros that have it; the available-data score is the weighted mean of the percentiles a metro has
+(weights rescaled over them); the complete score needs every weighted metric; rank is among complete metros.
 """
 from __future__ import annotations
 
@@ -38,16 +42,20 @@ def pillar_weights(ms: MetricSet, weights_cfg: dict) -> tuple[pd.Series, list[st
     return used / used.sum(), skipped
 
 
-def score_pillar(ms: MetricSet, weights: pd.Series) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """(results, percentiles) for the weighted metrics, in the notebooks' layout."""
-    active = list(weights.index)
-    directions = {k: m.direction for k, m in ms.registry.items()}
-    P = oriented_percentiles(ms.values[active], directions)
+def percentiles(ms: MetricSet) -> pd.DataFrame:
+    """Oriented percentiles of every available metric."""
+    keys = [m.key for m in ms.metrics if m.available]
+    return oriented_percentiles(ms.values[keys], {m.key: m.direction for m in ms.metrics})
+
+
+def score_pillar(ms: MetricSet, weights: pd.Series, P: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Pillar score table for the weighted metrics."""
+    P = (percentiles(ms) if P is None else P)[list(weights.index)]
     have = P.notna()
     cover = have.mul(weights, axis=1).sum(axis=1)
     available = P.fillna(0).mul(weights, axis=1).sum(axis=1) / cover.where(cover > 0)
     complete = available.where(have.all(axis=1))
-    results = pd.DataFrame({
+    return pd.DataFrame({
         "msa": ms.titles.reindex(P.index),
         "complete_score": complete,
         "rank": complete.rank(ascending=False, method="min"),
@@ -56,33 +64,53 @@ def score_pillar(ms: MetricSet, weights: pd.Series) -> tuple[pd.DataFrame, pd.Da
         "weight_coverage": cover,
         "missing_metrics": have.apply(lambda r: ", ".join(c for c in r.index if not r[c]), axis=1),
     })
-    return results, P
 
 
-def write_export(ms: MetricSet, weights_cfg: dict, out_dir: Path | None = None) -> tuple[Path, Path]:
-    """Write <pillar>_scores.csv and <pillar>_run.json as the pillar notebooks do."""
-    weights, _ = pillar_weights(ms, weights_cfg)
-    results, P = score_pillar(ms, weights)
-    active = list(weights.index)
-    table = (results.join(ms.values[active].add_prefix("raw_")).join(P[active].add_prefix("pct_"))
-             .sort_values(["complete_score", "available_score"], ascending=False))
+def write_pillar_file(ms: MetricSet, weights_cfg: dict, out_dir: Path | None = None) -> tuple[Path, Path]:
+    """Write <pillar>_scores.csv and <pillar>_run.json (see the module docstring)."""
+    weights, skipped = pillar_weights(ms, weights_cfg)
+    P = percentiles(ms)
+    results = score_pillar(ms, weights, P)
+    keys = list(P.columns)
+    table = results.join(ms.values[keys].add_prefix("raw_")).join(P.add_prefix("pct_"))
+    if ms.diagnostics is not None:
+        table = table.join(ms.diagnostics)
+    table = table.sort_values(["complete_score", "available_score"], ascending=False)
     out_dir = Path(out_dir or config.ROOT / "outputs" / "pillar_scores")
     out_dir.mkdir(parents=True, exist_ok=True)
     csv_path, json_path = out_dir / f"{ms.pillar}_scores.csv", out_dir / f"{ms.pillar}_run.json"
     table.rename_axis("cbsa_code").to_csv(csv_path)
-    entered = weights_cfg["metrics"].get(ms.pillar, {})
     run = {
         "pillar": ms.pillar,
+        "label": ms.label,
+        "built_by": f"src.scoring.{ms.pillar}",
         "run_date": str(pd.Timestamp.today().date()),
+        "weights_file": "weights/baseline.toml",
         "effective_weights": weights.round(6).to_dict(),
-        "entered_weights": {k: float(v) / 100 for k, v in entered.items()},
-        "settings": ms.settings,
-        "complete_msas": int(results["rank"].notna().sum()),
+        "unweighted_metrics": [k for k in keys if k not in weights.index],
+        "weighted_but_not_available": skipped,
         "not_available": ms.not_available,
-        "built_by": "src.scoring",
+        "settings": ms.settings,
+        "metros": len(table),
+        "complete_msas": int(results["rank"].notna().sum()),
+        "note": "For reading only. The final score rebuilds pillars from the metric builders and weights files.",
     }
-    ids = {m.key: m.metric_id for m in ms.metrics if m.metric_id}
-    if ids:
-        run["metric_ids"] = ids
     json_path.write_text(json.dumps(run, indent=2, default=str))
     return csv_path, json_path
+
+
+def catalog(sets: dict[str, MetricSet], weights_cfg: dict) -> pd.DataFrame:
+    """One row per metric across every pillar, with its baseline weight."""
+    rows = []
+    for ms in sets.values():
+        entered = weights_cfg["metrics"].get(ms.pillar, {})
+        eff, _ = pillar_weights(ms, weights_cfg)
+        coverage = ms.values.notna().sum()
+        for m in ms.metrics:
+            rows.append({"pillar": ms.pillar, "pillar_label": ms.label, "metric": m.key, "metric_id": m.metric_id,
+                         "label": m.label, "group": m.group, "direction": m.direction, "period": m.period,
+                         "source": m.source, "available": m.available,
+                         "metros_with_value": int(coverage.get(m.key, 0)),
+                         "baseline_weight_entered": entered.get(m.key, 0.0),
+                         "baseline_weight_in_pillar": round(float(eff.get(m.key, 0.0)), 6)})
+    return pd.DataFrame(rows)

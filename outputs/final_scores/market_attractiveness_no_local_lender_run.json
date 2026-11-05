@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-04",
+  "run_date": "2026-11-05",
   "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
   "scenario": "no_local_lender",
   "weights_source": "weights/scenarios/no_local_lender.toml",
@@ -104,70 +104,74 @@
   "settings": {
     "normalize": "percentile",
     "min_pillar_coverage": 0.5,
-    "sensitivity": 0.25
+    "sensitivity": 0.25,
+    "source": "metrics"
   },
   "inputs": {
     "pillar1": {
-      "file": "outputs/pillar_scores/pillar1_scores.csv",
+      "source": "src.scoring.pillar1",
       "rows": 387,
       "complete": 381,
-      "matches_notebook_weights": false,
-      "notebook_run_date": "2026-11-04",
-      "notebook_weights": {
-        "local_ci_growth": 0.1,
-        "local_cre_growth": 0.1,
-        "allocated_loan_growth": 0.2,
-        "mm_establishments": 0.2,
-        "mm_growth": 0.2,
-        "cre_payroll_growth": 0.2
+      "metrics_defined": 8,
+      "metrics_weighted": 4,
+      "settings": {
+        "local_lender_threshold": 0.5,
+        "growth_cap": 0.25,
+        "base_quarter": "2019-06-30",
+        "end_quarter": "2024-06-30",
+        "cbp_start": 2018,
+        "cbp_end": 2023,
+        "exclude_home_banking_offices": true
       }
     },
     "pillar2": {
-      "file": "outputs/pillar_scores/pillar2_scores.csv",
+      "source": "src.scoring.pillar2",
       "rows": 387,
       "complete": 382,
-      "matches_notebook_weights": true,
-      "notebook_run_date": "2026-11-04",
-      "notebook_weights": {
-        "deposits_per_capita": 0.125,
-        "deposit_growth": 0.125,
-        "deposits_per_branch": 0.125,
-        "wage_bill": 0.125,
-        "wage_bill_growth": 0.125,
-        "payroll_per_establishment": 0.125,
-        "income_per_capita": 0.125,
-        "income_growth": 0.125
+      "metrics_defined": 10,
+      "metrics_weighted": 8,
+      "settings": {
+        "sod_start": 2019,
+        "sod_end": 2024,
+        "call_quarter": "2024-06-30",
+        "qcew_start": 2019,
+        "qcew_end": 2024,
+        "bea_start": 2019,
+        "bea_end": 2024,
+        "cbp_year": 2023,
+        "exclude_home_banking_offices": true,
+        "min_call_coverage": 0.5
       }
     },
     "pillar3": {
-      "file": "outputs/pillar_scores/pillar3_scores.csv",
-      "rows": 393,
-      "complete": 388,
-      "matches_notebook_weights": true,
-      "notebook_run_date": "2026-11-04",
-      "notebook_weights": {
-        "deposit_hhi": 0.2,
-        "top3_share": 0.2,
-        "competitors_per_billion": 0.2,
-        "branches_per_billion": 0.2,
-        "leader_share_change": 0.2
+      "source": "src.scoring.pillar3",
+      "rows": 387,
+      "complete": 382,
+      "metrics_defined": 5,
+      "metrics_weighted": 5,
+      "settings": {
+        "score_year": 2024,
+        "hq_adjusted": true
       }
     },
     "pillar4": {
-      "file": "outputs/pillar_scores/pillar4_scores.csv",
+      "source": "src.scoring.pillar4",
       "rows": 387,
       "complete": 287,
-      "matches_notebook_weights": true,
-      "notebook_run_date": null,
-      "notebook_weights": null
+      "metrics_defined": 8,
+      "metrics_weighted": 8,
+      "settings": {
+        "end_year": 2024,
+        "growth_start": 2019,
+        "gdp_volatility_start": 2016,
+        "unemployment_start": 2015,
+        "cbp_start": 2018,
+        "cbp_end": 2023,
+        "industry_year": 2023
+      }
     }
   },
-  "msas": 393,
+  "msas": 387,
   "complete_msas": 287,
-  "warnings": [
-    "pillar1: metric weights differ from the notebook's last run; pillar rescored here",
-    "pillar1: 6 MSAs listed by other pillars are not in this export",
-    "pillar2: 6 MSAs listed by other pillars are not in this export",
-    "pillar4: 6 MSAs listed by other pillars are not in this export"
-  ]
+  "warnings": []
 }

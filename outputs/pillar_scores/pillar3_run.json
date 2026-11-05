@@ -1,6 +1,9 @@
 {
   "pillar": "pillar3",
-  "run_date": "2026-11-04",
+  "label": "Competition and entry windows",
+  "built_by": "src.scoring.pillar3",
+  "run_date": "2026-11-05",
+  "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "deposit_hhi": 0.2,
     "top3_share": 0.2,
@@ -8,24 +11,14 @@
     "branches_per_billion": 0.2,
     "leader_share_change": 0.2
   },
-  "entered_weights": {
-    "deposit_hhi": 0.2,
-    "top3_share": 0.2,
-    "competitors_per_billion": 0.2,
-    "branches_per_billion": 0.2,
-    "leader_share_change": 0.2
-  },
+  "unweighted_metrics": [],
+  "weighted_but_not_available": [],
+  "not_available": [],
   "settings": {
     "score_year": 2024,
     "hq_adjusted": true
   },
-  "complete_msas": 388,
-  "metric_ids": {
-    "deposit_hhi": "P3-01",
-    "top3_share": "P3-02",
-    "competitors_per_billion": "P3-03",
-    "branches_per_billion": "P3-04",
-    "leader_share_change": "P3-07"
-  },
-  "not_available": []
+  "metros": 387,
+  "complete_msas": 382,
+  "note": "For reading only. The final score rebuilds pillars from the metric builders and weights files."
 }

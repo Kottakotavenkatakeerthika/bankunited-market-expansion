@@ -8,7 +8,7 @@ from __future__ import annotations
 import pandas as pd
 
 from src import pillar3_competition as p3
-from src.scoring.common import LOWER, Metric, MetricSet
+from src.scoring.common import LOWER, Metric, MetricSet, states_universe
 
 PILLAR, LABEL = "pillar3", "Competition and entry windows"
 SOURCE = "bank_msa_year SOD"
@@ -26,11 +26,12 @@ METRICS = [
 
 
 def build(tables: dict[str, pd.DataFrame], settings: dict) -> MetricSet:
-    """Raw values of every Pillar 3 metric for the metros in msa_year in the score year."""
+    """Raw values of every Pillar 3 metric for the 387 metros in the 50 states and DC.
+
+    Until 2026-11-05 the notebook ranked Pillar 3 among 393 metros, Puerto Rico included; it now uses the
+    same universe as the other pillars, so Puerto Rico no longer shifts Pillar 3 percentiles."""
     year, hq = int(settings["score_year"]), bool(settings["hq_adjusted"])
-    msa_year = tables["msa_year"]
-    universe = (msa_year.loc[msa_year.year == year, ["cbsa_code", "cbsa_title"]]
-                .drop_duplicates().sort_values("cbsa_code").set_index("cbsa_code"))
+    universe = states_universe(tables["msa_year"])
     cbsas = list(universe.index)
 
     wide = p3.to_wide(p3.compute_all(tables, hq_adjusted=hq))
