@@ -40,7 +40,7 @@ METRICS = [
            "cbp_establishments_count"),
     Metric("population_growth", "Population growth", HIGHER, "{p0}–{y} CAGR", "pep_population_count"),
     Metric("net_migration_rate", "Net migration /1,000", HIGHER,
-           "{y} net migration / average {ym1}–{y} population × 1,000", "pep_migration_net; pep_population_count"),
+           "{my} net migration / average {mym1}–{my} population × 1,000", "pep_migration_net; pep_population_count"),
 ]
 KEYS = [m.key for m in METRICS]
 NO_INDUSTRY = [k for k in KEYS if k != "industry_hhi"]
@@ -64,6 +64,7 @@ def build(tables: dict[str, pd.DataFrame], settings: dict) -> MetricSet:
     g0, u0 = int(settings["gdp_volatility_start"]), int(settings["unemployment_start"])
     p0, e0, e1 = int(settings["growth_start"]), int(settings["cbp_start"]), int(settings["cbp_end"])
     iy = int(settings["industry_year"])
+    my = int(settings.get("migration_year", y))   # PEP has no 2020 migration (Census base year)
     panel = tables["msa_year"].copy()
     panel["cbsa_code"] = panel["cbsa_code"].astype(str).str.strip().str.zfill(5)
     panel["year"] = panel["year"].astype(int)
@@ -78,8 +79,8 @@ def build(tables: dict[str, pd.DataFrame], settings: dict) -> MetricSet:
     gdp = pw("bea_gdp_usd", sorted(set([p0, y] + gyears + [v - 1 for v in gyears])))
     unemp = pw("bls_unemployment_rate_pct", range(u0, y + 1)) / 100.0
     cbp = pw("cbp_establishments_count", [e0, e1])
-    pop = pw("pep_population_count", sorted({p0, y, y - 1}))
-    mig = pw("pep_migration_net", [y])
+    pop = pw("pep_population_count", sorted({p0, y, my, my - 1}))
+    mig = pw("pep_migration_net", [my])
 
     raw = pd.DataFrame(index=uni.index)
     raw["gdp_growth"] = _cagr(gdp[p0], gdp[y], y - p0)
@@ -112,11 +113,11 @@ def build(tables: dict[str, pd.DataFrame], settings: dict) -> MetricSet:
 
     raw["establishment_growth"] = _cagr(cbp[e0], cbp[e1], e1 - e0)
     raw["population_growth"] = _cagr(pop[p0], pop[y], y - p0)
-    avg_pop = (pop[y - 1] + pop[y]) / 2
-    raw["net_migration_rate"] = (mig[y] / avg_pop * 1_000).where(avg_pop > 0).round(12)
+    avg_pop = (pop[my - 1] + pop[my]) / 2
+    raw["net_migration_rate"] = (mig[my] / avg_pop * 1_000).where(avg_pop > 0).round(12)
     raw = raw[KEYS].replace([np.inf, -np.inf], np.nan)
     raw.index.name = "cbsa_code"
 
-    fmt = {"y": y, "ym1": y - 1, "g0": g0, "u0": u0, "p0": p0, "e0": e0, "e1": e1, "iy": iy}
+    fmt = {"y": y, "my": my, "mym1": my - 1, "g0": g0, "u0": u0, "p0": p0, "e0": e0, "e1": e1, "iy": iy}
     metrics = [Metric(m.key, m.label, m.direction, m.period.format(**fmt), m.source) for m in METRICS]
     return MetricSet(PILLAR, LABEL, metrics, raw, uni["cbsa_title"], dict(settings), diagnostics)

@@ -40,3 +40,4 @@ unemployment_start   = 2015   # first year in the unemployment volatility SD (20
 cbp_start            = 2018   # establishment growth
 cbp_end              = 2023
 industry_year        = 2023   # CBP year for industry HHI
+migration_year       = 2024   # PEP net migration year (PEP has none for 2020, the Census base year)

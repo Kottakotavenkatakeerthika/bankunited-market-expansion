@@ -229,3 +229,13 @@ def test_as_of_run_drops_markets_entered_later():
     assert report["as_of"]["as_of"] == "2025-06-30"
     assert "16740" not in out.index[out["bankunited_market"].notna()]      # Charlotte entered July 2025
     assert "12060" in out.index[out["bankunited_market"].notna()]          # Atlanta entered 2022
+
+
+@needs_data
+def test_as_of_mid_2022_handles_the_census_year(tables):
+    """PEP has no 2020 migration (Census base year): an end year of 2020 must fall back to 2019, not blank Pillar 4."""
+    s, report = asof.settings_as_of(load_settings(), "2022-06-30", tables)
+    assert s["pillar4"]["end_year"] == 2020 and s["pillar4"]["migration_year"] == 2019
+    assert any("net migration" in w for w in report["windows_shortened"])
+    _, rep = ma.run(write=False, compare_baseline=False, as_of="2022-06-30")
+    assert rep["complete_msas"] > 250

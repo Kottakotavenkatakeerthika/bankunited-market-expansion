@@ -30,6 +30,7 @@ SOURCES = {
     "bea_income": ("bea", "cainc1", ("msa_year", "bea_personal_income_usd")),
     "bea_gdp":    ("bea", "cagdp2", ("msa_year", "bea_gdp_usd")),
     "pep":   ("pep", None, ("msa_year", "pep_population_count")),
+    "pep_migration": ("pep", None, ("msa_year", "pep_migration_net")),   # none for 2020 (Census base year)
 }
 
 
@@ -125,6 +126,14 @@ def settings_as_of(settings: dict, as_of, tables) -> tuple[dict, dict]:
     n = int(p4["cbp_end"]) - int(p4["cbp_start"])
     p4["cbp_end"], p4["cbp_start"] = cbp, window("pillar4 establishment growth", cbp, n, "cbp")
     p4["industry_year"] = cbp
+    # net migration: the latest year at or before end_year that was released and has migration data
+    mig = [y for y in _held_years(tables, "msa_year", "pep_migration_net")
+           if y <= end and y <= yrs["pep_migration"]["latest"]]
+    if not mig:
+        raise ValueError(f"as of {as_of}: no released PEP migration year at or before {end}")
+    p4["migration_year"] = mig[-1]
+    if mig[-1] != end:
+        shortened.append(f"pillar4 net migration: {end} has no PEP migration data; uses {mig[-1]}")
 
     report = {"as_of": str(pd.Timestamp(as_of).date()),
               "latest_year_used": {k: v["latest"] for k, v in yrs.items()},
