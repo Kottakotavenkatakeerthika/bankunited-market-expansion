@@ -32,7 +32,7 @@ jobs:
             --out "plan/BankUnited_Implementation_Plan_latest.xlsx" --as-of "$AS_OF"
           mkdir -p plan/archive
           cp plan/BankUnited_Implementation_Plan_latest.xlsx "plan/archive/BankUnited_Implementation_Plan_${STAMP}.xlsx"
-      -       - name: Commit the rebuilt plan
+      - name: Commit the rebuilt plan
         run: |
           git config user.name "plan-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
