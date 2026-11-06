@@ -24,14 +24,26 @@ from src.scoring import engine, pillar1, pillar2, pillar3, pillar4
 from src.scoring.common import load_settings, load_tables
 
 BUILDERS = {"pillar1": pillar1.build, "pillar2": pillar2.build, "pillar3": pillar3.build, "pillar4": pillar4.build}
-TABLES = ("msa_year", "bank_msa_year", "bank_quarter", "msa_naics_year")
+TABLES = ("msa_year", "bank_msa_year", "bank_quarter", "msa_naics_year", "msa_year_history")
+
+
+def with_history(tables: dict) -> dict:
+    """msa_year with BEA GDP and personal income for 2010-2014 stacked on (msa_year_history), so every
+    BEA window can use the most complete data. Other msa_year columns are blank in those years."""
+    hist = tables.pop("msa_year_history", None)
+    if hist is None or hist.empty:
+        return tables
+    m = tables["msa_year"]
+    earlier = hist[hist["year"] < m["year"].min()]
+    tables["msa_year"] = pd.concat([earlier, m], ignore_index=True, sort=False)[m.columns]
+    return tables
 
 
 def build_metric_sets(root=config.ROOT, settings_file=None, as_of=None) -> dict:
     """Every pillar's MetricSet (raw values of all its metrics) from data/processed.
     With as_of, the settings move to what was released by that date (src/scoring/asof.py)."""
     settings = load_settings(settings_file)
-    tables = load_tables(Path(root) / "data" / "processed", names=TABLES)
+    tables = with_history(load_tables(Path(root) / "data" / "processed", names=TABLES))
     if as_of is not None:
         from src.scoring.asof import settings_as_of
         settings, report = settings_as_of(settings, as_of, tables)

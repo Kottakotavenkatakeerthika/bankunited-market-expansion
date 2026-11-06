@@ -78,8 +78,9 @@ def settings_as_of(settings: dict, as_of, tables) -> tuple[dict, dict]:
     shortened = []
 
     def window(label, end, length, source):
+        """Start year for a window of `length` years ending at `end`; with several sources, all must cover it."""
         start = end - length
-        first = yrs[source]["first_held"]
+        first = max(yrs[s]["first_held"] for s in ([source] if isinstance(source, str) else source))
         if start < first:
             shortened.append(f"{label}: {start}–{end} shortened to {first}–{end} (data start in {first})")
             start = first
@@ -111,7 +112,8 @@ def settings_as_of(settings: dict, as_of, tables) -> tuple[dict, dict]:
     p4 = s["pillar4"]
     end = min(yrs["bea_gdp"]["latest"], yrs["laus"]["latest"], yrs["pep"]["latest"])
     old_end = int(p4["end_year"])
-    p4["growth_start"] = window("pillar4 GDP and population growth", end, old_end - int(p4["growth_start"]), "bea_gdp")
+    p4["growth_start"] = window("pillar4 GDP and population growth", end, old_end - int(p4["growth_start"]),
+                                ["bea_gdp", "pep"])      # one start year serves both GDP and population growth
     # GDP volatility starts at its first annual growth rate, which needs GDP for the year before
     n = old_end - int(p4["gdp_volatility_start"])
     first_rate = yrs["bea_gdp"]["first_held"] + 1

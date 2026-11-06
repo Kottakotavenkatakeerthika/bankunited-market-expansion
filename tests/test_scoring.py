@@ -197,7 +197,7 @@ from src.scoring.common import load_settings, load_tables  # noqa: E402
 
 @pytest.fixture(scope="module")
 def tables():
-    return load_tables(PROCESSED, names=run.TABLES)
+    return run.with_history(load_tables(PROCESSED, names=run.TABLES))
 
 
 @needs_data
@@ -239,3 +239,22 @@ def test_as_of_mid_2022_handles_the_census_year(tables):
     assert any("net migration" in w for w in report["windows_shortened"])
     _, rep = ma.run(write=False, compare_baseline=False, as_of="2022-06-30")
     assert rep["complete_msas"] > 250
+
+
+@needs_data
+def test_as_of_uses_the_bea_history(tables):
+    """BEA GDP and income for 2010-2014 (msa_year_history) give back-tests full-length GDP windows."""
+    s, report = asof.settings_as_of(load_settings(), "2023-06-30", tables)
+    assert s["pillar4"]["gdp_volatility_start"] == 2013 and s["pillar4"]["end_year"] == 2021   # 9 rates, not shortened
+    assert not any("GDP volatility" in w for w in report["windows_shortened"])
+    # population has no history, so the shared GDP/population growth window still starts no earlier than 2015
+    s, _ = asof.settings_as_of(load_settings(), "2020-06-30", tables)
+    assert s["pillar4"]["growth_start"] == 2015
+
+
+@needs_data
+def test_earliest_as_of_date_is_the_first_county_gdp_release():
+    _, rep = ma.run(write=False, compare_baseline=False, as_of="2019-12-12")
+    assert rep["complete_msas"] > 150
+    with pytest.raises(ValueError, match="bea_gdp"):
+        ma.run(write=False, compare_baseline=False, as_of="2019-12-11")

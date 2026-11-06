@@ -284,8 +284,14 @@ Every window keeps the length set in `config/settings.toml` and ends at that yea
 `outputs/as_of/<date>/` (with the same `final_scores/`, `strategy/` and `scenario/` layout), so a back-test
 never overwrites the current results.
 
-- **Windows can shorten.** If a window would start before the data does (most series start in 2015), it's
-  shortened, and the run file lists every shortening under `as_of`.
+- **Earliest date: 2019-12-12**, when BEA first published county GDP. An earlier date stops with an error naming
+  the missing source.
+- **Windows can shorten.** If a window would start before the data does, it's shortened, and the run file lists
+  every shortening under `as_of`. BEA GDP and income go back to 2010 (`msa_year_history` is stacked on
+  automatically); the other sources start in 2015, so runs before about 2023 have shorter growth and
+  volatility windows than today's.
+- **Pandemic years.** Runs from 2020–2022 have the 2020–21 deposit surge inside their deposit-growth windows,
+  which moves the ranking a lot (Charlotte: 21st as of mid-2021, 4th six months later).
 - **Market labels move with the date.** BankUnited's markets are labelled as of the date: a mid-2025 run doesn't
   count Charlotte (entered July 2025), and a run before April 2022 doesn't count Atlanta.
 - **Values are the latest vintage.** `data/processed` holds each source's latest revision, so an as-of run shows

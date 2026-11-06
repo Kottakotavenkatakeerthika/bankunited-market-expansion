@@ -176,7 +176,8 @@
         "unemployment_start": 2015,
         "cbp_start": 2018,
         "cbp_end": 2023,
-        "industry_year": 2023
+        "industry_year": 2023,
+        "migration_year": 2024
       }
     }
   },
