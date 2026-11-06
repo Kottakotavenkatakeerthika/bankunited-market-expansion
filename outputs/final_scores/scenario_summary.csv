@@ -1,0 +1,8 @@
+scenario,w_pillar1,w_pillar2,w_pillar3,w_pillar4,complete_msas,same_as_baseline,rank_corr_vs_baseline,top25_shared_with_baseline,msas_moved_10plus,corr_with_population,charlotte_rank,charlotte_best_rank,charlotte_worst_rank,bankunited_ranked,bankunited_median_rank,top5
+baseline,25.0,25.0,25.0,25.0,287,False,1.0,25,0,0.6,16.0,14.0,19.0,13,18.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
+fill_local_lender,25.0,25.0,25.0,25.0,287,True,1.0,25,0,0.6,16.0,14.0,19.0,13,18.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
+lending_led,35.0,15.0,25.0,25.0,287,False,0.992,22,98,0.58,18.0,16.0,21.0,13,21.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
+no_industry_hhi,25.0,25.0,25.0,25.0,381,False,0.997,21,38,0.63,19.0,17.0,20.0,13,21.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
+no_local_lender,25.0,25.0,25.0,25.0,287,False,0.995,24,65,0.6,17.0,15.0,18.0,13,18.0,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+no_scale_metrics,25.0,25.0,25.0,25.0,287,False,0.984,22,140,0.47,21.0,20.0,26.0,13,23.0,Austin; Raleigh; Phoenix; Indianapolis; Nashville
+pillar3_off,33.3,33.3,0.0,33.3,287,False,0.96,19,188,0.52,18.0,17.0,19.0,13,30.0,Austin; Phoenix; Raleigh; Fayetteville; Jacksonville

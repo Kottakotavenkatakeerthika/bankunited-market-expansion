@@ -17,3 +17,9 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 .pytest_cache/
+
+# Score outputs: tracked so the team can check the latest run
+!outputs/final_scores/*.csv
+!outputs/pillar_scores/*.csv
+# Executed notebook copies: not tracked
+outputs/executed/
