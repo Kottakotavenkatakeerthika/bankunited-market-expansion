@@ -99,3 +99,22 @@ def test_released_cells_of_the_county_sources_are_dated():
                 problems.append(f"{table}.{row.column} (line {row.line}): {released!r}")
     assert checked >= 43
     assert not problems, "Released cells with no year:\n" + "\n".join(problems)
+
+
+def test_released_cells_of_the_bank_sources_are_dated():
+    """The Released cell of every sod_ and bankunited_ column in msa_year, every call_ column in bank_quarter,
+    and every sod_ and cra_bank_ column in bank_msa_year holds a year."""
+    lines = config.DATA_DICTIONARY.read_text(encoding="utf-8").splitlines()
+    tables = read_dictionary()
+    prefixes = {"msa_year": ("sod_", "bankunited_"), "bank_quarter": ("call_",), "bank_msa_year": ("sod_", "cra_bank_")}
+    problems, checked = [], 0
+    for table, starts in prefixes.items():
+        for row in tables[table]:
+            if not row.column.startswith(starts):
+                continue
+            checked += 1
+            released = [cell.strip() for cell in lines[row.line - 1].strip().strip("|").split("|")][5]
+            if not re.search(r"\d{4}", released):
+                problems.append(f"{table}.{row.column} (line {row.line}): {released!r}")
+    assert checked >= 94
+    assert not problems, "Released cells with no year:\n" + "\n".join(problems)
