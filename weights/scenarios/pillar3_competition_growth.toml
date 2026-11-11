@@ -1,6 +1,8 @@
-# Scenario: Pillar 3 as it was before competition x growth (T70): five metrics at equal weight, all lower is
-# better. Everything else is the baseline. Kept so the change is always visible next to the baseline.
-# Run:  python -m src.scoring.run   (or python -m src.compare_scenarios --group sensitivity --run)
+# Scenario: Pillar 3 = competition x growth (T70). How much "few competitors" is worth depends on whether the
+# market is growing: few competitors in a growing market is an opening, in a stable market entrenchment.
+# Competition x growth 80%, leaders' 3-year share change 20%; the other Pillar 3 metrics 0. Everything else is
+# the baseline. Corner values and growth metrics: config/settings.toml [pillar3.competition_growth].
+# Run:  python -m src.scoring.run
 
 [pillars]
 pillar1 = 25   # Commercial lending
@@ -26,13 +28,13 @@ payroll_per_establishment = 10   # CBP payroll per establishment
 income_per_capita         = 10   # BEA personal income per capita
 income_growth             = 10   # personal income growth, 2019-24
 
-[pillar3]  # Competition and entry windows
-deposit_hhi             = 1   # P3-01 deposit concentration (lower is better)
-top3_share              = 1   # P3-02 top-3 holding companies' share
-competitors_per_billion = 1   # P3-03
-branches_per_billion    = 1   # P3-04
-leader_share_change     = 1   # P3-07 3-year change in leaders' share
-competition_growth      = 0   # P3-08 not used in the previous design
+[pillar3]  # Competition and entry windows: the T70 design
+competition_growth      = 80  # P3-08 competition x growth (corners in config/settings.toml [pillar3.competition_growth])
+leader_share_change     = 20  # P3-07 3-year change in leaders' share
+deposit_hhi             = 0   # P3-01 deposit concentration; an input to competition_growth
+top3_share              = 0   # P3-02 near-duplicate of HHI
+competitors_per_billion = 0   # P3-03 mostly measures metro size
+branches_per_billion    = 0   # P3-04 inverse of Pillar 2's deposits per branch
 
 [pillar4]  # Market quality and durability
 gdp_growth              = 12.5

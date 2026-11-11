@@ -153,15 +153,15 @@ the final score is a quarter of its pillar weight. All 31 metrics, with coverage
 
 | Metric | Weight | Direction | What it is |
 |---|---|---|---|
-| `competition_growth` (P3-08) | 80% | Higher | Competition × growth: few competitors pay off only where the market grows (section 5) |
+| `deposit_hhi` (P3-01) | 20% | Lower | Deposit concentration across holding companies |
+| `top3_share` (P3-02) | 20% | Lower | Share of the three largest holding companies |
+| `competitors_per_billion` (P3-03) | 20% | Lower | Holding companies per $1B of local deposits |
+| `branches_per_billion` (P3-04) | 20% | Lower | Branches per $1B of local deposits |
 | `leader_share_change` (P3-07) | 20% | Lower | Change in the deposit share of the three banks that led three years earlier; falling share signals an opening |
-| `deposit_hhi` (P3-01) | 0% | Lower | Deposit concentration across holding companies; the input to competition × growth |
-| `top3_share` (P3-02) | 0% | Lower | Share of the three largest holding companies |
-| `competitors_per_billion` (P3-03) | 0% | Lower | Holding companies per $1B of local deposits |
-| `branches_per_billion` (P3-04) | 0% | Lower | Branches per $1B of local deposits |
+| `competition_growth` (P3-08) | 0% | Higher | Competition × growth: few competitors pay off only where the market grows (section 5) |
 
-The previous five-metric design (P3-01 to P3-04 and P3-07 at 20% each) is kept as the `pillar3_current`
-scenario.
+These are main's Pillar 3 weights. Competition × growth is built on every run but only weighted in the
+`pillar3_competition_growth` scenario (80%, with leader share change at 20%).
 
 ### Pillar 4: Market quality and durability
 
@@ -182,7 +182,11 @@ Those metros can't get a complete score, which is most of the 100 metros left un
 
 ---
 
-## 5. Competition × growth
+## 5. Competition × growth (scenario `pillar3_competition_growth`)
+
+This metric is built on every run and shown in the Pillar 3 file and report, but it has weight 0 in the baseline.
+The `pillar3_competition_growth` scenario uses it at 80% of Pillar 3; in that scenario Charlotte ranks 10th
+(9th–11th), against 17th in the baseline.
 
 How attractive "few competitors" is depends on whether the market is growing. Few competitors in a growing
 market is an opening; few competitors in a stable market means entrenched incumbents.
@@ -245,7 +249,7 @@ pillar1 = ["local_ci_growth", "local_cre_growth"]
 | Group | Folder | Scenarios |
 |---|---|---|
 | Strategy (Phase 1 methodology) | `weights/strategy/` | `ci_led`, `cre_led`, `deposit_led`, `talent_led`, `adjacency`, `emerging_market`; the baseline is Balanced franchise |
-| Sensitivity | `weights/scenarios/` | `fill_local_lender`, `lending_led`, `no_industry_hhi`, `no_local_lender`, `no_scale_metrics`, `pillar3_current`, `pillar3_off` |
+| Sensitivity | `weights/scenarios/` | `fill_local_lender`, `lending_led`, `no_industry_hhi`, `no_local_lender`, `no_scale_metrics`, `pillar3_competition_growth`, `pillar3_off` |
 
 Talent-led and Adjacency differ from the baseline only in Fit & Feasibility, so until that exists they give
 the baseline ranking (the summary flags them as `same_as_baseline`). Emerging Market's "growth over levels"
@@ -264,11 +268,11 @@ change; their ranks close up. Population is Census PEP for the score year.
 
 | Floor | Metros ranked | Charlotte | BankUnited markets ranked |
 |---|---|---|---|
-| 0 (off, current) | 287 | 10th | 13 of 13 |
-| 100,000 | 282 | 10th | 13 of 13 |
-| 250,000 | 176 | 9th | 12 of 13 |
-| 500,000 | 106 | 9th | 11 of 13 |
-| 1,000,000 | 54 | 6th | 8 of 13 |
+| 0 (off, current) | 287 | 17th | 13 of 13 |
+| 100,000 | 282 | 17th | 13 of 13 |
+| 250,000 | 176 | 17th | 12 of 13 |
+| 500,000 | 106 | 16th | 11 of 13 |
+| 1,000,000 | 54 | 8th | 8 of 13 |
 
 ---
 
@@ -291,7 +295,7 @@ never overwrites the current results.
   automatically); the other sources start in 2015, so runs before about 2023 have shorter growth and
   volatility windows than today's.
 - **Pandemic years.** Runs from 2020–2022 have the 2020–21 deposit surge inside their deposit-growth windows,
-  which moves the ranking a lot (Charlotte: 21st as of mid-2021, 4th six months later).
+  which moves the ranking a lot (Charlotte: 42nd as of mid-2021, 28th six months later).
 - **Market labels move with the date.** BankUnited's markets are labelled as of the date: a mid-2025 run doesn't
   count Charlotte (entered July 2025), and a run before April 2022 doesn't count Atlanta.
 - **Values are the latest vintage.** `data/processed` holds each source's latest revision, so an as-of run shows
@@ -299,7 +303,7 @@ never overwrites the current results.
 - **Today reproduces the settings file.** A run as of today uses exactly the years in `config/settings.toml`;
   a test enforces this.
 
-Charlotte as of 2025-06-30, just before BankUnited entered: 10th (9–12) in the baseline, using 2023 county GDP
+Charlotte as of 2025-06-30, just before BankUnited entered: 16th (15–18) in the baseline, using 2023 county GDP
 and income (the 2024 release came out in February 2026).
 
 In a report notebook, set `AS_OF = "2025-06-30"` in the first cell to see that pillar as of the date.
@@ -369,7 +373,8 @@ needed for the chart, and the report still runs without it.
 **Change a year, window or threshold.** Edit `config/settings.toml`, then `python -m src.scoring.run`.
 
 **Change a competition × growth corner.** Edit `corners` under `[pillar3.competition_growth]` in
-`config/settings.toml`, then `python -m src.scoring.run`.
+`config/settings.toml`, then `python -m src.scoring.run`. It affects the `pillar3_competition_growth` scenario
+(and the baseline only if you give `competition_growth` a weight there).
 
 **Set a size floor.** Set `min_population` under `[universe]` in `weights/baseline.toml`. To try one first:
 `python -m src.market_attractiveness --min-population 250000`.
@@ -431,8 +436,8 @@ change without the outputs that show it.
 - **Middle market is 20–249 employees,** not the design's 20–499: CBP's 250–499 band isn't in `data/processed`.
 - **CRE is 30% of Pillar 1** (CRE payroll growth and local-lender CRE growth). There's no public loan-level
   source for office, retail or industrial CRE lending.
-- **Size and growth.** The baseline correlates 0.42 with population (see `no_scale_metrics`), and growth
-  appears in several pillars, including inside competition × growth.
+- **Size and growth.** The baseline correlates 0.60 with population (see `no_scale_metrics`), and growth
+  appears in several pillars.
 - **Back-tests use the latest vintage** of each source, not the values first published.
 - **Unvalidated weights.** Neither the weights nor the competition × growth corners have been validated against
   outcomes yet; the 2016–2021 peer-entry back-test is the planned check.

@@ -2,7 +2,7 @@
   "pillar": "pillar4",
   "label": "Market quality and durability",
   "built_by": "src.scoring.pillar4",
-  "run_date": "2026-11-05",
+  "run_date": "2026-11-10",
   "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "gdp_growth": 0.125,

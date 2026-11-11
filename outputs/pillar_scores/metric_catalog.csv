@@ -17,12 +17,12 @@ pillar2,Deposits and treasury,income_per_capita,,Personal income per capita,Hous
 pillar2,Deposits and treasury,income_growth,,Personal income growth,Household deposit base,Higher,2019–24 CAGR,msa_year.bea_personal_income_usd,True,382,10.0,0.125
 pillar2,Deposits and treasury,incumbent_nib_share,,Incumbent non-interest-bearing share,Incumbent franchise,Higher,June 2024,bank_quarter × bank_msa_year,True,387,0.0,0.0
 pillar2,Deposits and treasury,incumbent_uninsured_share,,Incumbent uninsured share,Incumbent franchise,Higher,June 2024,bank_quarter × bank_msa_year,True,387,0.0,0.0
-pillar3,Competition and entry windows,deposit_hhi,P3-01,Deposit HHI across holding companies,Concentration,Lower,June 2024,bank_msa_year SOD,True,387,0.0,0.0
-pillar3,Competition and entry windows,top3_share,P3-02,Top-3 holding-company deposit share,Concentration,Lower,June 2024,bank_msa_year SOD,True,387,0.0,0.0
-pillar3,Competition and entry windows,competitors_per_billion,P3-03,Competitors per $1B of local deposits,Market thinness,Lower,June 2024,bank_msa_year SOD,True,387,0.0,0.0
-pillar3,Competition and entry windows,branches_per_billion,P3-04,Full-service branches per $1B of local deposits,Market thinness,Lower,June 2024,bank_msa_year SOD,True,387,0.0,0.0
-pillar3,Competition and entry windows,leader_share_change,P3-07,3-year change in leaders' deposit share,Opening,Lower,2021→2024,bank_msa_year SOD,True,382,20.0,0.2
-pillar3,Competition and entry windows,competition_growth,P3-08,Competition × growth (few competitors pay off only where the market grows),Competition × growth,Higher,June 2024,"composite: P3 deposit HHI × growth from Pillars 1, 2 and 4",True,382,80.0,0.8
+pillar3,Competition and entry windows,deposit_hhi,P3-01,Deposit HHI across holding companies,Concentration,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,top3_share,P3-02,Top-3 holding-company deposit share,Concentration,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,competitors_per_billion,P3-03,Competitors per $1B of local deposits,Market thinness,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,branches_per_billion,P3-04,Full-service branches per $1B of local deposits,Market thinness,Lower,June 2024,bank_msa_year SOD,True,387,1.0,0.2
+pillar3,Competition and entry windows,leader_share_change,P3-07,3-year change in leaders' deposit share,Opening,Lower,2021→2024,bank_msa_year SOD,True,382,1.0,0.2
+pillar3,Competition and entry windows,competition_growth,P3-08,Competition × growth (few competitors pay off only where the market grows),Competition × growth,Higher,June 2024,"composite: P3 deposit HHI × growth from Pillars 1, 2 and 4",True,382,0.0,0.0
 pillar4,Market quality and durability,gdp_growth,,GDP growth,,Higher,2019–2024 CAGR,bea_gdp_usd,True,382,12.5,0.125
 pillar4,Market quality and durability,gdp_volatility,,GDP volatility,,Lower,2016–2024 annual growth; sample SD,bea_gdp_usd,True,382,12.5,0.125
 pillar4,Market quality and durability,unemployment_level,,Unemployment level,,Lower,2024 annual rate / 100,bls_unemployment_rate_pct,True,387,12.5,0.125

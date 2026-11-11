@@ -5,7 +5,9 @@
 score_year  = 2024
 hq_adjusted = true   # leave out main-office and home-banking-office bookings
 
-[pillar3.competition_growth]   # competition x growth (T70): how much "few competitors" is worth depends on growth
+[pillar3.competition_growth]   # competition x growth (T70), metric P3-08. Built every run; weighted only in
+                               # weights/scenarios/pillar3_competition_growth.toml (baseline weight 0).
+                               # How much "few competitors" is worth depends on growth.
 concentration_metric = "deposit_hhi"                                              # fewness = HHI percentile, 100 = most concentrated
 growth_metrics       = ["pillar2.deposit_growth", "pillar1.mm_growth", "pillar4.gdp_growth"]  # growth = their mean percentile
 # Score at each corner of fewness x growth (0-100); metros in between are interpolated.

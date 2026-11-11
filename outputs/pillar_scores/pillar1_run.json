@@ -2,7 +2,7 @@
   "pillar": "pillar1",
   "label": "Commercial lending",
   "built_by": "src.scoring.pillar1",
-  "run_date": "2026-11-05",
+  "run_date": "2026-11-10",
   "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "local_ci_growth": 0.1,

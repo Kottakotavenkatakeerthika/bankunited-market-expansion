@@ -2,17 +2,17 @@
   "pillar": "pillar3",
   "label": "Competition and entry windows",
   "built_by": "src.scoring.pillar3",
-  "run_date": "2026-11-05",
+  "run_date": "2026-11-10",
   "weights_file": "weights/baseline.toml",
   "effective_weights": {
-    "competition_growth": 0.8,
+    "deposit_hhi": 0.2,
+    "top3_share": 0.2,
+    "competitors_per_billion": 0.2,
+    "branches_per_billion": 0.2,
     "leader_share_change": 0.2
   },
   "unweighted_metrics": [
-    "deposit_hhi",
-    "top3_share",
-    "competitors_per_billion",
-    "branches_per_billion"
+    "competition_growth"
   ],
   "weighted_but_not_available": [],
   "not_available": [],

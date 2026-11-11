@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-05",
+  "run_date": "2026-11-10",
   "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
   "scenario": "ci_led",
   "weights_source": "weights/strategy/ci_led.toml",
@@ -37,12 +37,11 @@
         "income_growth": 10.0
       },
       "pillar3": {
-        "competition_growth": 80.0,
-        "leader_share_change": 20.0,
-        "deposit_hhi": 0.0,
-        "top3_share": 0.0,
-        "competitors_per_billion": 0.0,
-        "branches_per_billion": 0.0
+        "deposit_hhi": 1.0,
+        "top3_share": 1.0,
+        "competitors_per_billion": 1.0,
+        "branches_per_billion": 1.0,
+        "leader_share_change": 1.0
       },
       "pillar4": {
         "gdp_growth": 12.5,
@@ -92,7 +91,10 @@
       "income_growth": 0.125
     },
     "pillar3": {
-      "competition_growth": 0.8,
+      "deposit_hhi": 0.2,
+      "top3_share": 0.2,
+      "competitors_per_billion": 0.2,
+      "branches_per_billion": 0.2,
       "leader_share_change": 0.2
     },
     "pillar4": {
@@ -174,7 +176,7 @@
       "rows": 387,
       "complete": 382,
       "metrics_defined": 6,
-      "metrics_weighted": 2,
+      "metrics_weighted": 5,
       "settings": {
         "score_year": 2024,
         "hq_adjusted": true,
