@@ -1,0 +1,22 @@
+naics_2digit,label,fit_priority,in_high_subset,notes
+23,Construction,High,True,CRE build + C&I construction
+31,Manufacturing (31-33),High,True,Stored as 31 in msa_naics_year
+42,Wholesale Trade,High,True,
+48,Transportation and Warehousing (48-49),High,True,Stored as 48 in msa_naics_year
+53,Real Estate and Rental and Leasing,High,True,
+54,"Professional, Scientific, and Technical Services",High,True,
+52,Finance and Insurance,Medium,False,National/NDFI caveat
+62,Health Care and Social Assistance,Medium,False,
+61,Educational Services,Medium,False,
+44,Retail Trade (44-45),Medium,False,Stored as 44 if present
+22,Utilities,Medium,False,"November 5, 2026 email: Utilities 22 is Medium; healthcare 62 and finance 52 remain Medium."
+51,Information,Low,False,
+71,"Arts, Entertainment, and Recreation",Exclude,False,Default off Fit
+72,Accommodation and Food Services,Low,False,Franchise overlap; not growth Fit
+92,Public Administration,Low,False,QCEW only; not in CBP
+56,Administrative and Support and Waste Management and Remediation Services,Low,False,Step5_NAICS_Mapping: disclosed C&I industry mix; Low priority
+81,Other Services (except Public Administration),Low,False,Step5_NAICS_Mapping: disclosed C&I industry mix; Low priority
+11,"Agriculture, Forestry, Fishing and Hunting",Low,False,Analyst classification: not identified as a specialty in the reviewed research; outside the High draft set
+21,"Mining, Quarrying, and Oil and Gas Extraction",Low,False,Analyst classification: energy-related activity is lower priority; distinct NAICS sector from Utilities 22
+55,Management of Companies and Enterprises,Low,False,Analyst classification: headquarters/holding-company employment is not a direct local lending-target signal
+99,Unclassified Establishments,Exclude,False,Analyst classification: no identified industry for Fit; retain in all-industry employment denominator
