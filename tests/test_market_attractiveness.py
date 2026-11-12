@@ -7,6 +7,12 @@ import pytest
 
 from src import market_attractiveness as ma
 
+
+@pytest.fixture(autouse=True)
+def _read_exports(monkeypatch):
+    """These tests feed synthetic notebook-format exports, so read exports instead of building metrics."""
+    monkeypatch.setattr(ma, "DEFAULT_SOURCE", "exports")
+
 CODES = ["10000", "20000", "30000", "40000", "50000"]
 
 

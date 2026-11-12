@@ -1,6 +1,9 @@
 {
   "pillar": "pillar2",
-  "run_date": "2026-11-04",
+  "label": "Deposits and treasury",
+  "built_by": "src.scoring.pillar2",
+  "run_date": "2026-11-12",
+  "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "deposits_per_capita": 0.125,
     "deposit_growth": 0.125,
@@ -11,18 +14,12 @@
     "income_per_capita": 0.125,
     "income_growth": 0.125
   },
-  "entered_weights": {
-    "deposits_per_capita": 0.1,
-    "deposit_growth": 0.1,
-    "deposits_per_branch": 0.1,
-    "wage_bill": 0.1,
-    "wage_bill_growth": 0.1,
-    "payroll_per_establishment": 0.1,
-    "income_per_capita": 0.1,
-    "income_growth": 0.1,
-    "incumbent_nib_share": 0.0,
-    "incumbent_uninsured_share": 0.0
-  },
+  "unweighted_metrics": [
+    "incumbent_nib_share",
+    "incumbent_uninsured_share"
+  ],
+  "weighted_but_not_available": [],
+  "not_available": [],
   "settings": {
     "sod_start": 2019,
     "sod_end": 2024,
@@ -35,6 +32,7 @@
     "exclude_home_banking_offices": true,
     "min_call_coverage": 0.5
   },
+  "metros": 387,
   "complete_msas": 382,
-  "not_available": []
+  "note": "For reading only. The final score rebuilds pillars from the metric builders and weights files."
 }

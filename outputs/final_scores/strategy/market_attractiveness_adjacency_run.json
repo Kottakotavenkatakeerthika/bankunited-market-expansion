@@ -1,0 +1,222 @@
+{
+  "run_date": "2026-11-12",
+  "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
+  "scenario": "adjacency",
+  "weights_source": "weights/strategy/adjacency.toml",
+  "pillars_in_run": [
+    "pillar1",
+    "pillar2",
+    "pillar3",
+    "pillar4"
+  ],
+  "pillars_missing": [],
+  "weights_entered": {
+    "pillars": {
+      "pillar1": 25.0,
+      "pillar2": 25.0,
+      "pillar3": 25.0,
+      "pillar4": 25.0
+    },
+    "metrics": {
+      "pillar1": {
+        "local_ci_growth": 10.0,
+        "local_cre_growth": 10.0,
+        "allocated_loan_growth": 20.0,
+        "mm_establishments": 20.0,
+        "mm_growth": 20.0,
+        "cre_payroll_growth": 20.0
+      },
+      "pillar2": {
+        "deposits_per_capita": 10.0,
+        "deposit_growth": 10.0,
+        "deposits_per_branch": 10.0,
+        "wage_bill": 10.0,
+        "wage_bill_growth": 10.0,
+        "payroll_per_establishment": 10.0,
+        "income_per_capita": 10.0,
+        "income_growth": 10.0
+      },
+      "pillar3": {
+        "deposit_hhi": 1.0,
+        "top3_share": 1.0,
+        "competitors_per_billion": 1.0,
+        "branches_per_billion": 1.0,
+        "leader_share_change": 1.0
+      },
+      "pillar4": {
+        "gdp_growth": 12.5,
+        "gdp_volatility": 12.5,
+        "unemployment_level": 12.5,
+        "unemployment_volatility": 12.5,
+        "industry_hhi": 12.5,
+        "establishment_growth": 12.5,
+        "population_growth": 12.5,
+        "net_migration_rate": 12.5
+      }
+    },
+    "fill": {
+      "pillar1": [
+        "local_ci_growth",
+        "local_cre_growth"
+      ]
+    },
+    "universe": {
+      "min_population": 0
+    },
+    "universe_set": false
+  },
+  "weights_effective": {
+    "pillar1": 0.25,
+    "pillar2": 0.25,
+    "pillar3": 0.25,
+    "pillar4": 0.25
+  },
+  "metric_weights_effective": {
+    "pillar1": {
+      "local_ci_growth": 0.1,
+      "local_cre_growth": 0.1,
+      "allocated_loan_growth": 0.2,
+      "mm_establishments": 0.2,
+      "mm_growth": 0.2,
+      "cre_payroll_growth": 0.2
+    },
+    "pillar2": {
+      "deposits_per_capita": 0.125,
+      "deposit_growth": 0.125,
+      "deposits_per_branch": 0.125,
+      "wage_bill": 0.125,
+      "wage_bill_growth": 0.125,
+      "payroll_per_establishment": 0.125,
+      "income_per_capita": 0.125,
+      "income_growth": 0.125
+    },
+    "pillar3": {
+      "deposit_hhi": 0.2,
+      "top3_share": 0.2,
+      "competitors_per_billion": 0.2,
+      "branches_per_billion": 0.2,
+      "leader_share_change": 0.2
+    },
+    "pillar4": {
+      "gdp_growth": 0.125,
+      "gdp_volatility": 0.125,
+      "unemployment_level": 0.125,
+      "unemployment_volatility": 0.125,
+      "industry_hhi": 0.125,
+      "establishment_growth": 0.125,
+      "population_growth": 0.125,
+      "net_migration_rate": 0.125
+    }
+  },
+  "fill": {
+    "percentile": 50.0,
+    "pillars": {
+      "pillar1": {
+        "metrics": [
+          "local_ci_growth",
+          "local_cre_growth"
+        ],
+        "msas_filled": 61
+      }
+    }
+  },
+  "compared_to_baseline": true,
+  "entered_complete_set": 0,
+  "left_complete_set": 0,
+  "settings": {
+    "normalize": "percentile",
+    "min_pillar_coverage": 0.5,
+    "sensitivity": 0.25,
+    "source": "metrics"
+  },
+  "universe": {
+    "min_population": 250000,
+    "population_year": 2024,
+    "below_size_floor": 111
+  },
+  "as_of": null,
+  "inputs": {
+    "pillar1": {
+      "source": "src.scoring.pillar1",
+      "rows": 387,
+      "complete": 381,
+      "metrics_defined": 8,
+      "metrics_weighted": 6,
+      "settings": {
+        "local_lender_threshold": 0.5,
+        "growth_cap": 0.25,
+        "base_quarter": "2019-06-30",
+        "end_quarter": "2024-06-30",
+        "cbp_start": 2018,
+        "cbp_end": 2023,
+        "exclude_home_banking_offices": true
+      }
+    },
+    "pillar2": {
+      "source": "src.scoring.pillar2",
+      "rows": 387,
+      "complete": 382,
+      "metrics_defined": 10,
+      "metrics_weighted": 8,
+      "settings": {
+        "sod_start": 2019,
+        "sod_end": 2024,
+        "call_quarter": "2024-06-30",
+        "qcew_start": 2019,
+        "qcew_end": 2024,
+        "bea_start": 2019,
+        "bea_end": 2024,
+        "cbp_year": 2023,
+        "exclude_home_banking_offices": true,
+        "min_call_coverage": 0.5
+      }
+    },
+    "pillar3": {
+      "source": "src.scoring.pillar3",
+      "rows": 387,
+      "complete": 382,
+      "metrics_defined": 6,
+      "metrics_weighted": 5,
+      "settings": {
+        "score_year": 2024,
+        "hq_adjusted": true,
+        "competition_growth": {
+          "concentration_metric": "deposit_hhi",
+          "growth_metrics": [
+            "pillar2.deposit_growth",
+            "pillar1.mm_growth",
+            "pillar4.gdp_growth"
+          ],
+          "corners": {
+            "few_growing": 100,
+            "many_growing": 50,
+            "few_stable": 0,
+            "many_stable": 50
+          }
+        }
+      }
+    },
+    "pillar4": {
+      "source": "src.scoring.pillar4",
+      "rows": 387,
+      "complete": 287,
+      "metrics_defined": 8,
+      "metrics_weighted": 8,
+      "settings": {
+        "end_year": 2024,
+        "growth_start": 2019,
+        "gdp_volatility_start": 2016,
+        "unemployment_start": 2015,
+        "cbp_start": 2018,
+        "cbp_end": 2023,
+        "industry_year": 2023,
+        "migration_year": 2024
+      }
+    }
+  },
+  "msas": 387,
+  "complete_msas": 176,
+  "warnings": [
+    "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth set to the 50th percentile"
+  ]
+}

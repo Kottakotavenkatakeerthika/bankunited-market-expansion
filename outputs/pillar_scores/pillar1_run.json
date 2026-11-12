@@ -1,6 +1,9 @@
 {
   "pillar": "pillar1",
-  "run_date": "2026-11-04",
+  "label": "Commercial lending",
+  "built_by": "src.scoring.pillar1",
+  "run_date": "2026-11-12",
+  "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "local_ci_growth": 0.1,
     "local_cre_growth": 0.1,
@@ -9,16 +12,12 @@
     "mm_growth": 0.2,
     "cre_payroll_growth": 0.2
   },
-  "entered_weights": {
-    "local_ci_growth": 0.1,
-    "local_cre_growth": 0.1,
-    "local_loans_to_deposits": 0.0,
-    "allocated_loan_growth": 0.2,
-    "mm_establishments": 0.2,
-    "mm_growth": 0.2,
-    "mm_share": 0.0,
-    "cre_payroll_growth": 0.2
-  },
+  "unweighted_metrics": [
+    "local_loans_to_deposits",
+    "mm_share"
+  ],
+  "weighted_but_not_available": [],
+  "not_available": [],
   "settings": {
     "local_lender_threshold": 0.5,
     "growth_cap": 0.25,
@@ -28,6 +27,7 @@
     "cbp_end": 2023,
     "exclude_home_banking_offices": true
   },
+  "metros": 387,
   "complete_msas": 321,
-  "not_available": []
+  "note": "For reading only. The final score rebuilds pillars from the metric builders and weights files."
 }

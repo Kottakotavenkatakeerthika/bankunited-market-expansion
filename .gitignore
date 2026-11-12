@@ -20,6 +20,10 @@ __pycache__/
 
 # Score outputs: tracked so the team can check the latest run
 !outputs/final_scores/*.csv
+!outputs/final_scores/scenario/*.csv
+!outputs/final_scores/strategy/*.csv
 !outputs/pillar_scores/*.csv
 # Executed notebook copies: not tracked
 outputs/executed/
+# Point-in-time (--as-of) runs: regenerate them, don't commit them
+outputs/as_of/
