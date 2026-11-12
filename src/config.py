@@ -63,7 +63,7 @@ DELINEATION_URL = (
 PEER_ASSETS_USD = (10_000_000_000, 100_000_000_000)
 
 # Ingest modules run by run_pipeline, in this order: src/ingest_<name>.py
-SOURCES = ["census", "pep", "bea_bls", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: cre reads the QCEW files that bea_bls downloads
+SOURCES = ["census", "pep", "bea_bls", "qcew", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: qcew and cre read the QCEW files that bea_bls downloads
 
 # The bank the back-test is about: BankUnited, N.A. (FDIC cert 58979). src/bankunited.py
 # filters bank_msa_year to it for the bankunited_ columns in msa_year.
@@ -77,6 +77,8 @@ TABLES = {
     "bank_msa_year": ["rssd_id", "cbsa_code", "year"],
     "msa_naics_year": ["cbsa_code", "naics_code", "year"],
     "msa_year_history": ["cbsa_code", "year"],
+    "msa_industry_year": ["cbsa_code", "industry_code", "year"],
+    "us_industry_year": ["industry_code", "year"],
 }
 
 # --- Secrets ----------------------------------------------------------------
