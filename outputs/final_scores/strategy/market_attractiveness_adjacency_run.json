@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-10",
+  "run_date": "2026-11-12",
   "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
   "scenario": "adjacency",
   "weights_source": "weights/strategy/adjacency.toml",
@@ -130,9 +130,9 @@
     "source": "metrics"
   },
   "universe": {
-    "min_population": 0,
+    "min_population": 250000,
     "population_year": 2024,
-    "below_size_floor": 0
+    "below_size_floor": 111
   },
   "as_of": null,
   "inputs": {
@@ -215,7 +215,7 @@
     }
   },
   "msas": 387,
-  "complete_msas": 287,
+  "complete_msas": 176,
   "warnings": [
     "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth set to the 50th percentile"
   ]

@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-10",
+  "run_date": "2026-11-12",
   "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
   "scenario": "no_industry_hhi",
   "weights_source": "weights/scenarios/no_industry_hhi.toml",
@@ -120,7 +120,7 @@
     }
   },
   "compared_to_baseline": true,
-  "entered_complete_set": 94,
+  "entered_complete_set": 14,
   "left_complete_set": 0,
   "settings": {
     "normalize": "percentile",
@@ -129,9 +129,9 @@
     "source": "metrics"
   },
   "universe": {
-    "min_population": 0,
+    "min_population": 250000,
     "population_year": 2024,
-    "below_size_floor": 0
+    "below_size_floor": 191
   },
   "as_of": null,
   "inputs": {
@@ -214,7 +214,7 @@
     }
   },
   "msas": 387,
-  "complete_msas": 381,
+  "complete_msas": 190,
   "warnings": [
     "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth set to the 50th percentile"
   ]

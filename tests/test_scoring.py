@@ -165,7 +165,7 @@ def test_competition_growth_is_built_from_the_other_pillars(sets):
 # --- size floor -------------------------------------------------------------------------------------------
 @needs_data
 def test_size_floor_ranks_only_metros_above_it():
-    base, _ = ma.run(write=False, compare_baseline=False)
+    base, _ = ma.run(write=False, compare_baseline=False, min_population=0)
     out, report = ma.run(write=False, compare_baseline=False, min_population=250_000)
     eligible = base["rank"].notna() & (base["population"] >= 250_000)
     assert out["rank"].notna().reindex(eligible.index).equals(eligible)
@@ -178,6 +178,16 @@ def test_size_floor_ranks_only_metros_above_it():
     # option (a): scores don't move, ranks close up
     keep = eligible[eligible].index
     assert (out.loc[keep, "available_score"] - base.loc[keep, "available_score"]).abs().max() < 1e-12
+
+
+@needs_data
+def test_baseline_size_floor_is_250000():
+    """Gate requirement: 250,000 by default; 0 turns it off."""
+    out, report = ma.run(write=False, compare_baseline=False)
+    assert report["universe"]["min_population"] == 250_000
+    assert (out.loc[out["rank"].notna(), "population"] >= 250_000).all()
+    off, _ = ma.run(write=False, compare_baseline=False, min_population=0)
+    assert off["rank"].notna().sum() > out["rank"].notna().sum()
 
 
 def test_universe_table_is_checked():
@@ -237,7 +247,7 @@ def test_as_of_mid_2022_handles_the_census_year(tables):
     s, report = asof.settings_as_of(load_settings(), "2022-06-30", tables)
     assert s["pillar4"]["end_year"] == 2020 and s["pillar4"]["migration_year"] == 2019
     assert any("net migration" in w for w in report["windows_shortened"])
-    _, rep = ma.run(write=False, compare_baseline=False, as_of="2022-06-30")
+    _, rep = ma.run(write=False, compare_baseline=False, as_of="2022-06-30", min_population=0)
     assert rep["complete_msas"] > 250
 
 
@@ -254,7 +264,7 @@ def test_as_of_uses_the_bea_history(tables):
 
 @needs_data
 def test_earliest_as_of_date_is_the_first_county_gdp_release():
-    _, rep = ma.run(write=False, compare_baseline=False, as_of="2019-12-12")
+    _, rep = ma.run(write=False, compare_baseline=False, as_of="2019-12-12", min_population=0)
     assert rep["complete_msas"] > 150
     with pytest.raises(ValueError, match="bea_gdp"):
         ma.run(write=False, compare_baseline=False, as_of="2019-12-11")

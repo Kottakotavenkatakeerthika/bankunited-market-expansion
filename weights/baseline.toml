@@ -14,8 +14,9 @@
 # weights/scenarios/pillar3_competition_growth.toml.
 
 [universe]
-min_population = 0   # size floor: metros below this population are scored but not ranked. 0 = off.
-                     # Scenario files without a [universe] table use this value.
+min_population = 250000   # size floor (gate requirement): metros below this population are scored but not
+                          # ranked. 0 = off.
+                          # Scenario files without a [universe] table use this value.
 
 [pillars]
 pillar1 = 25   # Commercial lending

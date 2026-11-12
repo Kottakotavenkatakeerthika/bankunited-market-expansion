@@ -2,7 +2,7 @@
   "pillar": "pillar3",
   "label": "Competition and entry windows",
   "built_by": "src.scoring.pillar3",
-  "run_date": "2026-11-10",
+  "run_date": "2026-11-12",
   "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "deposit_hhi": 0.2,

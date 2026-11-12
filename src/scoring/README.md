@@ -33,7 +33,7 @@ python -m src.scoring.run --as-of 2025-06-30   # point in time: only data releas
 python -m src.market_attractiveness                                       # baseline final score only
 python -m src.market_attractiveness --weights weights/strategy/cre_led.toml
 python -m src.market_attractiveness --show-weights                        # print effective weights and stop
-python -m src.market_attractiveness --min-population 250000               # try a size floor without editing files
+python -m src.market_attractiveness --min-population 0                    # try another size floor (0 = off) without editing files
 python -m src.market_attractiveness --normalize none                      # average raw pillar scores (method check)
 ```
 
@@ -221,7 +221,7 @@ corner every metro sits in.
 
 ```toml
 [universe]
-min_population = 0          # size floor (section 7); 0 = off
+min_population = 250000     # size floor (section 7); 0 = off
 
 [pillars]
 pillar1 = 25
@@ -262,15 +262,16 @@ File names must be unique across both folders, because outputs are named after t
 
 ## 7. Size floor
 
-Set `min_population` under `[universe]` in `weights/baseline.toml`. Metros below it keep their scores in
+The baseline uses **250,000** (the gate requirement); set `min_population` under `[universe]` in
+`weights/baseline.toml` to change it, or 0 to turn it off. Metros below it keep their scores in
 `available_score`, but get no rank and the status "Below size floor (250,000)". Other metros' scores don't
 change; their ranks close up. Population is Census PEP for the score year.
 
 | Floor | Metros ranked | Charlotte | BankUnited markets ranked |
 |---|---|---|---|
-| 0 (off, current) | 287 | 17th | 13 of 13 |
+| 0 (off) | 287 | 17th | 13 of 13 |
 | 100,000 | 282 | 17th | 13 of 13 |
-| 250,000 | 176 | 17th | 12 of 13 |
+| **250,000 (current)** | **176** | **17th** | **12 of 13** (Sebastian-Vero Beach, 172k, is below) |
 | 500,000 | 106 | 16th | 11 of 13 |
 | 1,000,000 | 54 | 8th | 8 of 13 |
 
@@ -376,8 +377,8 @@ needed for the chart, and the report still runs without it.
 `config/settings.toml`, then `python -m src.scoring.run`. It affects the `pillar3_competition_growth` scenario
 (and the baseline only if you give `competition_growth` a weight there).
 
-**Set a size floor.** Set `min_population` under `[universe]` in `weights/baseline.toml`. To try one first:
-`python -m src.market_attractiveness --min-population 250000`.
+**Change the size floor.** Set `min_population` under `[universe]` in `weights/baseline.toml` (0 = off). To try one first:
+`python -m src.market_attractiveness --min-population 100000`.
 
 **Add a scenario.** Copy a file in `weights/strategy/` or `weights/scenarios/`, give it a new name, edit it, then
 `python -m src.scoring.run`. Its results go to `outputs/final_scores/strategy/` or `outputs/final_scores/scenario/`

@@ -70,7 +70,9 @@ def build(tables: dict[str, pd.DataFrame], settings: dict) -> MetricSet:
     booked = w("sod_main_office_deposits_usd").fillna(0)
     if settings["exclude_home_banking_offices"]:
         booked = booked + w("sod_home_banking_office_deposits_usd").fillna(0)
-    local_dep = (dep - booked).where(dep.notna())
+    # Booked deposits never exceed reported ones in data-v0.5 (max 99.25% of a metro); clip at 0 as in
+    # Pillars 1 and 3 so a data error can't produce negative local deposits.
+    local_dep = (dep - booked).clip(lower=0).where(dep.notna())
     pop = w("pep_population_count")
 
     # main offices in each metro (a bank-metro row with main-office deposits) leave the branch count

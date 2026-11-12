@@ -2,7 +2,7 @@
   "pillar": "pillar2",
   "label": "Deposits and treasury",
   "built_by": "src.scoring.pillar2",
-  "run_date": "2026-11-10",
+  "run_date": "2026-11-12",
   "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "deposits_per_capita": 0.125,
