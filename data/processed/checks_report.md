@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-10-28 12:09 UTC on commit `b753452`
+Run 2026-11-11 03:34 UTC on commit `e740d38`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -178,3 +178,8 @@ Run 2026-10-28 12:09 UTC on commit `b753452`
 | msa_year_history | no column has two dictionary rows | pass |  |
 | msa_year_history | every dictionary Type is known | pass |  |
 | msa_year_history | values fit their dictionary Type | pass |  |
+| bank_quarter | each FDIC cert belongs to one RSSD ID per quarter | pass |  |
+| bank_quarter | every bank-quarter has an FDIC cert | pass |  |
+| bank_quarter + bank_msa_year | SOD certs match the bank's June 30 Call Report cert | warning | 15 bank-metro-years, e.g. RSSD 694904 2022 |
+| bank_quarter + bank_msa_year | every SOD bank has a June 30 Call Report | warning | 11 bank-years, e.g. RSSD 125707 2015; RSSD 125707 2016; RSSD 125707 2017 |
+| bank_quarter + bank_msa_year | every CRA lender filed a Call Report that year | warning | 4 lender-years, e.g. RSSD 1007846 2022; RSSD 131650 2022; RSSD 19730 2017 |
