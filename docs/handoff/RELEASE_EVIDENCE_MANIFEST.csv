@@ -1,0 +1,8 @@
+Control,Evidence,Source,Status,Next verification
+REL-01,integrated-v0.2 / 3c48fd512e9a0bf9b43a2ec5755c7145bee9833e,Team-provided SHA; ZIP lacks .git,"Recorded, mapping not independently verified",Release-owner confirmation
+REL-03,222 tests passed; 0 failed; 25 warnings,Team report,Reported only,Tagged pytest log
+DE-04,161 passing / 0 failing checks on 2026-10-28,data/processed/checks_report.md,Directly inspected historical report,Austin reconciliation and rerun
+ML output,Baseline and scenario score CSVs/JSON,outputs/final_scores/,Files present,Recompute and compare
+Dashboard,Power BI v0.7; Market Attractiveness MVP,dashboard/README.md; .pbix,Files present,Open/refresh and demo
+Technical docs,0-byte technical_handoff.md and methodology.md,docs/,Missing,Technical review and completion
+Handoff audit,Audit and workbook now committed in main ZIP,docs/handoff/,Files present,Use canonical tracker; owner review

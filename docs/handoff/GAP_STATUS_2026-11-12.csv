@@ -1,0 +1,16 @@
+Gap ID,Gap,Status as of 2026-11-12,Evidence,Owner,Next action
+1,Raw data availability,Progressed / open,API data ~2 GB downloads automatically with user keys; 30 FFIEC CRA files require approved Drive archive copy. T76 README due 11/16.,Austin; Bhavana,"Document authorized archive access, key setup, HTTP_USER_AGENT, full clean instructions."
+2,Fresh-machine execution,PASS — technical validation complete,"Bhavana Windows/Python 3.14.5/Git 2.55; full pipeline ~20 min; 222 tests; 163 checks pass, 0 fail, 16 warnings; processed tables unchanged.",Bhavana; Austin; Keerthika,Link 23-step log in T69 and obtain owner review.
+3,Technical handoff guide,Open,Tagged docs/technical_handoff.md empty; draft in handoff folder is not approved.,Varun; technical leads,Complete canonical guide with tested commands and troubleshooting per T76 schedule.
+4,Immutable release identity,Tag-to-commit confirmed; metadata pending,Austin confirmed integrated-v0.2 at PR #100 merge 3c48fd512e9a0bf9b43a2ec5755c7145bee9833e; git describe reported tag.,Keerthika,Record timestamp/checksums and final signoff.
+5,Fit & Feasibility,Open / scope decision,src/bankunited_fit.py empty in reviewed snapshot.,ML; Sonia,Implement or document approved exclusion.
+6,Application scope,Open / decision pending,app/app.py empty; Power BI is working viewer.,Sonia; Keerthika; Akayiah,Confirm Power BI as accepted interface or complete app.
+7,Sponsor acceptance,Open,No final documented sponsor signoff.,Akayiah; Kort; Elliot,"Agree acceptance criteria, transfer channel, signoff and exceptions."
+8,Methodology documentation,Open,Tagged docs/methodology.md empty.,Sonia; ML,"Complete formulas, weights, assumptions, limitations and reviews."
+9,ML output reproducibility,Baseline PASS; scenarios pending,"Baseline file identical after rerun; Charlotte #16/287, score 88.4; compare_scenarios not rerun.",Matt; Jainesh; Evan,Provide scenario comparison report.
+10,Data-quality evidence,Validated; report PR pending,"161 passes +13 warnings in Oct28 build; PR #93 added 2 passes +3 warnings => 163 passes, 16 warnings, 0 fail; PR #120 refreshed report not yet merged per Akayiah.",Austin; Bhavana,Merge PR #120 and link report and warning dispositions.
+11,Point-in-time validation,Open,Release-lag / future-leakage controls not evidenced.,ML; Data Engineering,Provide dated controls and backtest evidence.
+12,Power BI validation,T75 criterion PASS; refresh docs pending,"Keerthika eight pages 11/5 (#57); Bhavana opened v0.7, Charlotte #16 score 88.4.",Keerthika; Bhavana,Correct PBIX filename and provide refresh instructions under T76.
+13,Competition scoring decisions,Open,"Direction, peers and weights need approved decision record.",Sonia; Akayiah; sponsors,Record decisions and reviewer approval.
+14,Entry scenario module,Open / scope decision,src/entry_scenarios.py empty in reviewed snapshot.,ML; AI,Implement or document approved exclusion.
+15,Final evidence links,In progress,Step log supplied; PR #120 pending merge; T69/T63/T76 owner links and approvals incomplete.,Varun; technical owners,"Link exact paths, PRs, run IDs, decisions and signoffs."
