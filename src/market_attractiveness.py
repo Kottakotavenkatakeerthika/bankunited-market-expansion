@@ -515,8 +515,10 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         if processed.exists() and path.stat().st_mtime < processed.stat().st_mtime:
             warnings.append(f"{p.key}: export is older than data/processed/msa_year.parquet; rerun the notebook")
 
-    if len(tables) < 2 and not errors:
-        errors.append(f"only {len(tables)} pillar(s) available; need at least 2")
+    # Need two pillars, unless the weights deliberately use fewer (others set to 0): then all weighted ones.
+    weighted = sum(1 for p in PILLARS if cfg["pillars"][p.key] > 0)
+    if len(tables) < min(2, weighted) and not errors:
+        errors.append(f"only {len(tables)} pillar(s) available; need at least {min(2, weighted)}")
     if errors:
         raise GateError("Integration gate failed:\n  - " + "\n  - ".join(errors))
 

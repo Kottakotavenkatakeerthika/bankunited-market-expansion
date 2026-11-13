@@ -268,3 +268,15 @@ def test_earliest_as_of_date_is_the_first_county_gdp_release():
     assert rep["complete_msas"] > 150
     with pytest.raises(ValueError, match="bea_gdp"):
         ma.run(write=False, compare_baseline=False, as_of="2019-12-11")
+
+
+@needs_data
+def test_a_single_weighted_metric_can_be_scored():
+    """Every metric off except one (a dashboard check): the final score is that metric's percentile order."""
+    w = {"pillars": {"pillar1": 0, "pillar2": 100, "pillar3": 0, "pillar4": 0},
+         "metrics": {"pillar2": {"deposit_growth": 1}}}
+    out, rep = ma.run(weights=w, write=False, compare_baseline=False)
+    assert rep["weights_effective"] == {"pillar2": 1.0}
+    v = ma.metric_sets(config.ROOT)["pillar2"].values["deposit_growth"].reindex(out.index)
+    ranked = out["rank"].notna()
+    assert out.loc[ranked, "complete_score"].corr(v[ranked], method="spearman") > 0.999
