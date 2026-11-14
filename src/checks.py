@@ -29,10 +29,17 @@ import pandas as pd
 
 from src import config
 from src.build_panel import grid_years
+from src.ingest_qcew import INDUSTRY_CODES
 from src.utils import CODE_WIDTHS
 
 NONNEGATIVE_SUFFIXES = ("_count", "_usd")
 MOSTLY_EMPTY = 0.5  # warn when more than half of a column is empty
+# Supersectors plus Unclassified should add up to the private total (QCEW tables). BLS rounds each industry row
+# and drops some small ones, so counts can differ by a few units: the relative tolerances are 0.1% for
+# establishments and 0.01% for employment and wages, and counts get 40 units of slack on top (the largest gap
+# on 2015-2024's 2,760 complete metro-years was 32 establishments and 9 jobs; wages never differed).
+QCEW_SUM_TOLERANCE = {"establishments_count": 0.001, "employment_count": 0.0001, "total_wages_usd": 0.0001}
+QCEW_COUNT_SLACK = 40
 DICTIONARY_TYPES = re.compile(r"int|numeric|date|string(?:\((\d+)\))?")  # the Type column's allowed values
 
 
@@ -316,6 +323,58 @@ def _examples(rows: pd.DataFrame, what: str) -> str:
     return f"{len(rows)} {what}, e.g. {shown}"
 
 
+def industry_checks(msa_industry_year: pd.DataFrame, us_industry_year: pd.DataFrame | None = None) -> list[Result]:
+    """QCEW by industry: valid industry codes, supersectors adding up to the private total, metros within the U.S.
+
+    The supersector sum is an error where no county of the metro-year is suppressed and only a warning where one
+    is, because a suppressed county's employment and wages are missing from both the supersector rows and, for
+    that industry, the sum, so the supersectors fall short by design.
+    """
+    results: list[Result] = []
+    for table, df in (("msa_industry_year", msa_industry_year), ("us_industry_year", us_industry_year)):
+        if df is None:
+            continue
+        unknown = sorted(set(df["industry_code"].dropna().astype(str)) - set(INDUSTRY_CODES))
+        results.append(Result(table, "industry codes are among the 32 allowed", not unknown,
+                              f"unexpected codes {unknown}" if unknown else ""))
+    if us_industry_year is not None:
+        short = [(int(year), len(set(INDUSTRY_CODES) - set(group["industry_code"])))
+                 for year, group in us_industry_year.groupby("year") if set(INDUSTRY_CODES) - set(group["industry_code"])]
+        results.append(Result("us_industry_year", "every year has all 32 industries", not short,
+                              f"years missing industries (year, missing): {short}" if short else "", level="warning"))
+
+    prefix = "bls_qcew_private_"
+    suppressed = f"{prefix}counties_suppressed_count"
+    level = msa_industry_year["bls_industry_level"]
+    keys = ["cbsa_code", "year"]
+    measures = {name: f"{prefix}{name}" for name in QCEW_SUM_TOLERANCE}
+    totals = msa_industry_year[level == "total"].set_index(keys)
+    supers = msa_industry_year[level == "supersector"].groupby(keys).agg(
+        **{name: (column, "sum") for name, column in measures.items()}, suppressed=(suppressed, "sum"))
+    joined = supers.join(totals[[*measures.values(), suppressed]], how="inner", rsuffix="_total")
+    complete = (joined["suppressed"] == 0) & (joined[suppressed] == 0)
+    for name, column in measures.items():
+        gap = (joined[name] - joined[column]).abs()
+        slack = QCEW_COUNT_SLACK if name != "total_wages_usd" else 0
+        bad = gap.notna() & (gap > QCEW_SUM_TOLERANCE[name] * joined[column] + slack)
+        for flag, selected, level_name in ((True, complete, "error"), (False, ~complete, "warning")):
+            hits = joined[bad & selected]
+            where = "no county suppressed" if flag else "a county suppressed"
+            results.append(Result(
+                "msa_industry_year", f"supersectors add up to the private total ({name}, {where})", hits.empty,
+                f"{len(hits)} metro-years differ, e.g. {[(c, int(y)) for c, y in hits.index[:3]]}" if len(hits) else "",
+                level=level_name))
+
+    if us_industry_year is not None:
+        merged = msa_industry_year.merge(us_industry_year, on=["industry_code", "year"], suffixes=("", "_us"))
+        establishments = f"{prefix}establishments_count"
+        over = merged[merged[establishments] > merged[f"{establishments}_us"]]
+        results.append(Result("msa_industry_year", "a metro's establishments never exceed the U.S. figure", over.empty,
+                              f"{len(over)} rows, e.g. {over[['cbsa_code', 'industry_code', 'year']].head(3).values.tolist()}"
+                              if len(over) else ""))
+    return results
+
+
 def run_checks(write_report: bool = True) -> bool:
     results: list[Result] = []
     dictionary = read_dictionary() if config.DATA_DICTIONARY.exists() else None
@@ -337,6 +396,8 @@ def run_checks(write_report: bool = True) -> bool:
             results += bank_spot_checks(df)
     if "bank_quarter" in frames and "bank_msa_year" in frames:
         results += identifier_checks(frames["bank_quarter"], frames["bank_msa_year"])
+    if "msa_industry_year" in frames:
+        results += industry_checks(frames["msa_industry_year"], frames.get("us_industry_year"))
     if not results:
         print("[checks] no processed tables to check yet")
         return True

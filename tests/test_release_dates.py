@@ -89,7 +89,7 @@ def test_released_cells_of_the_county_sources_are_dated():
     lines = config.DATA_DICTIONARY.read_text(encoding="utf-8").splitlines()
     tables = read_dictionary()
     problems, checked = [], 0
-    for table in ("msa_year", "msa_naics_year", "msa_year_history"):
+    for table in ("msa_year", "msa_naics_year", "msa_year_history", "msa_industry_year", "us_industry_year"):
         for row in tables[table]:
             if not re.match(r"(cbp|bea|bls|fred|cra|cre|pep)_", row.column) or row.column.startswith("cra_bank_"):
                 continue
@@ -97,5 +97,5 @@ def test_released_cells_of_the_county_sources_are_dated():
             released = [cell.strip() for cell in lines[row.line - 1].strip().strip("|").split("|")][5]
             if not re.search(r"\d{4}", released):
                 problems.append(f"{table}.{row.column} (line {row.line}): {released!r}")
-    assert checked >= 43
+    assert checked >= 53  # 43 in the older tables and 10 in the two QCEW industry tables
     assert not problems, "Released cells with no year:\n" + "\n".join(problems)
