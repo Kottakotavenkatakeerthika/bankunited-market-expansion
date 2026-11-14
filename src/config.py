@@ -57,13 +57,21 @@ DELINEATION_URL = (
     "https://www2.census.gov/programs-surveys/metro-micro/geographies/"
     "reference-files/2023/delineation-files/list1_2023.xlsx"
 )
+# Each metro's internal point (latitude, longitude) comes from the Census Gazetteer CBSA file
+# (src/ingest_gazetteer.py). Any year whose metros match DELINEATION_VINTAGE works: the 2023 to 2026
+# files all list the July 2023 metros. With a new delineation, move this to a year that lists its metros.
+GAZETTEER_YEAR = "2026"
+GAZETTEER_URL = (
+    "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/"
+    f"{GAZETTEER_YEAR}_Gazetteer/{GAZETTEER_YEAR}_Gaz_cbsa_national.zip"
+)
 
 # Peer band for the ML pod's peer set: organizations (a bank's top holding company, or the bank
 # itself if it has none) with $10B-$100B in total assets. Confirmed by the sponsor 10/19 (blocker B1).
 PEER_ASSETS_USD = (10_000_000_000, 100_000_000_000)
 
 # Ingest modules run by run_pipeline, in this order: src/ingest_<name>.py
-SOURCES = ["census", "pep", "bea_bls", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: cre reads the QCEW files that bea_bls downloads
+SOURCES = ["census", "gazetteer", "pep", "bea_bls", "cre", "cra", "fred", "fdic", "ffiec"]  # order matters: cre reads the QCEW files that bea_bls downloads
 
 # The bank the back-test is about: BankUnited, N.A. (FDIC cert 58979). src/bankunited.py
 # filters bank_msa_year to it for the bankunited_ columns in msa_year.
