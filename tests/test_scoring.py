@@ -280,3 +280,112 @@ def test_a_single_weighted_metric_can_be_scored():
     v = ma.metric_sets(config.ROOT)["pillar2"].values["deposit_growth"].reindex(out.index)
     ranked = out["rank"].notna()
     assert out.loc[ranked, "complete_score"].corr(v[ranked], method="spearman") > 0.999
+
+
+# --- Fit: distance to BankUnited markets (T71) ---------------------------------------------------------------
+# data-v0.6 adds the Census Gazetteer internal points to msa_year. Until then these tests use stand-in points
+# (tests/fixtures/msa_points_for_tests.csv: 2020 population-weighted centres, 388 metros, no Connecticut).
+from src.scoring import fit as fitm  # noqa: E402
+
+FIXTURE_POINTS = config.ROOT / "tests" / "fixtures" / "msa_points_for_tests.csv"
+HAS_GAZETTEER = (PROCESSED / "msa_year.parquet").exists() and fitm.LAT in pd.read_parquet(
+    PROCESSED / "msa_year.parquet").columns
+
+
+@pytest.fixture
+def stand_in_points(monkeypatch):
+    p = pd.read_csv(FIXTURE_POINTS, dtype={"cbsa_code": str}).set_index("cbsa_code")
+    titles = pd.read_parquet(PROCESSED / "msa_year.parquet", columns=["cbsa_code", "cbsa_title"]) \
+        .drop_duplicates("cbsa_code").set_index("cbsa_code")["cbsa_title"]
+    coords = pd.DataFrame({"cbsa_title": titles.reindex(p.index), "lat": p["lat"], "lon": p["lon"]})
+    monkeypatch.setattr(fitm, "load_coordinates", lambda root: coords)
+    return coords
+
+
+def test_miles_between():
+    assert fitm.miles_between(0, 0, 1, 0) == pytest.approx(69.09, abs=0.01)          # one degree of latitude
+    assert fitm.miles_between(35.24, -80.83, 35.24, -80.83) == 0
+
+
+def test_distance_columns_without_coordinates_are_blank():
+    idx = pd.Index(["16740", "33100"], name="cbsa_code")
+    out = fitm.distance_columns(idx, None, pd.Index(["33100"]))
+    assert out["miles_to_nearest_bankunited_market"].isna().all()
+    assert out["is_bankunited_market"].tolist() == [False, True]
+
+
+@needs_data
+def test_distances_with_stand_in_points(stand_in_points):
+    out, rep = ma.run(write=False, compare_baseline=False)
+    bu = out["is_bankunited_market"]
+    assert bu.sum() == 13 and (out.loc[bu, "miles_to_nearest_bankunited_market"] == 0).all()
+    clt = out.loc["16740"]
+    assert clt["miles_to_nearest_bankunited_market"] == 0 and clt["nearest_bankunited_market"] == "Charlotte"
+    # Raleigh's nearest BankUnited market is Charlotte, about 130 miles away
+    assert out.loc["39580", "nearest_bankunited_market"] == "Charlotte"
+    assert 100 < out.loc["39580", "miles_to_nearest_bankunited_market"] < 160
+    assert rep["fit"]["coordinates_available"] is True
+
+
+@needs_data
+def test_max_distance_filter_ranks_only_metros_within_it(stand_in_points):
+    base, _ = ma.run(write=False, compare_baseline=False)
+    out, rep = ma.run(write=False, compare_baseline=False, max_miles=300)
+    ranked = out["rank"].notna()
+    assert (out.loc[ranked, "miles_to_nearest_bankunited_market"] <= 300).all()
+    expected = base["rank"].notna() & (base["miles_to_nearest_bankunited_market"] <= 300)
+    assert ranked.reindex(expected.index).equals(expected)
+    assert sorted(out["rank"].dropna().astype(int)) == list(range(1, int(ranked.sum()) + 1))
+    keep = expected[expected].index                       # filters don't move anyone's score
+    assert (out.loc[keep, "available_score"] - base.loc[keep, "available_score"]).abs().max() < 1e-12
+    gone = out.index[base["rank"].notna().reindex(out.index) & ~ranked]
+    assert (out.loc[gone, "coverage_status"] == "Outside distance range (max 300 mi)").all()
+    assert rep["fit"]["outside_distance_range"] == len(gone)
+
+
+@needs_data
+def test_exclude_current_markets(stand_in_points):
+    out, rep = ma.run(write=False, compare_baseline=False, exclude_current_markets=True)
+    assert out.loc[out["is_bankunited_market"], "rank"].isna().all()
+    assert (out.loc[out["is_bankunited_market"] & out["available_score"].notna()
+                    & (out["coverage_status"] != "Partial"), "coverage_status"]
+            .isin(["Current BankUnited market", "Below size floor (250,000)"])).all()
+
+
+@needs_data
+def test_as_of_distances_use_the_markets_of_that_date(stand_in_points):
+    out, _ = ma.run(write=False, compare_baseline=False, as_of="2025-06-30")
+    assert not out.loc["16740", "is_bankunited_market"]                 # Charlotte entered July 2025
+    assert out.loc["16740", "nearest_bankunited_market"] == "Atlanta"
+    assert 200 < out.loc["16740", "miles_to_nearest_bankunited_market"] < 250
+
+
+@needs_data
+def test_distance_filter_without_coordinates_stops(monkeypatch):
+    monkeypatch.setattr(fitm, "load_coordinates", lambda root: None)
+    with pytest.raises(ma.GateError, match="Gazetteer coordinates"):
+        ma.run(write=False, compare_baseline=False, max_miles=300)
+    out, _ = ma.run(write=False, compare_baseline=False)                # filters off: runs, columns blank
+    assert out["miles_to_nearest_bankunited_market"].isna().all()
+
+
+def test_fit_table_is_checked():
+    w = {"pillars": {f"pillar{i}": 25 for i in range(1, 5)}}
+    assert ma.normalize_weights(w)["fit"] == ma.FIT_DEFAULTS
+    assert ma.normalize_weights({**w, "fit": {"max_miles_to_bankunited": 400}})["fit_set"] is True
+    with pytest.raises(ValueError, match="max_miles_to_bankunited"):
+        ma.normalize_weights({**w, "fit": {"max_miles_to_bankunited": -5}})
+    with pytest.raises(ValueError, match="takes"):
+        ma.normalize_weights({**w, "fit": {"max_distance": 5}})
+    with pytest.raises(ValueError, match="above"):
+        ma.normalize_weights({**w, "fit": {"max_miles_to_bankunited": 100, "min_miles_to_bankunited": 200}})
+
+
+@pytest.mark.skipif(not HAS_GAZETTEER, reason="needs data-v0.6 (Gazetteer coordinates in msa_year)")
+def test_real_gazetteer_coordinates():
+    coords = fitm.load_coordinates(config.ROOT)
+    out, _ = ma.run(write=False, compare_baseline=False)
+    assert out["miles_to_nearest_bankunited_market"].notna().all()       # every scored metro has a point
+    clt, mia = coords.loc["16740"], coords.loc["33100"]
+    assert clt["lat"] == pytest.approx(35.166342, abs=1e-5)              # Austin's check value
+    assert fitm.miles_between(clt.lat, clt.lon, mia.lat, mia.lon) == pytest.approx(627, abs=3)

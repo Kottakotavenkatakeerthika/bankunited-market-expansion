@@ -61,6 +61,7 @@ MIN_PILLAR_COVERAGE = 0.50    # a partial pillar score counts only if it covers 
 SENSITIVITY = 0.25            # +/- shock to each pillar weight for best_rank / worst_rank
 FILL_PERCENTILE = 50.0        # value given to a missing metric listed under [fill] in the weights file
 EXAMPLE_CBSA = "16740"        # Charlotte, the pilot
+FIT_DEFAULTS = {"max_miles_to_bankunited": 0, "min_miles_to_bankunited": 0, "exclude_current_markets": False}
 DEFAULT_SOURCE = "metrics"    # "metrics": build pillars from src/scoring; "exports": read notebook-format files (legacy)
 
 # Markets BankUnited serves from offices with no branch, which SOD can't see (same list as the pillar notebooks).
@@ -113,8 +114,8 @@ def load_weights(path: Path) -> dict:
     with open(path, "rb") as f:
         cfg = tomllib.load(f)
     return normalize_weights({"pillars": cfg.get("pillars", {}), "fill": cfg.get("fill", {}),
-                              "universe": cfg.get("universe", {}),
-                              "metrics": {k: v for k, v in cfg.items() if k not in ("pillars", "fill", "universe")}},
+                              "universe": cfg.get("universe", {}), "fit": cfg.get("fit", {}),
+                              "metrics": {k: v for k, v in cfg.items() if k not in ("pillars", "fill", "universe", "fit")}},
                              source=str(path))
 
 
@@ -157,8 +158,22 @@ def normalize_weights(weights: dict | None, source: str = "weights") -> dict:
     floor = universe.get("min_population", 0)
     if not isinstance(floor, (int, float)) or isinstance(floor, bool) or floor < 0:
         raise ValueError(f"{source}: [universe] min_population must be a number, 0 or more (0 = off)")
+    fit = dict(weights.get("fit") or {})
+    unknown_f = sorted(set(fit) - set(FIT_DEFAULTS))
+    if unknown_f:
+        raise ValueError(f"{source}: [fit] takes {sorted(FIT_DEFAULTS)}; got {unknown_f}")
+    for k in ("max_miles_to_bankunited", "min_miles_to_bankunited"):
+        v = fit.get(k, 0)
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0:
+            raise ValueError(f"{source}: [fit] {k} must be a number, 0 or more (0 = off)")
+    if not isinstance(fit.get("exclude_current_markets", False), bool):
+        raise ValueError(f"{source}: [fit] exclude_current_markets must be true or false")
+    fit_cfg = {**FIT_DEFAULTS, **fit}
+    if fit_cfg["max_miles_to_bankunited"] and fit_cfg["min_miles_to_bankunited"] > fit_cfg["max_miles_to_bankunited"]:
+        raise ValueError(f"{source}: [fit] min_miles_to_bankunited is above max_miles_to_bankunited")
     return {"pillars": pillars, "metrics": metrics, "fill": {k: list(v) for k, v in fill.items() if v},
-            "universe": {"min_population": int(floor)}, "universe_set": "min_population" in universe}
+            "universe": {"min_population": int(floor)}, "universe_set": "min_population" in universe,
+            "fit": fit_cfg, "fit_set": bool(fit)}
 
 
 def scenario_name(name: str) -> str:
@@ -407,7 +422,8 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         name: str | None = None, normalize: str = NORMALIZE, min_coverage: float = MIN_PILLAR_COVERAGE,
         allow_missing: bool = False, out_dir: Path | None = None, write: bool = True,
         compare_baseline: bool = True, source: str | None = None, as_of=None,
-        min_population: int | None = None) -> tuple[pd.DataFrame, dict]:
+        min_population: int | None = None, max_miles: float | None = None, min_miles: float | None = None,
+        exclude_current_markets: bool | None = None) -> tuple[pd.DataFrame, dict]:
     """Build (or read) the pillars, score and combine them, and (if write) save the final table and run report.
 
     source "metrics" (default) builds every pillar from its metric builder in src/scoring; "exports" reads
@@ -547,7 +563,38 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         if pop_year is None:
             pop_year = int(pd.read_parquet(root / "data" / "processed" / "msa_year.parquet", columns=["year"]).year.max())
         pop = population(root, pop_year).reindex(universe)
-    eligible = (pop >= floor) if floor > 0 else None
+    # Fit filters ([fit]): like the size floor, a scenario without [fit] uses the baseline's.
+    if cfg.get("fit_set") or not (root / WEIGHTS_DIR / f"{BASELINE}.toml").exists():
+        fit_cfg = dict(cfg["fit"])
+    else:
+        fit_cfg = dict(load_weights(root / WEIGHTS_DIR / f"{BASELINE}.toml")["fit"])
+    for k, v in (("max_miles_to_bankunited", max_miles), ("min_miles_to_bankunited", min_miles),
+                 ("exclude_current_markets", exclude_current_markets)):
+        if v is not None:
+            fit_cfg[k] = v
+    sod_year = int(sets["pillar3"].settings["score_year"]) if sets else None
+    bu_labels = bankunited_markets(root, sod_year, as_of)
+    from src.scoring import fit as fitm
+    coords = fitm.load_coordinates(root)
+    distance_on = bool(fit_cfg["max_miles_to_bankunited"] or fit_cfg["min_miles_to_bankunited"])
+    if distance_on and coords is None:
+        raise GateError("a distance filter ([fit] max/min_miles_to_bankunited) needs the Gazetteer coordinates in "
+                        f"data/processed/msa_year.parquet ({fitm.LAT}, {fitm.LON}; data-v0.6)")
+    fitcols = fitm.distance_columns(pd.Index(universe, name="cbsa_code"), coords, bu_labels.index)
+    miles = fitcols["miles_to_nearest_bankunited_market"]
+    out_of_range = pd.Series(False, index=fitcols.index)
+    if fit_cfg["max_miles_to_bankunited"]:
+        out_of_range |= miles > fit_cfg["max_miles_to_bankunited"]
+    if fit_cfg["min_miles_to_bankunited"]:
+        out_of_range |= miles < fit_cfg["min_miles_to_bankunited"]
+    no_distance = miles.isna() & distance_on
+    current = fitcols["is_bankunited_market"] & bool(fit_cfg["exclude_current_markets"])
+    eligible = pd.Series(True, index=fitcols.index)
+    if floor > 0:
+        eligible &= (pop >= floor).reindex(fitcols.index).fillna(False)
+    eligible &= ~out_of_range & ~no_distance & ~current
+    if eligible.all():
+        eligible = None
     result = combine(scaled, status, run_weights, eligible).join(
         rank_ranges(scaled, status, run_weights, SENSITIVITY, eligible))
     wn = pd.Series(run_weights) / sum(run_weights.values())
@@ -556,13 +603,20 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
     out = pd.DataFrame({"msa": title}).join(result)
     all_complete = status.eq("complete").all(axis=1).reindex(out.index)
     below = (pop < floor).reindex(out.index).fillna(False) if floor > 0 else pd.Series(False, index=out.index)
+    rng = " to ".join(x for x in [f"min {fit_cfg['min_miles_to_bankunited']:,} mi" if fit_cfg["min_miles_to_bankunited"] else "",
+                                  f"max {fit_cfg['max_miles_to_bankunited']:,} mi" if fit_cfg["max_miles_to_bankunited"] else ""] if x)
+    oor, nod, cur = (x.reindex(out.index).fillna(False) for x in (out_of_range, no_distance, current))
     out["coverage_status"] = np.select(
-        [out.complete_score.notna(), all_complete & below, out.pillars_scored > 0],
-        [f"Complete ({len(tables)}/{len(tables)} pillars)", f"Below size floor ({floor:,})", "Partial"],
-        "No pillar scores")
+        [out.complete_score.notna(), all_complete & below, all_complete & nod, all_complete & oor,
+         all_complete & cur, out.pillars_scored > 0],
+        [f"Complete ({len(tables)}/{len(tables)} pillars)", f"Below size floor ({floor:,})",
+         "Insufficient data (no coordinates)", f"Outside distance range ({rng})", "Current BankUnited market",
+         "Partial"], "No pillar scores")
     if pop is not None:
         out["population"] = pop.reindex(out.index)
     out["below_size_floor"] = below
+    out = out.join(fitcols)
+    out["outside_distance_range"] = oor
     out["missing_or_partial_pillars"] = status.apply(
         lambda r: ", ".join(f"{k} {v}" for k, v in r.items() if v != "complete"), axis=1)
     if filled:
@@ -575,7 +629,7 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         if normalize == "percentile":
             out[f"{k}_percentile"] = scaled[k]
         out[f"{k}_points"] = scaled[k] * wn[k]   # the points sum to complete_score for complete MSAs
-    out = out.join(bankunited_markets(root, int(sets["pillar3"].settings["score_year"]) if sets else None, as_of))
+    out = out.join(bu_labels)
     out.index.name = "cbsa_code"
 
     baseline_file = root / WEIGHTS_DIR / f"{BASELINE}.toml"
@@ -583,7 +637,8 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
     if compared:
         base, _ = run(root, weights_file=baseline_file, normalize=normalize, min_coverage=min_coverage,
                       allow_missing=allow_missing, write=False, compare_baseline=False,
-                      source=input_source, as_of=as_of, min_population=min_population)
+                      source=input_source, as_of=as_of, min_population=min_population, max_miles=max_miles,
+                      min_miles=min_miles, exclude_current_markets=exclude_current_markets)
         out["baseline_rank"] = base["rank"].reindex(out.index)
         # Rank change among MSAs complete in both runs, so MSAs entering or leaving the complete set
         # (e.g. when a metric with gaps is weighted 0) don't shift everyone else. Positive = moved up.
@@ -612,6 +667,10 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         **report_extra,
         "settings": {"normalize": normalize, "min_pillar_coverage": min_coverage, "sensitivity": SENSITIVITY,
                      "source": input_source},
+        "fit": {**fit_cfg, "coordinates_available": coords is not None,
+                "bankunited_markets": sorted(bu_labels.index.tolist()),
+                "outside_distance_range": int(out["coverage_status"].str.startswith("Outside distance range").sum()),
+                "current_markets_excluded": int((out["coverage_status"] == "Current BankUnited market").sum())},
         "universe": {"min_population": floor, "population_year": pop_year,
                      "below_size_floor": int((all_complete & below).sum())},
         "as_of": sets["pillar1"].settings.get("_as_of") if sets else None,
@@ -671,10 +730,15 @@ def main(argv=None) -> int:
     ap.add_argument("--show-weights", action="store_true", help="print the effective weights and stop")
     ap.add_argument("--min-population", type=int, help="size floor: metros below it are scored, not ranked (0 = off)")
     ap.add_argument("--as-of", help="decision date (YYYY-MM-DD): use only data released by then")
+    ap.add_argument("--max-miles", type=float, help="distance filter: only metros within this many miles of a BankUnited market rank (0 = off)")
+    ap.add_argument("--min-miles", type=float, help="distance filter: only metros at least this far from a BankUnited market rank (0 = off)")
+    ap.add_argument("--exclude-current-markets", action="store_true", default=None,
+                    help="BankUnited's own markets are scored but not ranked")
     args = ap.parse_args(argv)
     try:
         out, report = run(weights_file=args.weights, name=args.name, allow_missing=args.allow_missing,
-                          min_population=args.min_population, as_of=args.as_of,
+                          min_population=args.min_population, as_of=args.as_of, max_miles=args.max_miles,
+                          min_miles=args.min_miles, exclude_current_markets=args.exclude_current_markets,
                           normalize=args.normalize, write=not args.show_weights)
     except (GateError, ValueError, FileNotFoundError) as e:
         print(e, file=sys.stderr)

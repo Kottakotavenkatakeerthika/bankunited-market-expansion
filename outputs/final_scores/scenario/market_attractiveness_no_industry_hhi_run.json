@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-12",
+  "run_date": "2026-11-14",
   "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
   "scenario": "no_industry_hhi",
   "weights_source": "weights/scenarios/no_industry_hhi.toml",
@@ -63,7 +63,13 @@
     "universe": {
       "min_population": 0
     },
-    "universe_set": false
+    "universe_set": false,
+    "fit": {
+      "max_miles_to_bankunited": 0,
+      "min_miles_to_bankunited": 0,
+      "exclude_current_markets": false
+    },
+    "fit_set": false
   },
   "weights_effective": {
     "pillar1": 0.25,
@@ -127,6 +133,29 @@
     "min_pillar_coverage": 0.5,
     "sensitivity": 0.25,
     "source": "metrics"
+  },
+  "fit": {
+    "max_miles_to_bankunited": 0,
+    "min_miles_to_bankunited": 0,
+    "exclude_current_markets": false,
+    "coordinates_available": false,
+    "bankunited_markets": [
+      "12060",
+      "15980",
+      "16740",
+      "19100",
+      "26420",
+      "33100",
+      "34940",
+      "35620",
+      "35840",
+      "36740",
+      "38940",
+      "42680",
+      "45300"
+    ],
+    "outside_distance_range": 0,
+    "current_markets_excluded": 0
   },
   "universe": {
     "min_population": 250000,

@@ -277,6 +277,30 @@ change; their ranks close up. Population is Census PEP for the score year.
 
 ---
 
+## 7b. Fit filters: distance to BankUnited markets
+
+`src/scoring/fit.py` measures each metro's straight-line (great-circle) distance to the nearest BankUnited market,
+from the Census Gazetteer internal points in `msa_year` (`gazetteer_internal_point_latitude`,
+`gazetteer_internal_point_longitude`; data-v0.6). BankUnited's markets are its SOD branch markets in the year
+being scored plus its office-only markets (Atlanta, Charlotte, Houston), as of the run's date. Florida counts:
+being close to the main network is the best case.
+
+Every run reports `miles_to_nearest_bankunited_market`, `nearest_bankunited_market` and `is_bankunited_market`.
+The filters work like the size floor (scored but not ranked; other scores unchanged) and are set in `[fit]`:
+
+```toml
+[fit]
+max_miles_to_bankunited = 0      # 0 = off; only metros within this distance can rank
+min_miles_to_bankunited = 0      # 0 = off; only metros at least this far away can rank
+exclude_current_markets = false  # true: BankUnited's own markets are scored but not ranked
+```
+
+All off by default. Scenario files without `[fit]` use the baseline's. To try one without editing files:
+`python -m src.market_attractiveness --max-miles 300` (also `--min-miles`, `--exclude-current-markets`).
+Statuses: "Outside distance range (max 300 mi)", "Current BankUnited market", and "Insufficient data (no
+coordinates)" for a metro without a point. Until the coordinates are in `data/processed`, the distance columns
+are blank and a distance filter stops the run with a clear message.
+
 ## 8. Point-in-time runs (`--as-of`)
 
 ```bash
