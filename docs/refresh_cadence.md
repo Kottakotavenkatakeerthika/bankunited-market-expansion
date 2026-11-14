@@ -22,7 +22,7 @@ If BankUnited later wants a scheduled job, the Call Reports are the natural cand
 | FFIEC CRA by lender (`<YY>exp_discl.zip`, `<YY>exp_trans.zip`) | `ffiec` | Yearly, with the aggregate files | Same release | 2015–2024 | As above | Save both files from a browser into `raw/cra_bank/`; the run logs them in the manifest |
 | BEA county personal income (CAINC1) and GDP (CAGDP2) | `bea_bls` | Yearly | Income in mid-November and GDP in early December of the next year, until 2024's came out together on February 5, 2026. 2025's is scheduled for December 2, 2026 | 2015–2024 | Each release can revise earlier years; the 2022 release revised 2017–2021 GDP | `--force-download`, since BEA's files hold every year and change in place. Key: `BEA_API_KEY` |
 | BLS LAUS county averages | `bea_bls` | Yearly | Late April or early May of the next year | 2015–2024. 2025 is out | Revised each spring | `--force-download` for revisions; move `LAUS_LATEST_AVAILABLE_YEAR` in `src/ingest_bea_bls.py` for a new year |
-| BLS QCEW county averages | `bea_bls`, read by `cre` too | Yearly, preliminary then final | Preliminary in early June, final in early September of the next year | 2015–2024. 2025 is out | The final averages replace the preliminary ones | `--force-download` after the final release; move `QCEW_LATEST_AVAILABLE_YEAR` for a new year |
+| BLS QCEW county averages | `bea_bls`, read by `qcew` and `cre` too | Yearly, preliminary then final | Preliminary in early June, final in early September of the next year | 2015–2024. 2025 is out | The final averages replace the preliminary ones | `--force-download` after the final release; move `QCEW_LATEST_AVAILABLE_YEAR` for a new year |
 | Census County Business Patterns (CBP) | `census`, then `cre` | Yearly | 16 to 18 months after the year ends (June 26, 2025 for 2023) | 2015–2023 | Rare: Census reposted 2021 in October 2023 | 2024 has no release date yet (below). When it's out, move `LATEST_AVAILABLE_YEAR` in `src/ingest_census.py` and `src/ingest_cre.py` |
 | Census Population Estimates (PEP) | `pep` | Yearly, as a new vintage | Mid to late March of the next year (March 26, 2026 for Vintage 2025) | 2015–2024. 2025 is in the Vintage 2025 file already | Each vintage revises every year since the 2020 Census | Point `NEW_FILE`, `METRO_FILE` and their `2020-2025` folder in `src/ingest_pep.py` at the new vintage |
 | FRED series in `data/reference/fred_series.csv` (the Charlotte unemployment rate) | `fred` | Monthly | December's value, which completes the year's average, in early February | 2015–2024 | BLS revises the months each spring | `--force-download`. Key: `FRED_API_KEY` |
@@ -40,9 +40,9 @@ A new year also needs `END_YEAR` to reach it (see the last section). `cre` downl
 | Mid to late March | PEP's new vintage | Point `src/ingest_pep.py` at it, then `--sources pep` |
 | Late April or early May | LAUS averages for last year | `--sources bea_bls --force-download` |
 | Early May | Call Reports for Q1 (due April 30) | `--sources ffiec` |
-| Early June | QCEW preliminary averages for last year | `--sources bea_bls cre --force-download` |
+| Early June | QCEW preliminary averages for last year | `--sources bea_bls qcew cre --force-download` |
 | Early August | Call Reports for Q2 (due July 30) | `--sources ffiec` |
-| Early September | QCEW final averages for last year | `--sources bea_bls cre --force-download` |
+| Early September | QCEW final averages for last year | `--sources bea_bls qcew cre --force-download` |
 | Mid to late September | SOD as of June 30 | `--sources fdic`, once `END_YEAR` reaches that year |
 | Early November | Call Reports for Q3 (due October 30) | `--sources ffiec` |
 | Mid-November to mid-December | CRA for last year; BEA county income and GDP (December 2, 2026 for 2025) | Save the CRA files by hand, then `--sources cra ffiec`; `--sources bea_bls --force-download` |
