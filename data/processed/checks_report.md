@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-10-28 12:09 UTC on commit `b753452`
+Run 2026-11-15 18:50 UTC on commit `e6ac53a`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -40,6 +40,10 @@ Run 2026-10-28 12:09 UTC on commit `b753452`
 | msa_year | cre_nonres_construction_counties_reported_count >= 0 | pass |  |
 | msa_year | cre_nonres_construction_qcew_fallback_counties_count >= 0 | pass |  |
 | msa_year | fred_unemployment_rate_pct within 0-100 | pass |  |
+| msa_year | gazetteer_internal_point_latitude within 17 to 72 | pass |  |
+| msa_year | gazetteer_internal_point_latitude filled in every row | pass |  |
+| msa_year | gazetteer_internal_point_longitude within -180 to -64 | pass |  |
+| msa_year | gazetteer_internal_point_longitude filled in every row | pass |  |
 | msa_year | pep_population_count >= 0 | pass |  |
 | msa_year | pep_counties_reported_count >= 0 | pass |  |
 | msa_year | sod_deposits_usd >= 0 | pass |  |
@@ -178,3 +182,8 @@ Run 2026-10-28 12:09 UTC on commit `b753452`
 | msa_year_history | no column has two dictionary rows | pass |  |
 | msa_year_history | every dictionary Type is known | pass |  |
 | msa_year_history | values fit their dictionary Type | pass |  |
+| bank_quarter | each FDIC cert belongs to one RSSD ID per quarter | pass |  |
+| bank_quarter | every bank-quarter has an FDIC cert | pass |  |
+| bank_quarter + bank_msa_year | SOD certs match the bank's June 30 Call Report cert | warning | 15 bank-metro-years, e.g. RSSD 694904 2022 |
+| bank_quarter + bank_msa_year | every SOD bank has a June 30 Call Report | warning | 11 bank-years, e.g. RSSD 125707 2015; RSSD 125707 2016; RSSD 125707 2017 |
+| bank_quarter + bank_msa_year | every CRA lender filed a Call Report that year | warning | 4 lender-years, e.g. RSSD 1007846 2022; RSSD 131650 2022; RSSD 19730 2017 |
