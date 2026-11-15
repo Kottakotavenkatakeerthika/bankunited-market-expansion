@@ -128,6 +128,7 @@ def settings_as_of(settings: dict, as_of, tables) -> tuple[dict, dict]:
     n = int(p4["cbp_end"]) - int(p4["cbp_start"])
     p4["cbp_end"], p4["cbp_start"] = cbp, window("pillar4 establishment growth", cbp, n, "cbp")
     p4["industry_year"] = cbp
+    s.setdefault("fit", {})["industry_year"] = cbp      # industry share filter uses the same CBP year
     # net migration: the latest year at or before end_year that was released and has migration data
     mig = [y for y in _held_years(tables, "msa_year", "pep_migration_net")
            if y <= end and y <= yrs["pep_migration"]["latest"]]

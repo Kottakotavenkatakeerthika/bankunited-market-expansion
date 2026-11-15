@@ -22,7 +22,31 @@ min_population = 250000   # size floor (gate requirement): metros below this pop
 max_miles_to_bankunited = 0      # only metros within this many miles of a BankUnited market can rank
 min_miles_to_bankunited = 0      # only metros at least this far from a BankUnited market can rank
 exclude_current_markets = false  # true: BankUnited's own markets are scored but not ranked
-                                 # Scenario files without a [fit] table use these values.
+min_industry_share      = 0      # only metros with at least this % of CBP jobs in the industries below can rank
+# Scenario files inherit each [fit] setting they don't set themselves. A scenario's own [fit.industries]
+# replaces this whole list (sectors it doesn't list count as false).
+
+[fit.industries]   # true = counts toward industry_share. Former research priority in brackets (docs/industry_fit_research.md)
+"23" = true    # Construction [High]
+"31" = true    # Manufacturing, 31-33 [High]
+"42" = true    # Wholesale trade [High]
+"48" = true    # Transportation and warehousing, 48-49 [High]
+"53" = true    # Real estate and rental and leasing [High]
+"54" = true    # Professional, scientific, and technical services [High]
+"52" = true    # Finance and insurance [Medium]
+"62" = true    # Health care and social assistance [Medium]
+"61" = true    # Educational services [Medium]
+"44" = true    # Retail trade, 44-45 [Medium]
+"22" = true    # Utilities [Medium]
+"51" = false   # Information [Low]
+"56" = false   # Administrative and support and waste management [Low]
+"81" = false   # Other services [Low]
+"72" = false   # Accommodation and food services [Low]
+"11" = false   # Agriculture, forestry, fishing and hunting [Low]
+"21" = false   # Mining, quarrying, and oil and gas extraction [Low]
+"55" = false   # Management of companies and enterprises [Low]
+"71" = false   # Arts, entertainment, and recreation [Exclude]
+"99" = false   # Industries not classified [Exclude]
 
 [pillars]
 pillar1 = 25   # Commercial lending

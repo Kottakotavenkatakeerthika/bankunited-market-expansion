@@ -213,7 +213,7 @@ def tables():
 @needs_data
 def test_as_of_today_reproduces_the_settings_file(tables):
     s, report = asof.settings_as_of(load_settings(), "2026-11-05", tables)
-    assert all(s[k] == load_settings()[k] for k in ("pillar1", "pillar2", "pillar3", "pillar4"))
+    assert all(s[k] == load_settings()[k] for k in ("pillar1", "pillar2", "pillar3", "pillar4", "fit"))
     assert report["windows_shortened"] == []
 
 
@@ -389,3 +389,107 @@ def test_real_gazetteer_coordinates():
     clt, mia = coords.loc["16740"], coords.loc["33100"]
     assert clt["lat"] == pytest.approx(35.166342, abs=1e-5)              # Austin's check value
     assert fitm.miles_between(clt.lat, clt.lon, mia.lat, mia.lon) == pytest.approx(627, abs=3)
+
+
+
+# --- Fit: industry share ---------------------------------------------------------------------------------------
+def _toy_industry():
+    idx = pd.Index(["A", "B", "C"], name="cbsa_code")
+    sectors = pd.DataFrame({"cbsa_code": ["A", "A", "A", "B", "B", "C", "C", "C"],
+                            "naics_code": ["23", "31", "72", "23", "72", "23", "31", "72"],
+                            "year": 2023, "cbp_employment_count": [20, 30, 50, 40, 60, 10, 10, 80]})
+    totals = pd.DataFrame({"cbsa_code": ["A", "B", "C"], "year": 2023, "cbp_employment_count": [200, 100, 100]})
+    return idx, sectors, totals
+
+
+def test_industry_share_uses_the_published_total_and_blanks_missing_selected_sectors():
+    idx, sectors, totals = _toy_industry()
+    out = fitm.industry_share(idx, sectors, totals, 2023, ["23", "31"])
+    assert out.loc["A", "industry_share"] == 25.0            # (20 + 30) / 200 published total, not / 100 sector sum
+    assert pd.isna(out.loc["B", "industry_share"])           # 31 selected but suppressed in B
+    assert out.loc["B", "industry_sectors_missing"] == "31"
+    assert out.loc["C", "industry_share"] == 20.0
+    assert out.loc["A", "industry_share_percentile"] == 100 and out.loc["C", "industry_share_percentile"] == 0
+
+
+def test_an_unselected_suppressed_sector_does_not_blank_the_share():
+    idx, sectors, totals = _toy_industry()
+    out = fitm.industry_share(idx, sectors, totals, 2023, ["23"])   # 31 missing in B, but not selected
+    assert out.loc["B", "industry_share"] == 40.0 and out.loc["B", "industry_sectors_missing"] == ""
+
+
+@needs_data
+def test_baseline_industry_share_matches_the_research_version():
+    """Default selection = the High and Medium sectors; Charlotte 70.3% as in docs/industry_fit_research.md."""
+    out, rep = ma.run(write=False, compare_baseline=False)
+    assert rep["fit"]["industries"] == fitm.DEFAULT_INDUSTRIES and rep["fit"]["industry_year"] == 2023
+    assert out.loc["16740", "industry_share"] == pytest.approx(70.32, abs=0.01)
+    assert out["industry_share"].notna().sum() == 376                       # 11 metros lack Utilities (22)
+    assert set(out.loc[out["industry_share"].isna(), "industry_sectors_missing"]) == {"22"}
+
+
+@needs_data
+def test_industry_filter_ranks_only_metros_at_or_above_it():
+    base, _ = ma.run(write=False, compare_baseline=False)
+    out, rep = ma.run(write=False, compare_baseline=False, min_industry_share=72)
+    ranked = out["rank"].notna()
+    expected = base["rank"].notna() & (base["industry_share"] >= 72)
+    assert ranked.reindex(expected.index).equals(expected)
+    keep = expected[expected].index
+    assert (out.loc[keep, "available_score"] - base.loc[keep, "available_score"]).abs().max() < 1e-12
+    gone = out.index[base["rank"].notna().reindex(out.index) & ~ranked]
+    statuses = set(out.loc[gone, "coverage_status"])
+    assert statuses <= {"Below industry share (72%)", "Insufficient data (selected industry suppressed)"}
+    assert rep["fit"]["below_industry_share"] + rep["fit"]["industry_insufficient_data"] == len(gone)
+
+
+@needs_data
+def test_dropping_a_suppressed_sector_removes_insufficient_data():
+    w = ma.load_weights(config.ROOT / "weights" / "baseline.toml")
+    raw = {"pillars": w["pillars"], "metrics": w["metrics"], "fill": w["fill"],
+           "fit": {"min_industry_share": 1, "industries": {c: c in fitm.DEFAULT_INDUSTRIES and c != "22"
+                                                            for c in fitm.CBP_SECTORS}}}
+    out, rep = ma.run(weights=raw, write=False, compare_baseline=False)
+    assert "22" not in rep["fit"]["industries"] and rep["fit"]["industry_insufficient_data"] == 0
+    assert out["industry_share"].notna().sum() == 387
+
+
+@needs_data
+def test_fit_settings_inherit_one_by_one_and_industries_replace_whole(monkeypatch):
+    real = ma.load_weights
+
+    def baseline_with_filters(path):
+        cfg = real(path)
+        if Path(path).name == "baseline.toml":                    # pretend the baseline sets two filters
+            cfg["fit_given"] = {"max_miles_to_bankunited": 600, "min_industry_share": 60}
+            cfg["industries_given"] = ["23", "31", "42"]
+        return cfg
+    from pathlib import Path
+    monkeypatch.setattr(ma, "load_weights", baseline_with_filters)
+    w = real(config.ROOT / "weights" / "baseline.toml")
+    plain = {"pillars": w["pillars"], "metrics": w["metrics"], "fill": w["fill"]}
+    _, rep = ma.run(weights={**plain, "fit": {"min_industry_share": 30}}, write=False, compare_baseline=False)
+    assert rep["fit"]["min_industry_share"] == 30                        # own setting
+    assert rep["fit"]["max_miles_to_bankunited"] == 600                  # inherited, not reset to 0
+    assert rep["fit"]["industries"] == ["23", "31", "42"]                # inherited list
+    _, rep = ma.run(weights={**plain, "fit": {"industries": {"62": True}}}, write=False, compare_baseline=False)
+    assert rep["fit"]["industries"] == ["62"]                            # own list replaces the baseline's whole
+    assert rep["fit"]["min_industry_share"] == 60 and rep["fit"]["max_miles_to_bankunited"] == 600
+
+
+@needs_data
+def test_as_of_moves_the_industry_year():
+    _, rep = ma.run(write=False, compare_baseline=False, as_of="2022-06-30")
+    assert rep["fit"]["industry_year"] == 2020                           # CBP 2020 was the latest released
+
+
+def test_industry_settings_are_checked():
+    w = {"pillars": {f"pillar{i}": 25 for i in range(1, 5)}}
+    with pytest.raises(ValueError, match="aren't CBP sectors"):
+        ma.normalize_weights({**w, "fit": {"industries": {"92": True}}})
+    with pytest.raises(ValueError, match="true or false"):
+        ma.normalize_weights({**w, "fit": {"industries": {"23": 1}}})
+    with pytest.raises(ValueError, match="selects no sector"):
+        ma.normalize_weights({**w, "fit": {"industries": {"23": False}}})
+    with pytest.raises(ValueError, match="percent from 0 to 100"):
+        ma.normalize_weights({**w, "fit": {"min_industry_share": 120}})

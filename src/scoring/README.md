@@ -295,11 +295,42 @@ min_miles_to_bankunited = 0      # 0 = off; only metros at least this far away c
 exclude_current_markets = false  # true: BankUnited's own markets are scored but not ranked
 ```
 
-All off by default. Scenario files without `[fit]` use the baseline's. To try one without editing files:
+All off by default. A scenario inherits each `[fit]` setting it doesn't set itself from the baseline. To try one without editing files:
 `python -m src.market_attractiveness --max-miles 300` (also `--min-miles`, `--exclude-current-markets`).
 Statuses: "Outside distance range (max 300 mi)", "Current BankUnited market", and "Insufficient data (no
 coordinates)" for a metro without a point. Until the coordinates are in `data/processed`, the distance columns
 are blank and a distance filter stops the run with a clear message.
+
+## 7c. Fit filters: industry share
+
+`industry_share` is the percent of a metro's CBP employment in the industries switched on in
+`[fit.industries]` (one true/false line per two-digit sector in `weights/baseline.toml`). The denominator is the
+metro's published all-industry total, so unselected sectors stay in it. `industry_share_percentile` ranks the
+share 0–100 among metros that have one, so the dashboard has a scale that doesn't shift when the selection does.
+
+- **Default selection:** the 11 sectors rated High or Medium in the industry-fit research (construction,
+  manufacturing, wholesale, transport, real estate, professional services, finance, health care, education,
+  retail, utilities). The rating of every sector is kept as a comment; background in
+  `docs/industry_fit_research.md`.
+- **Suppressed sectors:** if a *selected* sector has no published CBP employment for a metro, its share is blank
+  and `industry_sectors_missing` names the sector. Unselected sectors never blank a share. With the default
+  selection, 11 metros are blank because Utilities (22) is suppressed; switch 22 off and they get a share.
+- **Year:** `[fit] industry_year` in `config/settings.toml` (2023, the same as Pillar 4's industry HHI).
+  `--as-of` moves it to the latest CBP year released by that date.
+- **Filter:** `[fit] min_industry_share` (percent, 0 = off). Metros below it are scored but not ranked
+  ("Below industry share (70%)"); metros without a share get "Insufficient data (selected industry
+  suppressed)" when the filter is on. Try one with `python -m src.market_attractiveness --min-industry-share 70`.
+- **Scenarios:** a scenario's own `[fit.industries]` table **replaces** the baseline's list (sectors it doesn't
+  list count as false); without one it uses the baseline's list. `min_industry_share` inherits like the other
+  `[fit]` settings.
+
+Note that shares bunch together: with the default selection most metros fall between about 67% and 78%, and the
+level shifts whenever a sector is switched on or off. Thresholds should be reset after changing the selection;
+the percentile column is the stable alternative.
+
+**Inheritance in one line:** weights are self-contained per file (a metric not listed counts 0, `[fill]` is
+not inherited); filters (`[universe]` and every `[fit]` setting) inherit from the baseline unless the scenario
+sets them.
 
 ## 8. Point-in-time runs (`--as-of`)
 
