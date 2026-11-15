@@ -72,6 +72,26 @@ def test_a_change_in_a_share_outside_minus_1_to_1_fails(project):
     assert not any("within -1 to 1" in r.check for r in checks.check_table("msa_year", other))  # other _net columns aren't held to it
 
 
+def test_coordinates_outside_the_us_or_missing_fail(project):
+    lat, lon = "gazetteer_internal_point_latitude", "gazetteer_internal_point_longitude"
+    table = pd.DataFrame({"cbsa_code": ["16740", "13820"], "year": [2023, 2023],
+                          lat: [35.166342, 33.462372], lon: [-80.797285, -86.814338]})
+
+    def passed(check):
+        return next(r for r in checks.check_table("msa_year", table) if r.check == check).passed
+
+    in_range = (f"{lat} within 17 to 72", f"{lon} within -180 to -64")
+    filled = (f"{lat} filled in every row", f"{lon} filled in every row")
+    assert all(passed(check) for check in in_range + filled)
+    table[[lat, lon]] = table[[lon, lat]].to_numpy()  # columns swapped
+    assert not any(passed(check) for check in in_range)
+    table[[lat, lon]] = table[[lon, lat]].to_numpy()
+    table.loc[1, lon] = 86.814338  # the minus sign lost
+    assert not passed(in_range[1])
+    table.loc[1, lon] = None  # a metro without a point would quietly drop out of any distance
+    assert passed(in_range[1]) and not passed(filled[1])
+
+
 def test_spot_checks_compare_with_published_figures(project):
     seed(project)
     build_panel.build_all()

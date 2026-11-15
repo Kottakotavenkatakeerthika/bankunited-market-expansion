@@ -9,6 +9,8 @@ Column-name suffixes drive the range checks (see docs/data_dictionary.md):
 _count and _usd must be >= 0, _pct must be 0-100, _share must be 0-1, _hhi must be 0-10,000.
 _net: can be negative; no range check, except that a change in a share (_share_..._change_net,
 such as sod_top3_deposit_share_3y_change_net) must be within -1 to 1.
+_latitude must be 17 to 72 and _longitude -180 to -64 (the 50 states, DC and Puerto Rico), and
+neither may be empty.
 The data dictionary drives the schema checks: every processed column needs exactly
 one row in docs/data_dictionary.md, and its values must fit that row's Type (int,
 numeric, string, string(N) or date). A documented column that isn't built yet is
@@ -32,6 +34,9 @@ from src.build_panel import grid_years
 from src.utils import CODE_WIDTHS
 
 NONNEGATIVE_SUFFIXES = ("_count", "_usd")
+# Coordinates in decimal degrees, north and east positive. The bounds take in the 50 states, DC and
+# Puerto Rico, so a swapped or mis-signed pair fails: latitude 17 to 72, longitude -180 to -64.
+COORDINATE_BOUNDS = {"_latitude": (17.0, 72.0), "_longitude": (-180.0, -64.0)}
 MOSTLY_EMPTY = 0.5  # warn when more than half of a column is empty
 DICTIONARY_TYPES = re.compile(r"int|numeric|date|string(?:\((\d+)\))?")  # the Type column's allowed values
 
@@ -182,6 +187,13 @@ def check_table(table: str, df: pd.DataFrame) -> list[Result]:
         if re.search(r"_share_\w*change_net$", col):  # a change in a 0-1 share
             bad = int(((values < -1) | (values > 1)).sum())
             results.append(Result(table, f"{col} within -1 to 1", bad == 0, f"{bad} out of range" if bad else ""))
+        for suffix, (low, high) in COORDINATE_BOUNDS.items():
+            if col.endswith(suffix):  # a metro without a point would drop out of any distance quietly
+                outside = values[(values < low) | (values > high)]
+                results.append(Result(table, f"{col} within {low:g} to {high:g}", outside.empty,
+                                      f"{len(outside)} outside, e.g. {outside.head(3).tolist()}" if len(outside) else ""))
+                empty = int(df[col].isna().sum())
+                results.append(Result(table, f"{col} filled in every row", empty == 0, f"{empty} empty" if empty else ""))
 
     for col in df.columns:
         if col in keys or not len(df):
