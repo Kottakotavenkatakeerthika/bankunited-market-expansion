@@ -23,3 +23,9 @@ __pycache__/
 !outputs/pillar_scores/*.csv
 # Executed notebook copies: not tracked
 outputs/executed/
+
+# Exploratory Industry Fit workbook
+!docs/Industry_Fit_2023.xlsx
+
+# Regenerable date-specific Industry Fit reports
+outputs/as_of/

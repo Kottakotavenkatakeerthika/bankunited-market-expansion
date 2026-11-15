@@ -56,3 +56,94 @@ net_migration_rate      = 12.5
 
 [fill]  # missing values for these metrics count as the 50th percentile
 pillar1 = ["local_ci_growth", "local_cre_growth"]
+
+# Industry Fit configuration only;
+# Combined CBP sectors use 31 (31-33), 44 (44-45), and 48 (48-49).
+
+[industry_fit]
+growth_years = 4
+comparison_metros = ["16740", "12060", "39580", "34980", "45300", "19100"]
+
+[industry_fit.priorities."23"]
+label = "Construction"
+fit_priority = "High"
+
+[industry_fit.priorities."31"]
+label = "Manufacturing (31-33)"
+fit_priority = "High"
+
+[industry_fit.priorities."42"]
+label = "Wholesale Trade"
+fit_priority = "High"
+
+[industry_fit.priorities."48"]
+label = "Transportation and Warehousing (48-49)"
+fit_priority = "High"
+
+[industry_fit.priorities."53"]
+label = "Real Estate and Rental and Leasing"
+fit_priority = "High"
+
+[industry_fit.priorities."54"]
+label = "Professional, Scientific, and Technical Services"
+fit_priority = "High"
+
+[industry_fit.priorities."52"]
+label = "Finance and Insurance"
+fit_priority = "Medium"
+
+[industry_fit.priorities."62"]
+label = "Health Care and Social Assistance"
+fit_priority = "Medium"
+
+[industry_fit.priorities."61"]
+label = "Educational Services"
+fit_priority = "Medium"
+
+[industry_fit.priorities."44"]
+label = "Retail Trade (44-45)"
+fit_priority = "Medium"
+
+[industry_fit.priorities."22"]
+label = "Utilities"
+fit_priority = "Medium"
+
+[industry_fit.priorities."51"]
+label = "Information"
+fit_priority = "Low"
+
+[industry_fit.priorities."71"]
+label = "Arts, Entertainment, and Recreation"
+fit_priority = "Exclude"
+
+[industry_fit.priorities."72"]
+label = "Accommodation and Food Services"
+fit_priority = "Low"
+
+[industry_fit.priorities."92"]
+label = "Public Administration"
+fit_priority = "Low"
+
+[industry_fit.priorities."56"]
+label = "Administrative and Support and Waste Management and Remediation Services"
+fit_priority = "Low"
+
+[industry_fit.priorities."81"]
+label = "Other Services (except Public Administration)"
+fit_priority = "Low"
+
+[industry_fit.priorities."11"]
+label = "Agriculture, Forestry, Fishing and Hunting"
+fit_priority = "Low"
+
+[industry_fit.priorities."21"]
+label = "Mining, Quarrying, and Oil and Gas Extraction"
+fit_priority = "Low"
+
+[industry_fit.priorities."55"]
+label = "Management of Companies and Enterprises"
+fit_priority = "Low"
+
+[industry_fit.priorities."99"]
+label = "Unclassified Establishments"
+fit_priority = "Exclude"

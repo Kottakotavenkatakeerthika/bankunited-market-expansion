@@ -38,7 +38,10 @@ Method (same conventions as the pillar notebooks):
 Optional [fill] table in the weights file: metrics listed there count as the FILL_PERCENTILE (50th) where an
 MSA has no value, instead of leaving the pillar partial. Filled metrics are listed per MSA in filled_metrics.
 
-This is Market Attractiveness only. The Fit & Feasibility gate (src/bankunited_fit.py) is applied after it.
+The CLI also generates a separate Industry Fit report from src/bankunited_fit.py.
+--year selects that report's scoring year; this older combiner still reads existing
+pillar exports rather than rebuilding their metrics for the selected year. Industry
+Fit is not a final-score component or a population/adjacency eligibility gate.
 """
 from __future__ import annotations
 
@@ -113,7 +116,8 @@ def load_weights(path: Path) -> dict:
     with open(path, "rb") as f:
         cfg = tomllib.load(f)
     return normalize_weights({"pillars": cfg.get("pillars", {}), "fill": cfg.get("fill", {}),
-                              "metrics": {k: v for k, v in cfg.items() if k not in ("pillars", "fill")}},
+                              "metrics": {k: v for k, v in cfg.items()
+                                          if k not in ("pillars", "fill", "industry_fit")}},
                              source=str(path))
 
 
@@ -530,10 +534,17 @@ def main(argv=None) -> int:
     ap.add_argument("--allow-missing", action="store_true", help="score on the pillars that exist")
     ap.add_argument("--normalize", choices=["percentile", "none"], default=NORMALIZE)
     ap.add_argument("--show-weights", action="store_true", help="print the effective weights and stop")
+    ap.add_argument("--year", type=int, default=config.END_YEAR,
+                    help="Industry Fit scoring year (default %(default)s); existing pillar exports are not rebuilt")
+    ap.add_argument("--fit-priorities", type=Path,
+                    help="Industry Fit TOML (default weights/baseline.toml; independent of scenario weights)")
     args = ap.parse_args(argv)
     try:
         out, report = run(weights_file=args.weights, name=args.name, allow_missing=args.allow_missing,
                           normalize=args.normalize, write=not args.show_weights)
+        if not args.show_weights:
+            from src.bankunited_fit import generate_report
+            fit_report = generate_report(scoring_year=args.year, priorities_file=args.fit_priorities)
     except (GateError, ValueError, FileNotFoundError) as e:
         print(e, file=sys.stderr)
         return 1
@@ -544,6 +555,7 @@ def main(argv=None) -> int:
         return 0
     print(summary(out, report))
     print(f"\nwrote {report['written'][0]} and {report['written'][1]}")
+    print(f"Industry Fit: wrote {fit_report}")
     return 0
 
 
