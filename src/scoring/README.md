@@ -6,8 +6,10 @@ scenario comparisons are in `src/market_attractiveness.py` and `src/compare_scen
 pillar reports are in `notebooks/`. This README covers the whole scoring section: how to run it, how it works,
 how to change it, and what comes out.
 
-Market Attractiveness answers *"is this a good commercial banking market?"* It does not yet answer *"is it a
-good market for BankUnited?"*: the Fit & Feasibility gate (`src/bankunited_fit.py`) is still to be built.
+Market Attractiveness answers *"is this a good commercial banking market?"* BankUnited-specific fit is handled
+by **Fit filters** applied after scoring: a size floor (on by default, 250,000), distance to BankUnited's
+markets, industry share, and excluding current markets (all off by default). A metro that fails a filter keeps
+its score but isn't ranked (sections 7, 7b and 7c).
 
 ---
 
@@ -34,6 +36,8 @@ python -m src.market_attractiveness                                       # base
 python -m src.market_attractiveness --weights weights/strategy/cre_led.toml
 python -m src.market_attractiveness --show-weights                        # print effective weights and stop
 python -m src.market_attractiveness --min-population 0                    # try another size floor (0 = off) without editing files
+python -m src.market_attractiveness --max-miles 500                       # try a Fit filter (also --min-miles,
+python -m src.market_attractiveness --min-industry-share 70               #   --exclude-current-markets)
 python -m src.market_attractiveness --normalize none                      # average raw pillar scores (method check)
 ```
 
@@ -50,10 +54,11 @@ To look at a pillar, open its report in `notebooks/` and run all cells.
 | `src/scoring/engine.py` | Pillar scores, the pillar files and the metric catalog | rarely |
 | `src/scoring/asof.py` | Point-in-time settings for `--as-of` | rarely |
 | `src/scoring/run.py` | The one command; also builds the composite metric (competition × growth) | rarely |
+| `src/scoring/fit.py` | Fit measures: distance to BankUnited markets, industry share | rarely |
 | `src/market_attractiveness.py` | Combines the pillars into the final score and ranks metros | rarely |
 | `src/compare_scenarios.py` | Runs every scenario and writes the comparison tables | rarely |
-| `config/settings.toml` | **How metrics are built**: years, windows, thresholds, the HQ-deposit treatment, the competition × growth corners | change a year, window, threshold or corner |
-| `weights/baseline.toml` | **How much each metric and pillar counts**, the size floor, gap filling | change a weight or the size floor |
+| `config/settings.toml` | **How metrics are built**: years, windows, thresholds, the HQ-deposit treatment, the competition × growth corners, the industry-share year | change a year, window, threshold or corner |
+| `weights/baseline.toml` | **How much each metric and pillar counts**, gap filling, and the filters: size floor (`[universe]`), Fit filters and industry selection (`[fit]`, `[fit.industries]`) | change a weight, the size floor or a Fit filter |
 | `weights/strategy/*.toml` | The six Phase 1 strategy scenarios | change or add a strategy scenario |
 | `weights/scenarios/*.toml` | Sensitivity tests | change or add a sensitivity test |
 | `notebooks/pillar*.ipynb` | Read-only reports, one per pillar | nothing; they only display results |
@@ -83,7 +88,7 @@ data/processed/  ──►  pillar scripts  ──►  raw metric values (every 
                                                 │
                        final score           weighted mean of the four pillar percentiles
                                                 │
-                       rank                  complete metros at or above the size floor only
+                       rank                  complete metros that pass the size floor and any Fit filter
 ```
 
 **Step by step:**
@@ -103,7 +108,8 @@ data/processed/  ──►  pillar scripts  ──►  raw metric values (every 
    used where it exists, otherwise its available-data score if that covers at least half the pillar's weight.
 6. **Final score.** The weighted mean of the four pillar percentiles. The four `pillarN_points` columns add up
    to it.
-7. **Rank.** Only metros complete on all four pillars, and at or above the size floor, are ranked.
+7. **Rank.** Only metros complete on all four pillars that pass the size floor and every Fit filter that is on
+   are ranked. Filters never change a score; ranks just close up.
 8. **Rank range.** `best_rank` and `worst_rank` are the best and worst rank when one pillar weight at a time
    moves up or down by a quarter (25% → 18.75% or 31.25%).
 
@@ -118,7 +124,7 @@ counts are not adjusted for home-banking offices; SOD doesn't flag them.
 ## 4. The metrics
 
 Weights are within the pillar. Each pillar is 25% of the final score in the baseline, so a metric's share of
-the final score is a quarter of its pillar weight. All 31 metrics, with coverage, are in
+the final score is a quarter of its pillar weight. All 32 metrics (27 weighted in the baseline), with coverage, are in
 `outputs/pillar_scores/metric_catalog.csv`.
 
 ### Pillar 1: Commercial lending
@@ -185,8 +191,8 @@ Those metros can't get a complete score, which is most of the 100 metros left un
 ## 5. Competition × growth (scenario `pillar3_competition_growth`)
 
 This metric is built on every run and shown in the Pillar 3 file and report, but it has weight 0 in the baseline.
-The `pillar3_competition_growth` scenario uses it at 80% of Pillar 3; in that scenario Charlotte ranks 10th
-(9th–11th), against 17th in the baseline.
+The `pillar3_competition_growth` scenario uses it at 80% of Pillar 3; in that scenario Charlotte ranks 9th
+(9th–10th), against 17th in the baseline.
 
 How attractive "few competitors" is depends on whether the market is growing. Few competitors in a growing
 market is an opening; few competitors in a stable market means entrenched incumbents.
@@ -241,8 +247,9 @@ pillar1 = ["local_ci_growth", "local_cre_growth"]
   out.
 - **A metric not listed counts 0.** A name that isn't a metric of that pillar stops the run with an error.
 - **Every pillar with weight above 0 needs a `[pillarN]` table.**
-- **Scenario files** have the same layout. A scenario file without a `[universe]` table uses the baseline's
-  size floor, so the floor only needs changing in one place.
+- **Scenario files** have the same layout. Weights are self-contained per file, but filters inherit: a
+  scenario without `[universe]` uses the baseline's size floor, and every `[fit]` setting a scenario doesn't
+  set comes from the baseline (sections 7b–7c).
 
 ### Scenarios
 
@@ -251,8 +258,8 @@ pillar1 = ["local_ci_growth", "local_cre_growth"]
 | Strategy (Phase 1 methodology) | `weights/strategy/` | `ci_led`, `cre_led`, `deposit_led`, `talent_led`, `adjacency`, `emerging_market`; the baseline is Balanced franchise |
 | Sensitivity | `weights/scenarios/` | `fill_local_lender`, `lending_led`, `no_industry_hhi`, `no_local_lender`, `no_scale_metrics`, `pillar3_competition_growth`, `pillar3_off` |
 
-Talent-led and Adjacency differ from the baseline only in Fit & Feasibility, so until that exists they give
-the baseline ranking (the summary flags them as `same_as_baseline`). Emerging Market's "growth over levels"
+Talent-led and Adjacency differ from the baseline only in their Fit emphasis (a talent component, an
+entry-pattern component), which isn't implemented, so they give the baseline ranking (the summary flags them as `same_as_baseline`). Emerging Market's "growth over levels"
 tilt is not applied yet; only its pillar weights differ. `fill_local_lender` now matches the baseline, which
 already fills.
 
@@ -295,11 +302,14 @@ min_miles_to_bankunited = 0      # 0 = off; only metros at least this far away c
 exclude_current_markets = false  # true: BankUnited's own markets are scored but not ranked
 ```
 
-All off by default. A scenario inherits each `[fit]` setting it doesn't set itself from the baseline. To try one without editing files:
-`python -m src.market_attractiveness --max-miles 300` (also `--min-miles`, `--exclude-current-markets`).
-Statuses: "Outside distance range (max 300 mi)", "Current BankUnited market", and "Insufficient data (no
-coordinates)" for a metro without a point. Until the coordinates are in `data/processed`, the distance columns
-are blank and a distance filter stops the run with a clear message.
+All off by default. A scenario inherits each `[fit]` setting it doesn't set itself from the baseline. To try one
+without editing files: `python -m src.market_attractiveness --max-miles 300` (also `--min-miles`,
+`--exclude-current-markets`). Statuses: "Outside distance range (max 300 mi)", "Current BankUnited market", and
+"Insufficient data (no coordinates)" for a metro without a point. If the coordinate columns are missing from
+`data/processed` (data before v0.6), the distance columns are blank and a distance filter stops the run with a
+clear message.
+
+With the current data, a 500-mile limit ranks 113 metros and a 300-mile limit 87 (Charlotte 14th and 13th).
 
 ## 7c. Fit filters: industry share
 
@@ -351,7 +361,7 @@ never overwrites the current results.
   automatically); the other sources start in 2015, so runs before about 2023 have shorter growth and
   volatility windows than today's.
 - **Pandemic years.** Runs from 2020–2022 have the 2020–21 deposit surge inside their deposit-growth windows,
-  which moves the ranking a lot (Charlotte: 42nd as of mid-2021, 28th six months later).
+  which moves the ranking a lot (Charlotte: 40th as of mid-2021, 27th six months later).
 - **Market labels move with the date.** BankUnited's markets are labelled as of the date: a mid-2025 run doesn't
   count Charlotte (entered July 2025), and a run before April 2022 doesn't count Atlanta.
 - **Values are the latest vintage.** `data/processed` holds each source's latest revision, so an as-of run shows
@@ -380,17 +390,19 @@ All are rewritten by every run.
 | `outputs/final_scores/scenario/` | | the same three kinds of file for the sensitivity scenarios (`scenario_summary.csv`, `scenario_bankunited_ranks.csv`) |
 | `outputs/pillar_scores/pillarN_scores.csv` | metro | the pillar score under the baseline weights, `raw_` and `pct_` values for *every* metric, and the pillar's diagnostics |
 | `outputs/pillar_scores/pillarN_run.json` | pillar | settings, effective weights, coverage |
-| `outputs/pillar_scores/metric_catalog.csv` | metric (31) | pillar, label, direction, period, source, coverage, baseline weight |
+| `outputs/pillar_scores/metric_catalog.csv` | metric (32) | pillar, label, direction, period, source, coverage, baseline weight |
 
 **Columns in the final score files:**
 
 | Column | Meaning |
 |---|---|
-| `complete_score`, `rank` | the score and rank; blank for partial metros and metros below the size floor |
+| `complete_score`, `rank` | the score and rank; blank for partial metros and metros that fail the size floor or a Fit filter |
 | `available_score` | the score from the pillars a metro has (filled for every metro with data) |
 | `best_rank`, `worst_rank` | the rank range under ±25% pillar weight changes |
 | `coverage_status`, `missing_or_partial_pillars` | why a metro isn't ranked |
 | `population`, `below_size_floor` | the size floor test |
+| `miles_to_nearest_bankunited_market`, `nearest_bankunited_market`, `is_bankunited_market`, `outside_distance_range` | distance to BankUnited's markets and the distance filter (section 7b) |
+| `industry_share`, `industry_share_percentile`, `industry_sectors_missing`, `below_industry_share` | industry share and its filter (section 7c) |
 | `filled_metrics` | metrics set to the 50th percentile for that metro |
 | `pillarN_score`, `pillarN_percentile`, `pillarN_points` | each pillar's score, its percentile, and its points in the final score |
 | `bankunited_market` | "branch market", or the office-only label (Atlanta, Charlotte, Houston) |
@@ -465,6 +477,11 @@ If the metric needs data that isn't in `data/processed`, ask data engineering to
 - **As-of:** today reproduces the settings file; mid-2025 uses only data released by then; dates before the data
   are rejected.
 - **Competition × growth:** it hits each corner, and is blank exactly where its inputs are.
+- **Distance:** known distances (Charlotte–Miami 627 miles), BankUnited markets at 0, the filter, as-of markets.
+- **Industry share:** a hand-calculated share, the published total as denominator, blanks only for selected
+  suppressed sectors, Charlotte 70.32% as in the research, the filter, the as-of year.
+- **Filters:** scores unchanged under every filter; `[fit]` settings inherit one by one; a scenario's
+  `[fit.industries]` replaces the baseline's list; bad settings are rejected.
 
 **After any deliberate change** (a weight, setting, metric or corner), rerun `python -m src.scoring.run` and
 commit the new outputs with the change. The output tests fail until you do. That's intended: results can't
@@ -481,6 +498,9 @@ change without the outputs that show it.
 | `[fill] lists ... which are not metrics of this pillar` | `[fill]` names a metric that doesn't exist | Fix the name |
 | `x.toml is in both weights/scenarios/ and weights/strategy/` | Two scenario files share a name | Rename one |
 | `as of ...: no released data held for ...; pick a later date` | The date is before the data starts | Use a later date |
+| `a distance filter ... needs the Gazetteer coordinates` | A distance filter is on but `msa_year` has no coordinates | Use data-v0.6 or later, or turn the filter off |
+| `[fit.industries] has codes that aren't CBP sectors` | A sector code is wrong (or 92, which CBP doesn't cover) | Use the two-digit codes listed in `baseline.toml` |
+| `[fit.industries] selects no sector` | Every sector is false | Set at least one to true |
 | Output tests fail after a change | The committed outputs are from before the change | `python -m src.scoring.run`, then commit the outputs |
 | `PermissionError` writing a CSV | The file is open in Excel, or being synced | Close it, or pause syncing, and rerun |
 
@@ -488,12 +508,15 @@ change without the outputs that show it.
 
 ## 14. Known limits
 
-- **Fit & Feasibility isn't applied.** These are Market Attractiveness ranks only.
+- **Fit filters are simple gates, mostly off.** Only the size floor is on by default. The distance and
+  industry thresholds, and their effect on BankUnited's own markets (an industry share of 72% ranks none of
+  them), haven't been agreed with the sponsor. Talent and peer presence aren't measured.
 - **Middle market is 20–249 employees,** not the design's 20–499: CBP's 250–499 band isn't in `data/processed`.
 - **CRE is 30% of Pillar 1** (CRE payroll growth and local-lender CRE growth). There's no public loan-level
   source for office, retail or industrial CRE lending.
-- **Size and growth.** The baseline correlates 0.60 with population (see `no_scale_metrics`), and growth
-  appears in several pillars.
+- **Size and growth.** Among ranked metros the baseline correlates 0.42 with population (0.35 in
+  `no_scale_metrics`), and growth appears in several pillars.
 - **Back-tests use the latest vintage** of each source, not the values first published.
 - **Unvalidated weights.** Neither the weights nor the competition × growth corners have been validated against
-  outcomes yet; the 2016–2021 peer-entry back-test is the planned check.
+  outcomes yet. The planned peer-entry back-test can't use entry years before 2020, because `--as-of` can't
+  go earlier than December 2019.

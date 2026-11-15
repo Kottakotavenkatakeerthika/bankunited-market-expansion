@@ -27,14 +27,18 @@ Method (same conventions as the pillar notebooks):
        used where it exists, otherwise its available-data score if it covers at least MIN_PILLAR_COVERAGE of
        the pillar's weight.
     3. available_score = weighted mean of the pillar percentiles an MSA has (weights renormalized).
-       complete_score = the same, only when every pillar in the run is complete for that MSA.
-       rank is among complete MSAs only.
+       complete_score = the same, only when every pillar in the run is complete for that MSA and it passes
+       every filter below. rank is among those MSAs only.
     4. best_rank / worst_rank: rank range when each pillar weight alone moves +/-25%, as in the notebooks.
 
 Optional [fill] table in the weights file: metrics listed there count as the FILL_PERCENTILE (50th) where an
 MSA has no value, instead of leaving the pillar partial. Filled metrics are listed per MSA in filled_metrics.
 
-This is Market Attractiveness only. The Fit & Feasibility gate (src/bankunited_fit.py) is applied after it.
+Filters, applied after scoring (a metro that fails keeps its available_score but gets no rank; other scores
+are unchanged): [universe] min_population (the size floor), and [fit] max/min_miles_to_bankunited,
+min_industry_share with [fit.industries], exclude_current_markets (src/scoring/fit.py). A scenario without
+[universe] uses the baseline's floor; each [fit] setting a scenario doesn't set comes from the baseline, and a
+scenario's own [fit.industries] replaces the baseline's list. See src/scoring/README.md, sections 7-7c.
 """
 from __future__ import annotations
 
@@ -709,7 +713,7 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
 
     report = {
         "run_date": str(pd.Timestamp.today().date()),
-        "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
+        "score": "Market Attractiveness, ranked after the size floor and Fit filters (see universe and fit)",
         "scenario": name,
         "weights_source": source,
         "pillars_in_run": list(tables),

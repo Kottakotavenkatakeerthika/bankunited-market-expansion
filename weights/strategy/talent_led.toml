@@ -1,7 +1,7 @@
 # Strategy scenario (Phase 1 methodology): Talent-led.
 # Fit & Feasibility emphasis: Talent component at 40%.
 # Market Attractiveness weights are the same as the baseline (Balanced franchise): this scenario
-# differs only in Fit & Feasibility, which isn't built yet (src/bankunited_fit.py). Until it is, this
+# differs only in its Fit emphasis, which isn't implemented (Fit filters apply to every scenario alike), so this
 # run gives the baseline ranking exactly; it's kept so the set of seven is complete.
 # Metric weights and [fill] are the baseline's (weights/baseline.toml as of 2026-10-29).
 # Balanced franchise is the baseline itself, so it has no file here.

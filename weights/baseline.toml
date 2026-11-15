@@ -1,6 +1,6 @@
 # Final-score weights: Market Attractiveness = pillars, each pillar = its metrics.
 #
-# Edit a number, then run:   python -m src.market_attractiveness
+# Edit a number, then run:   python -m src.scoring.run      (or python -m src.market_attractiveness for the baseline only)
 # For a scenario, copy this file (e.g. weights/size_heavy.toml), edit it, then run:
 #                            python -m src.market_attractiveness --weights weights/size_heavy.toml
 # A scenario's output shows each MSA's rank change against this baseline.
