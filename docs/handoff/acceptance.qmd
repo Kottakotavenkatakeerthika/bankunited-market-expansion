@@ -1,0 +1,19 @@
+---
+title: "Final review and acceptance"
+---
+
+
+**Status: NOT SIGNED OFF.** This chapter is a proposed acceptance record.
+
+| Review area | Proposed reviewer | Evidence needed | Status |
+|---|---|---|---|
+| Data acquisition and pipeline | Austin / Bhavana | Source-access guide, rebuild logs, warnings | Review pending |
+| Scoring and scenarios | Matt / Jainesh / Evan | Methodology, baseline and scenario comparisons | Review pending |
+| AI/explainability | Sonia | Explainability examples and scope | Review pending |
+| Integration and dashboard | Keerthika | Corrected README, PBIX refresh verification | Review pending |
+| Documentation completeness | Varun | Quarto book, tracker, evidence index | In progress |
+| Business acceptance | Akayiah / Kort / Elliot | Accepted scope, exceptions, approval date | Pending |
+
+**Proposed milestones:** November 20 draft; November 29 content-complete target; December 4 final delivery. Dates require team confirmation.
+
+Record actual reviewer names, approvals, exception decisions and dates here only after confirmation.

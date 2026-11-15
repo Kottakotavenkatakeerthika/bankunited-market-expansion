@@ -1,0 +1,36 @@
+project:
+  type: book
+  output-dir: _site
+
+book:
+  title: "BankUnited Market Expansion — Technical & Sponsor Handoff"
+  subtitle: "Working documentation — integrated-v0.2"
+  author: "BankUnited Practicum Team"
+  date: "2026-11-13"
+  chapters:
+    - index.qmd
+    - scope-and-audience.qmd
+    - technical-handoff.qmd
+    - data-sources.qmd
+    - data-dictionary.qmd
+    - methodology.qmd
+    - dashboard.qmd
+    - validation.qmd
+    - evidence.qmd
+    - limitations-and-gaps.qmd
+    - governance.qmd
+    - acceptance.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    number-sections: true
+    code-copy: true
+  pdf:
+    documentclass: scrbook
+    toc: true
+    number-sections: true
+
+execute:
+  enabled: false
