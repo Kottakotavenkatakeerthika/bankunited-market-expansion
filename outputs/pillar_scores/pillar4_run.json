@@ -1,0 +1,33 @@
+{
+  "pillar": "pillar4",
+  "label": "Market quality and durability",
+  "built_by": "src.scoring.pillar4",
+  "run_date": "2026-11-12",
+  "weights_file": "weights/baseline.toml",
+  "effective_weights": {
+    "gdp_growth": 0.125,
+    "gdp_volatility": 0.125,
+    "unemployment_level": 0.125,
+    "unemployment_volatility": 0.125,
+    "industry_hhi": 0.125,
+    "establishment_growth": 0.125,
+    "population_growth": 0.125,
+    "net_migration_rate": 0.125
+  },
+  "unweighted_metrics": [],
+  "weighted_but_not_available": [],
+  "not_available": [],
+  "settings": {
+    "end_year": 2024,
+    "growth_start": 2019,
+    "gdp_volatility_start": 2016,
+    "unemployment_start": 2015,
+    "cbp_start": 2018,
+    "cbp_end": 2023,
+    "industry_year": 2023,
+    "migration_year": 2024
+  },
+  "metros": 387,
+  "complete_msas": 287,
+  "note": "For reading only. The final score rebuilds pillars from the metric builders and weights files."
+}

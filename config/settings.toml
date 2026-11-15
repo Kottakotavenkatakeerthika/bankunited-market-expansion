@@ -1,0 +1,45 @@
+# Settings for the pillar metric builders (src/scoring/). How metrics are built lives here;
+# how much each one counts lives in weights/baseline.toml.
+
+[pillar3]
+score_year  = 2024
+hq_adjusted = true   # leave out main-office and home-banking-office bookings
+
+[pillar3.competition_growth]   # competition x growth (T70), metric P3-08. Built every run; weighted only in
+                               # weights/scenarios/pillar3_competition_growth.toml (baseline weight 0).
+                               # How much "few competitors" is worth depends on growth.
+concentration_metric = "deposit_hhi"                                              # fewness = HHI percentile, 100 = most concentrated
+growth_metrics       = ["pillar2.deposit_growth", "pillar1.mm_growth", "pillar4.gdp_growth"]  # growth = their mean percentile
+# Score at each corner of fewness x growth (0-100); metros in between are interpolated.
+corners = { few_growing = 100, many_growing = 50, few_stable = 0, many_stable = 50 }
+
+[pillar1]
+local_lender_threshold       = 0.50          # a bank is a local lender in a metro holding >= this share of its domestic deposits
+growth_cap                   = 0.25          # max annual same-bank loan growth counted (so acquisitions don't read as demand)
+base_quarter                 = "2019-06-30"  # Call Report / SOD start
+end_quarter                  = "2024-06-30"  # Call Report / SOD end (SOD June 30 survey)
+cbp_start                    = 2018
+cbp_end                      = 2023
+exclude_home_banking_offices = true          # treat home-banking-office deposits like main-office bookings (10/26 decision)
+
+[pillar2]
+sod_start                    = 2019          # SOD June 30 surveys
+sod_end                      = 2024
+call_quarter                 = "2024-06-30"  # matches the SOD date
+qcew_start                   = 2019
+qcew_end                     = 2024
+bea_start                    = 2019
+bea_end                      = 2024
+cbp_year                     = 2023
+exclude_home_banking_offices = true          # 10/26 decision: treat like main-office bookings
+min_call_coverage            = 0.50          # share of a metro's deposits that must match a Call Report
+
+[pillar4]
+end_year             = 2024   # last year for GDP, unemployment, population and migration
+growth_start         = 2019   # start of GDP and population growth
+gdp_volatility_start = 2016   # first annual GDP growth rate in the volatility SD (2016–2024: 9 rates)
+unemployment_start   = 2015   # first year in the unemployment volatility SD (2015–2024: 10 rates)
+cbp_start            = 2018   # establishment growth
+cbp_end              = 2023
+industry_year        = 2023   # CBP year for industry HHI
+migration_year       = 2024   # PEP net migration year (PEP has none for 2020, the Census base year)
