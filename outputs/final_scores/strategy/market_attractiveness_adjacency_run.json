@@ -65,14 +65,16 @@
     },
     "universe_set": false,
     "fit": {
-      "max_miles_to_bankunited": 0,
+      "max_miles_to_bankunited": 500,
       "min_miles_to_bankunited": 0,
       "exclude_current_markets": false,
       "min_industry_share": 0
     },
-    "fit_given": {},
+    "fit_given": {
+      "max_miles_to_bankunited": 500
+    },
     "industries_given": null,
-    "fit_set": false,
+    "fit_set": true,
     "options_given": {}
   },
   "weights_effective": {
@@ -132,7 +134,7 @@
   },
   "compared_to_baseline": true,
   "entered_complete_set": 0,
-  "left_complete_set": 0,
+  "left_complete_set": 69,
   "settings": {
     "normalize": "percentile",
     "min_pillar_coverage": 0.5,
@@ -143,7 +145,7 @@
     "industry_hhi_missing_sectors": "leave_out"
   },
   "fit": {
-    "max_miles_to_bankunited": 0,
+    "max_miles_to_bankunited": 500,
     "min_miles_to_bankunited": 0,
     "exclude_current_markets": false,
     "min_industry_share": 0,
@@ -163,7 +165,7 @@
       "42680",
       "45300"
     ],
-    "outside_distance_range": 0,
+    "outside_distance_range": 69,
     "current_markets_excluded": 0,
     "industries": [
       "22",
@@ -268,7 +270,7 @@
     }
   },
   "msas": 387,
-  "complete_msas": 190,
+  "complete_msas": 121,
   "warnings": [
     "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth set to the 50th percentile"
   ]

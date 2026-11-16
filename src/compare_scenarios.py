@@ -40,7 +40,7 @@ GROUPS = {"sensitivity": "weights/scenarios", "strategy": "weights/strategy"}
 BASELINE_LABEL = {"strategy": "baseline (balanced franchise)"}
 OUTPUT_SUFFIX = {"sensitivity": "", "strategy": "_strategy"}
 # Row order in the outputs; runs not listed follow in file-name order.
-ORDER = {"strategy": ["ci_led", "cre_led", "deposit_led", "talent_led", "adjacency", "emerging_market"]}
+ORDER = {"strategy": ["ci_led", "cre_led", "deposit_led", "adjacency", "emerging_market"]}
 
 
 def group_of(weights_source: str | None) -> str | None:

@@ -3,6 +3,5 @@ baseline (balanced franchise),25.0,25.0,25.0,25.0,250000,0,0,False,0,leave_out,1
 ci_led,35.0,25.0,20.0,20.0,250000,0,0,False,0,leave_out,190,False,0.993,24,30,0.43,18.0,17.0,22.0,12,21.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
 cre_led,35.0,15.0,20.0,30.0,250000,0,0,False,0,leave_out,190,False,0.985,24,58,0.36,18.0,16.0,18.0,12,22.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
 deposit_led,20.0,40.0,20.0,20.0,250000,0,0,False,0,leave_out,190,False,0.987,23,59,0.5,16.0,15.0,19.0,12,18.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-talent_led,25.0,25.0,25.0,25.0,250000,0,0,False,0,leave_out,190,True,1.0,25,0,0.43,19.0,16.0,21.0,12,19.5,Austin; Raleigh; Nashville; Phoenix; Indianapolis
-adjacency,25.0,25.0,25.0,25.0,250000,0,0,False,0,leave_out,190,True,1.0,25,0,0.43,19.0,16.0,21.0,12,19.5,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+adjacency,25.0,25.0,25.0,25.0,250000,500,0,False,0,leave_out,121,False,1.0,21,0,0.47,16.0,13.0,18.0,12,16.5,Austin; Raleigh; Nashville; Indianapolis; Portland
 emerging_market,25.0,20.0,20.0,35.0,250000,0,0,False,0,leave_out,190,False,0.991,23,36,0.38,16.0,15.0,17.0,12,20.0,Austin; Raleigh; Phoenix; Nashville; Portland

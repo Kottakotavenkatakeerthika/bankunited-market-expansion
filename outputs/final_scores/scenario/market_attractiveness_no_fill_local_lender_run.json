@@ -1,8 +1,8 @@
 {
   "run_date": "2026-11-16",
   "score": "Market Attractiveness, ranked after the size floor and Fit filters (see universe and fit)",
-  "scenario": "fill_local_lender",
-  "weights_source": "weights/scenarios/fill_local_lender.toml",
+  "scenario": "no_fill_local_lender",
+  "weights_source": "weights/scenarios/no_fill_local_lender.toml",
   "pillars_in_run": [
     "pillar1",
     "pillar2",
@@ -54,12 +54,7 @@
         "net_migration_rate": 12.5
       }
     },
-    "fill": {
-      "pillar1": [
-        "local_ci_growth",
-        "local_cre_growth"
-      ]
-    },
+    "fill": {},
     "universe": {
       "min_population": 0
     },
@@ -118,21 +113,10 @@
       "net_migration_rate": 0.125
     }
   },
-  "fill": {
-    "percentile": 50.0,
-    "pillars": {
-      "pillar1": {
-        "metrics": [
-          "local_ci_growth",
-          "local_cre_growth"
-        ],
-        "msas_filled": 61
-      }
-    }
-  },
+  "fill": null,
   "compared_to_baseline": true,
   "entered_complete_set": 0,
-  "left_complete_set": 0,
+  "left_complete_set": 18,
   "settings": {
     "normalize": "percentile",
     "min_pillar_coverage": 0.5,
@@ -185,14 +169,14 @@
   "universe": {
     "min_population": 250000,
     "population_year": 2024,
-    "below_size_floor": 191
+    "below_size_floor": 149
   },
   "as_of": null,
   "inputs": {
     "pillar1": {
       "source": "src.scoring.pillar1",
       "rows": 387,
-      "complete": 381,
+      "complete": 321,
       "metrics_defined": 8,
       "metrics_weighted": 6,
       "settings": {
@@ -268,8 +252,6 @@
     }
   },
   "msas": 387,
-  "complete_msas": 190,
-  "warnings": [
-    "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth set to the 50th percentile"
-  ]
+  "complete_msas": 172,
+  "warnings": []
 }

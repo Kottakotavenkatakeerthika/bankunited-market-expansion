@@ -270,13 +270,16 @@ min_population = 250000     # size floor (section 7); 0 = off
 
 | Group | Folder | Scenarios |
 |---|---|---|
-| Strategy (Phase 1 methodology) | `weights/strategy/` | `ci_led`, `cre_led`, `deposit_led`, `talent_led`, `adjacency`, `emerging_market`; the baseline is Balanced franchise |
-| Sensitivity | `weights/scenarios/` | `fill_local_lender`, `lending_led`, `no_industry_hhi`, `no_local_lender`, `no_scale_metrics`, `pillar3_competition_growth`, `pillar3_off` |
+| Strategy (Phase 1 methodology) | `weights/strategy/` | `ci_led`, `cre_led`, `deposit_led`, `adjacency`, `emerging_market`; the baseline is Balanced franchise |
+| Sensitivity | `weights/scenarios/` | `lending_led`, `no_fill_local_lender`, `no_industry_hhi`, `no_local_lender`, `no_scale_metrics`, `pillar3_competition_growth`, `pillar3_off` |
 
-Talent-led and Adjacency differ from the baseline only in their Fit emphasis (a talent component, an
-entry-pattern component), which isn't implemented, so they give the baseline ranking (the summary flags them as `same_as_baseline`). Emerging Market's "growth over levels"
-tilt is not applied yet; only its pillar weights differ. `fill_local_lender` now matches the baseline, which
-already fills.
+- **Adjacency** uses the baseline's weights with a distance filter: only metros within 500 miles of a BankUnited
+  market can rank (`[fit] max_miles_to_bankunited = 500` in its file).
+- **Talent-led** was removed: it differed only by a talent emphasis, and talent isn't measured yet. Adding
+  banking-employment data would let it come back.
+- **Emerging Market's** "growth over levels" tilt is not applied yet; only its pillar weights differ.
+- **`no_fill_local_lender`** shows what the baseline's gap filling does: without `[fill]`, the 61 metros with no
+  local lender are partial and unranked.
 
 File names must be unique across both folders, because outputs are named after them.
 
