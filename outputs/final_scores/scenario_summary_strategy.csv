@@ -1,8 +1,0 @@
-scenario,w_pillar1,w_pillar2,w_pillar3,w_pillar4,complete_msas,same_as_baseline,rank_corr_vs_baseline,top25_shared_with_baseline,msas_moved_10plus,corr_with_population,charlotte_rank,charlotte_best_rank,charlotte_worst_rank,bankunited_ranked,bankunited_median_rank,top5
-baseline (balanced franchise),25.0,25.0,25.0,25.0,287,False,1.0,25,0,0.6,16.0,14.0,19.0,13,18.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-ci_led,35.0,25.0,20.0,20.0,287,False,0.994,24,79,0.6,16.0,15.0,20.0,13,20.0,Austin; Raleigh; Phoenix; Indianapolis; Nashville
-cre_led,35.0,15.0,20.0,30.0,287,False,0.987,23,117,0.55,16.0,14.0,17.0,13,22.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-deposit_led,20.0,40.0,20.0,20.0,287,False,0.991,24,106,0.64,15.0,14.0,17.0,13,17.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-talent_led,25.0,25.0,25.0,25.0,287,True,1.0,25,0,0.6,16.0,14.0,19.0,13,18.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-adjacency,25.0,25.0,25.0,25.0,287,True,1.0,25,0,0.6,16.0,14.0,19.0,13,18.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-emerging_market,25.0,20.0,20.0,35.0,287,False,0.991,23,102,0.55,14.0,13.0,15.0,13,19.0,Austin; Raleigh; Phoenix; Nashville; Portland

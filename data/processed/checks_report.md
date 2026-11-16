@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-11-11 03:34 UTC on commit `e740d38`
+Run 2026-11-15 18:50 UTC on commit `e6ac53a`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -40,6 +40,10 @@ Run 2026-11-11 03:34 UTC on commit `e740d38`
 | msa_year | cre_nonres_construction_counties_reported_count >= 0 | pass |  |
 | msa_year | cre_nonres_construction_qcew_fallback_counties_count >= 0 | pass |  |
 | msa_year | fred_unemployment_rate_pct within 0-100 | pass |  |
+| msa_year | gazetteer_internal_point_latitude within 17 to 72 | pass |  |
+| msa_year | gazetteer_internal_point_latitude filled in every row | pass |  |
+| msa_year | gazetteer_internal_point_longitude within -180 to -64 | pass |  |
+| msa_year | gazetteer_internal_point_longitude filled in every row | pass |  |
 | msa_year | pep_population_count >= 0 | pass |  |
 | msa_year | pep_counties_reported_count >= 0 | pass |  |
 | msa_year | sod_deposits_usd >= 0 | pass |  |
