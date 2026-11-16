@@ -283,23 +283,12 @@ def test_a_single_weighted_metric_can_be_scored():
 
 
 # --- Fit: distance to BankUnited markets (T71) ---------------------------------------------------------------
-# data-v0.6 adds the Census Gazetteer internal points to msa_year. Until then these tests use stand-in points
-# (tests/fixtures/msa_points_for_tests.csv: 2020 population-weighted centres, 388 metros, no Connecticut).
+# Uses the Census Gazetteer points that data-v0.6 adds to msa_year; skipped on older data.
 from src.scoring import fit as fitm  # noqa: E402
 
-FIXTURE_POINTS = config.ROOT / "tests" / "fixtures" / "msa_points_for_tests.csv"
 HAS_GAZETTEER = (PROCESSED / "msa_year.parquet").exists() and fitm.LAT in pd.read_parquet(
     PROCESSED / "msa_year.parquet").columns
-
-
-@pytest.fixture
-def stand_in_points(monkeypatch):
-    p = pd.read_csv(FIXTURE_POINTS, dtype={"cbsa_code": str}).set_index("cbsa_code")
-    titles = pd.read_parquet(PROCESSED / "msa_year.parquet", columns=["cbsa_code", "cbsa_title"]) \
-        .drop_duplicates("cbsa_code").set_index("cbsa_code")["cbsa_title"]
-    coords = pd.DataFrame({"cbsa_title": titles.reindex(p.index), "lat": p["lat"], "lon": p["lon"]})
-    monkeypatch.setattr(fitm, "load_coordinates", lambda root: coords)
-    return coords
+needs_coordinates = pytest.mark.skipif(not HAS_GAZETTEER, reason="needs data-v0.6 (Gazetteer coordinates in msa_year)")
 
 
 def test_miles_between():
@@ -314,8 +303,8 @@ def test_distance_columns_without_coordinates_are_blank():
     assert out["is_bankunited_market"].tolist() == [False, True]
 
 
-@needs_data
-def test_distances_with_stand_in_points(stand_in_points):
+@needs_coordinates
+def test_distances_to_bankunited_markets():
     out, rep = ma.run(write=False, compare_baseline=False)
     bu = out["is_bankunited_market"]
     assert bu.sum() == 13 and (out.loc[bu, "miles_to_nearest_bankunited_market"] == 0).all()
@@ -327,8 +316,8 @@ def test_distances_with_stand_in_points(stand_in_points):
     assert rep["fit"]["coordinates_available"] is True
 
 
-@needs_data
-def test_max_distance_filter_ranks_only_metros_within_it(stand_in_points):
+@needs_coordinates
+def test_max_distance_filter_ranks_only_metros_within_it():
     base, _ = ma.run(write=False, compare_baseline=False)
     out, rep = ma.run(write=False, compare_baseline=False, max_miles=300)
     ranked = out["rank"].notna()
@@ -343,8 +332,8 @@ def test_max_distance_filter_ranks_only_metros_within_it(stand_in_points):
     assert rep["fit"]["outside_distance_range"] == len(gone)
 
 
-@needs_data
-def test_exclude_current_markets(stand_in_points):
+@needs_coordinates
+def test_exclude_current_markets():
     out, rep = ma.run(write=False, compare_baseline=False, exclude_current_markets=True)
     assert out.loc[out["is_bankunited_market"], "rank"].isna().all()
     assert (out.loc[out["is_bankunited_market"] & out["available_score"].notna()
@@ -352,8 +341,8 @@ def test_exclude_current_markets(stand_in_points):
             .isin(["Current BankUnited market", "Below size floor (250,000)"])).all()
 
 
-@needs_data
-def test_as_of_distances_use_the_markets_of_that_date(stand_in_points):
+@needs_coordinates
+def test_as_of_distances_use_the_markets_of_that_date():
     out, _ = ma.run(write=False, compare_baseline=False, as_of="2025-06-30")
     assert not out.loc["16740", "is_bankunited_market"]                 # Charlotte entered July 2025
     assert out.loc["16740", "nearest_bankunited_market"] == "Atlanta"
@@ -381,7 +370,7 @@ def test_fit_table_is_checked():
         ma.normalize_weights({**w, "fit": {"max_miles_to_bankunited": 100, "min_miles_to_bankunited": 200}})
 
 
-@pytest.mark.skipif(not HAS_GAZETTEER, reason="needs data-v0.6 (Gazetteer coordinates in msa_year)")
+@needs_coordinates
 def test_real_gazetteer_coordinates():
     coords = fitm.load_coordinates(config.ROOT)
     out, _ = ma.run(write=False, compare_baseline=False)
