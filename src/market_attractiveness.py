@@ -65,6 +65,10 @@ MIN_PILLAR_COVERAGE = 0.50    # a partial pillar score counts only if it covers 
 SENSITIVITY = 0.25            # +/- shock to each pillar weight for best_rank / worst_rank
 FILL_PERCENTILE = 50.0        # value given to a missing metric listed under [fill] in the weights file
 EXAMPLE_CBSA = "16740"        # Charlotte, the pilot
+# [options]: choices about how a metric is scored. Without the table, a weights file uses the baseline's choices,
+# and the baseline falls back to these defaults (the behaviour before [options] existed).
+OPTION_DEFAULTS = {"industry_hhi_missing_sectors": "blank"}
+OPTION_VALUES = {"industry_hhi_missing_sectors": ("blank", "leave_out")}
 FIT_DEFAULTS = {"max_miles_to_bankunited": 0, "min_miles_to_bankunited": 0, "exclude_current_markets": False,
                 "min_industry_share": 0}
 DEFAULT_SOURCE = "metrics"    # "metrics": build pillars from src/scoring; "exports": read notebook-format files (legacy)
@@ -120,7 +124,9 @@ def load_weights(path: Path) -> dict:
         cfg = tomllib.load(f)
     return normalize_weights({"pillars": cfg.get("pillars", {}), "fill": cfg.get("fill", {}),
                               "universe": cfg.get("universe", {}), "fit": cfg.get("fit", {}),
-                              "metrics": {k: v for k, v in cfg.items() if k not in ("pillars", "fill", "universe", "fit")}},
+                              "options": cfg.get("options", {}),
+                              "metrics": {k: v for k, v in cfg.items()
+                                          if k not in ("pillars", "fill", "universe", "fit", "options")}},
                              source=str(path))
 
 
@@ -198,7 +204,7 @@ def normalize_weights(weights: dict | None, source: str = "weights") -> dict:
     return {"pillars": pillars, "metrics": metrics, "fill": {k: list(v) for k, v in fill.items() if v},
             "universe": {"min_population": int(floor)}, "universe_set": "min_population" in universe,
             "fit": fit_cfg, "fit_given": fit, "industries_given": selected,
-            "fit_set": bool(fit) or selected is not None}
+            "fit_set": bool(fit) or selected is not None, "options_given": _check_options(weights, source)}
 
 
 def scenario_name(name: str) -> str:
@@ -412,6 +418,38 @@ def weight_table(report: dict) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["pillar", "metric", "pillar_weight", "weight_in_pillar", "share_of_final"])
 
 
+def _check_options(weights: dict, source: str) -> dict:
+    opts = dict(weights.get("options") or {})
+    unknown = sorted(set(opts) - set(OPTION_VALUES))
+    if unknown:
+        raise ValueError(f"{source}: [options] takes {sorted(OPTION_VALUES)}; got {unknown}")
+    for k, v in opts.items():
+        if v not in OPTION_VALUES[k]:
+            raise ValueError(f"{source}: [options] {k} must be one of {list(OPTION_VALUES[k])}; got {v!r}")
+    return opts
+
+
+def resolve_options(root: Path, cfg: dict) -> dict:
+    """[options] for a run: defaults, then the baseline's, then this weights file's own."""
+    opts = dict(OPTION_DEFAULTS)
+    base_file = Path(root) / WEIGHTS_DIR / f"{BASELINE}.toml"
+    if base_file.exists():
+        opts.update(load_weights(base_file).get("options_given", {}))
+    opts.update(cfg.get("options_given", {}))
+    return opts
+
+
+def apply_options(sets: dict, opts: dict) -> dict:
+    """Metric sets adjusted for [options] (a copy; the cached sets are never changed)."""
+    if opts.get("industry_hhi_missing_sectors") == "leave_out" and "pillar4" in sets:
+        import dataclasses
+        p4 = sets["pillar4"]
+        values = p4.values.copy()
+        values["industry_hhi"] = p4.diagnostics["industry_hhi_published_sectors"]
+        sets = {**sets, "pillar4": dataclasses.replace(p4, values=values)}
+    return sets
+
+
 # --- Pillar inputs built from src/scoring ------------------------------------------------------------
 _METRIC_CACHE: dict = {}
 
@@ -496,6 +534,8 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
     if as_of is not None and input_source != "metrics":
         raise ValueError("as_of needs source 'metrics'")
     sets = metric_sets(root, as_of) if input_source == "metrics" else {}
+    run_options = resolve_options(root, cfg)
+    sets = apply_options(sets, run_options)
     for p in PILLARS:
         if cfg["pillars"][p.key] == 0:
             warnings.append(f"{p.key}: weight is 0, left out")
@@ -726,6 +766,7 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         **report_extra,
         "settings": {"normalize": normalize, "min_pillar_coverage": min_coverage, "sensitivity": SENSITIVITY,
                      "source": input_source},
+        "options": run_options,
         "fit": {**fit_cfg, "coordinates_available": coords is not None,
                 "bankunited_markets": sorted(bu_labels.index.tolist()),
                 "outside_distance_range": int(out["coverage_status"].str.startswith("Outside distance range").sum()),

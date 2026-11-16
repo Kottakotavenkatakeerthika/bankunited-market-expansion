@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-15",
+  "run_date": "2026-11-16",
   "score": "Market Attractiveness, ranked after the size floor and Fit filters (see universe and fit)",
   "scenario": "no_industry_hhi",
   "weights_source": "weights/scenarios/no_industry_hhi.toml",
@@ -72,7 +72,8 @@
     },
     "fit_given": {},
     "industries_given": null,
-    "fit_set": false
+    "fit_set": false,
+    "options_given": {}
   },
   "weights_effective": {
     "pillar1": 0.25,
@@ -129,13 +130,16 @@
     }
   },
   "compared_to_baseline": true,
-  "entered_complete_set": 14,
+  "entered_complete_set": 0,
   "left_complete_set": 0,
   "settings": {
     "normalize": "percentile",
     "min_pillar_coverage": 0.5,
     "sensitivity": 0.25,
     "source": "metrics"
+  },
+  "options": {
+    "industry_hhi_missing_sectors": "leave_out"
   },
   "fit": {
     "max_miles_to_bankunited": 0,

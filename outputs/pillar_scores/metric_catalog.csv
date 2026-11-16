@@ -27,7 +27,7 @@ pillar4,Market quality and durability,gdp_growth,,GDP growth,,Higher,2019–2024
 pillar4,Market quality and durability,gdp_volatility,,GDP volatility,,Lower,2016–2024 annual growth; sample SD,bea_gdp_usd,True,382,12.5,0.125
 pillar4,Market quality and durability,unemployment_level,,Unemployment level,,Lower,2024 annual rate / 100,bls_unemployment_rate_pct,True,387,12.5,0.125
 pillar4,Market quality and durability,unemployment_volatility,,Unemployment volatility,,Lower,2015–2024 annual rates / 100; sample SD,bls_unemployment_rate_pct,True,387,12.5,0.125
-pillar4,Market quality and durability,industry_hhi,,Industry HHI,,Lower,2023 CBP; 19 sectors grouped into 10 categories,msa_naics_year: cbp_employment_count,True,292,12.5,0.125
+pillar4,Market quality and durability,industry_hhi,,Industry HHI,,Lower,2023 CBP; 19 sectors grouped into 10 categories,msa_naics_year: cbp_employment_count,True,387,12.5,0.125
 pillar4,Market quality and durability,establishment_growth,,Establishment growth,,Higher,"2018–2023 CAGR, all employer establishments",cbp_establishments_count,True,382,12.5,0.125
 pillar4,Market quality and durability,population_growth,,Population growth,,Higher,2019–2024 CAGR,pep_population_count,True,382,12.5,0.125
 pillar4,Market quality and durability,net_migration_rate,,"Net migration /1,000",,Higher,"2024 net migration / average 2023–2024 population × 1,000",pep_migration_net; pep_population_count,True,387,12.5,0.125

@@ -60,7 +60,7 @@ def write_pillar_files(root=config.ROOT, out_dir=None, weights_file=None, as_of=
     """Pillar files and the metric catalog (for reading, the app and the dashboard)."""
     root = Path(root)
     weights_cfg = ma.load_weights(weights_file or root / "weights" / "baseline.toml")
-    sets = ma.metric_sets(root, as_of)
+    sets = ma.apply_options(ma.metric_sets(root, as_of), ma.resolve_options(root, weights_cfg))
     if out_dir is None and as_of is not None:
         out_dir = root / "outputs" / "as_of" / str(pd.Timestamp(as_of).date()) / "pillar_scores"
     out_dir = Path(out_dir or root / "outputs" / "pillar_scores")

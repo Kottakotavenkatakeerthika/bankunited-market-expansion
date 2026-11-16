@@ -493,3 +493,51 @@ def test_industry_settings_are_checked():
         ma.normalize_weights({**w, "fit": {"industries": {"23": False}}})
     with pytest.raises(ValueError, match="percent from 0 to 100"):
         ma.normalize_weights({**w, "fit": {"min_industry_share": 120}})
+
+
+# --- [options]: industry HHI with suppressed sectors -------------------------------------------------------------
+@needs_data
+def test_industry_hhi_leaves_out_suppressed_sectors_in_the_baseline():
+    out, rep = ma.run(write=False, compare_baseline=False)
+    assert rep["options"]["industry_hhi_missing_sectors"] == "leave_out"
+    p4 = ma.metric_sets(config.ROOT)["pillar4"]
+    published = p4.diagnostics["industry_hhi_published_sectors"]
+    assert published.notna().all()                                           # every metro gets an HHI
+    full = p4.values["industry_hhi"].notna()                                 # nothing suppressed: identical
+    assert (published[full] - p4.values["industry_hhi"][full]).abs().max() < 1e-12
+    assert p4.diagnostics["industry_hhi_sectors_left_out"].max() <= 2
+    assert out["rank"].notna().sum() == 190 and out.loc["26620", "rank"] == 11      # Huntsville now ranked
+
+
+@needs_data
+def test_industry_hhi_blank_option_restores_the_strict_rule():
+    w = ma.load_weights(config.ROOT / "weights" / "baseline.toml")
+    raw = {"pillars": w["pillars"], "metrics": w["metrics"], "fill": w["fill"],
+           "options": {"industry_hhi_missing_sectors": "blank"}}
+    out, rep = ma.run(weights=raw, write=False, compare_baseline=False)
+    assert rep["options"]["industry_hhi_missing_sectors"] == "blank"
+    assert out["rank"].notna().sum() == 176 and pd.isna(out.loc["26620", "rank"])
+    assert out.loc["16740", "rank"] == 17
+
+
+@needs_data
+def test_options_inherit_from_the_baseline():
+    w = ma.load_weights(config.ROOT / "weights" / "baseline.toml")
+    raw = {"pillars": w["pillars"], "metrics": w["metrics"], "fill": w["fill"]}       # no [options]
+    _, rep = ma.run(weights=raw, write=False, compare_baseline=False)
+    assert rep["options"]["industry_hhi_missing_sectors"] == "leave_out"
+
+
+@needs_data
+def test_pillar_file_uses_the_baseline_option(tmp_path):
+    run.write_pillar_files(out_dir=tmp_path)
+    t = pd.read_csv(tmp_path / "pillar4_scores.csv")
+    assert t["raw_industry_hhi"].notna().all()
+
+
+def test_options_are_checked():
+    w = {"pillars": {f"pillar{i}": 25 for i in range(1, 5)}}
+    with pytest.raises(ValueError, match="must be one of"):
+        ma.normalize_weights({**w, "options": {"industry_hhi_missing_sectors": "estimate"}})
+    with pytest.raises(ValueError, match="takes"):
+        ma.normalize_weights({**w, "options": {"hhi": "leave_out"}})

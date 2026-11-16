@@ -1,8 +1,8 @@
-scenario,w_pillar1,w_pillar2,w_pillar3,w_pillar4,min_population,max_miles_to_bankunited,min_miles_to_bankunited,exclude_current_markets,min_industry_share,complete_msas,same_as_baseline,rank_corr_vs_baseline,top25_shared_with_baseline,msas_moved_10plus,corr_with_population,charlotte_rank,charlotte_best_rank,charlotte_worst_rank,bankunited_ranked,bankunited_median_rank,top5
-baseline (balanced franchise),25.0,25.0,25.0,25.0,250000,0,0,False,0,176,False,1.0,25,0,0.42,17.0,15.0,19.0,12,17.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-ci_led,35.0,25.0,20.0,20.0,250000,0,0,False,0,176,False,0.992,24,25,0.42,18.0,15.0,20.0,12,19.5,Austin; Raleigh; Phoenix; Indianapolis; Nashville
-cre_led,35.0,15.0,20.0,30.0,250000,0,0,False,0,176,False,0.985,23,51,0.35,16.0,14.0,17.0,12,21.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-deposit_led,20.0,40.0,20.0,20.0,250000,0,0,False,0,176,False,0.987,24,49,0.5,15.0,14.0,18.0,12,16.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-talent_led,25.0,25.0,25.0,25.0,250000,0,0,False,0,176,True,1.0,25,0,0.42,17.0,15.0,19.0,12,17.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-adjacency,25.0,25.0,25.0,25.0,250000,0,0,False,0,176,True,1.0,25,0,0.42,17.0,15.0,19.0,12,17.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
-emerging_market,25.0,20.0,20.0,35.0,250000,0,0,False,0,176,False,0.991,23,29,0.37,14.0,13.0,15.0,12,18.0,Austin; Raleigh; Phoenix; Nashville; Portland
+scenario,w_pillar1,w_pillar2,w_pillar3,w_pillar4,min_population,max_miles_to_bankunited,min_miles_to_bankunited,exclude_current_markets,min_industry_share,industry_hhi_missing_sectors,complete_msas,same_as_baseline,rank_corr_vs_baseline,top25_shared_with_baseline,msas_moved_10plus,corr_with_population,charlotte_rank,charlotte_best_rank,charlotte_worst_rank,bankunited_ranked,bankunited_median_rank,top5
+baseline (balanced franchise),25.0,25.0,25.0,25.0,250000,0,0,False,0,leave_out,190,False,1.0,25,0,0.43,19.0,16.0,21.0,12,19.5,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+ci_led,35.0,25.0,20.0,20.0,250000,0,0,False,0,leave_out,190,False,0.993,24,30,0.43,18.0,17.0,22.0,12,21.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
+cre_led,35.0,15.0,20.0,30.0,250000,0,0,False,0,leave_out,190,False,0.985,24,58,0.36,18.0,16.0,18.0,12,22.0,Austin; Raleigh; Phoenix; Nashville; Indianapolis
+deposit_led,20.0,40.0,20.0,20.0,250000,0,0,False,0,leave_out,190,False,0.987,23,59,0.5,16.0,15.0,19.0,12,18.5,Austin; Raleigh; Phoenix; Nashville; Indianapolis
+talent_led,25.0,25.0,25.0,25.0,250000,0,0,False,0,leave_out,190,True,1.0,25,0,0.43,19.0,16.0,21.0,12,19.5,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+adjacency,25.0,25.0,25.0,25.0,250000,0,0,False,0,leave_out,190,True,1.0,25,0,0.43,19.0,16.0,21.0,12,19.5,Austin; Raleigh; Nashville; Phoenix; Indianapolis
+emerging_market,25.0,20.0,20.0,35.0,250000,0,0,False,0,leave_out,190,False,0.991,23,36,0.38,16.0,15.0,17.0,12,20.0,Austin; Raleigh; Phoenix; Nashville; Portland

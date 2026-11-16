@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-15",
+  "run_date": "2026-11-16",
   "score": "Market Attractiveness, ranked after the size floor and Fit filters (see universe and fit)",
   "scenario": "adjacency",
   "weights_source": "weights/strategy/adjacency.toml",
@@ -72,7 +72,8 @@
     },
     "fit_given": {},
     "industries_given": null,
-    "fit_set": false
+    "fit_set": false,
+    "options_given": {}
   },
   "weights_effective": {
     "pillar1": 0.25,
@@ -138,6 +139,9 @@
     "sensitivity": 0.25,
     "source": "metrics"
   },
+  "options": {
+    "industry_hhi_missing_sectors": "leave_out"
+  },
   "fit": {
     "max_miles_to_bankunited": 0,
     "min_miles_to_bankunited": 0,
@@ -181,7 +185,7 @@
   "universe": {
     "min_population": 250000,
     "population_year": 2024,
-    "below_size_floor": 111
+    "below_size_floor": 191
   },
   "as_of": null,
   "inputs": {
@@ -248,7 +252,7 @@
     "pillar4": {
       "source": "src.scoring.pillar4",
       "rows": 387,
-      "complete": 287,
+      "complete": 382,
       "metrics_defined": 8,
       "metrics_weighted": 8,
       "settings": {
@@ -264,7 +268,7 @@
     }
   },
   "msas": 387,
-  "complete_msas": 176,
+  "complete_msas": 190,
   "warnings": [
     "pillar1: 61 MSAs had missing local_ci_growth, local_cre_growth set to the 50th percentile"
   ]

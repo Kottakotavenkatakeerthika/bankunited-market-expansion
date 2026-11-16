@@ -105,6 +105,7 @@ def summarize(runs: dict[str, tuple[pd.DataFrame, dict]], pop: pd.Series | None)
             "min_miles_to_bankunited": (report.get("fit") or {}).get("min_miles_to_bankunited", 0),
             "exclude_current_markets": (report.get("fit") or {}).get("exclude_current_markets", False),
             "min_industry_share": (report.get("fit") or {}).get("min_industry_share", 0),
+            "industry_hhi_missing_sectors": (report.get("options") or {}).get("industry_hhi_missing_sectors", "blank"),
             "complete_msas": int(d["complete_score"].notna().sum()),
             "same_as_baseline": same,
             "rank_corr_vs_baseline": round(now.corr(before, method="spearman"), 3),

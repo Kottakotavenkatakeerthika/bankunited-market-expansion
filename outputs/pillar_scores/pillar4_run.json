@@ -2,7 +2,7 @@
   "pillar": "pillar4",
   "label": "Market quality and durability",
   "built_by": "src.scoring.pillar4",
-  "run_date": "2026-11-15",
+  "run_date": "2026-11-16",
   "weights_file": "weights/baseline.toml",
   "effective_weights": {
     "gdp_growth": 0.125,
@@ -28,6 +28,6 @@
     "migration_year": 2024
   },
   "metros": 387,
-  "complete_msas": 287,
+  "complete_msas": 382,
   "note": "For reading only. The final score rebuilds pillars from the metric builders and weights files."
 }
