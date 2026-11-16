@@ -16,7 +16,7 @@ This repository contains an analytical framework and prototype to evaluate futur
 
 | Data | Where it lives | Written by | Read by |
 |---|---|---|---|
-| Raw downloads, exactly as published | The pod's shared Drive folder, synced by Google Drive for desktop (set `RAW_DATA_DIR` in `.env`); otherwise `data/raw/<source>/` on your machine (gitignored) | Data engineering, only through `src/ingest_*.py` | No one |
+| Raw downloads, exactly as published | `data/raw/<source>/` on your machine (gitignored). The data engineers who refresh a source keep theirs in the pod's shared Drive folder instead, by setting `RAW_DATA_DIR` in `.env` (see [Raw data](#raw-data)) | Data engineering, only through `src/ingest_*.py` | No one |
 | Cleaned per-source files | `data/interim/<table>/<source>.parquet` (gitignored), rebuilt every run | Data engineering | No one |
 | Modeling tables | `data/processed/*.parquet` (committed and tagged) | Data engineering, by pull request | Modelers and the app |
 | Crosswalk and lookup lists | `data/reference/` (committed) | Data engineering | Everyone |
@@ -29,14 +29,57 @@ Nothing licensed or non-public goes in this repo.
 
 Python 3.11 or newer.
 
+macOS or Linux:
+
 ```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env               # then add your API keys to .env
+cp .env.example .env
 ```
 
-**Raw files on the shared Drive.** Install Google Drive for desktop and leave it on "Stream files", so raw files stay in the cloud until the pipeline reads them. If the pod's data folder was shared with you, add a shortcut to it in My Drive so it appears on your computer. Then set `RAW_DATA_DIR` in `.env` to its `raw` folder, for example `G:/My Drive/BankUnited Pod Data/raw` (forward slashes, since `.env` reads a backslash before `r` or `n` as a control character). Each source's folder has one owner, so two people never write the same files. Interim files stay on your machine because they're rebuilt on every run.
+Windows, in Command Prompt or PowerShell:
+
+```
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env
+```
+
+That's enough to use the data. The modeling tables in `data/processed/` are committed, so `python -m pytest` and `python -m src.checks` run right after the install, with `.env` left as copied. The keys and raw files below are only needed to rebuild the tables from the sources.
+
+### API keys
+
+Set these in `.env`, which is never committed:
+
+| Variable | Needed to rebuild? | What it's for | Where to get it |
+|---|---|---|---|
+| `FDIC_API_KEY` | Yes | Summary of Deposits and Call Reports (`fdic`, `ffiec`). FDIC's docs call the key optional, but requests without one have been refused | https://api.data.gov/signup/ |
+| `FRED_API_KEY` | Yes | FRED series (`fred`) | Sign in to a FRED account, then request a key: https://fred.stlouisfed.org/docs/api/api_key.html |
+| `BEA_API_KEY` | Yes | BEA county income and GDP (`bea_bls`) | https://apps.bea.gov/API/signup/ |
+| `HTTP_USER_AGENT` | Yes | Your name and email, sent as the User-Agent with every download. Replace the placeholder | Nothing to sign up for |
+| `BLS_API_KEY`, `CENSUS_API_KEY` | No | No source reads them today: the BLS and Census data come as public files. Leave them empty | |
+
+The three keys are separate sign-ups, each free.
+
+### Raw data
+
+Leave `RAW_DATA_DIR` empty. Raw files then go to `data/raw/<source>/` in your clone, which git ignores. A full run downloads them itself, about 2 GB, most of it BLS's QCEW files. The exception is 30 CRA files: FFIEC refuses scripted downloads, so they have to be in place before the first run.
+
+| Folder | Files, one set per year from 2015 to 2024 | Count |
+|---|---|---|
+| `data/raw/cra/` | `<YY>exp_aggr.zip` (`15exp_aggr.zip` to `24exp_aggr.zip`) | 10 |
+| `data/raw/cra_bank/` | `<YY>exp_discl.zip` and `<YY>exp_trans.zip` | 20 |
+
+Get them either way:
+
+- Save each file from a browser: `https://www.ffiec.gov/sites/default/files/data/cra/flat-files/<file name>`.
+- If you have the pod's Drive, copy the `cra` and `cra_bank` folders from `BankUnited Pod Data/archive/data-v0.5`. Drive downloads a folder as a zip with the real folder one level down, so copy the inner `cra` and `cra_bank` folders.
+
+The pipeline reuses a raw file that is already in place and downloads the rest.
+
+**`RAW_DATA_DIR` is only for the data engineers who refresh a source.** A run writes into the raw folder: it pulls the Call Report quarters of the last 200 days again every time, and downloads any file that isn't there yet. So don't point it at the pod's shared Drive folder, or at an archive folder, to test or review a build. To refresh a source you own, install Google Drive for desktop and leave it on "Stream files", so raw files stay in the cloud until the pipeline reads them. If the pod's data folder was shared with you, add a shortcut to it in My Drive so it appears on your computer. Then set `RAW_DATA_DIR` in `.env` to its `raw data` folder, for example `G:/My Drive/BankUnited Pod Data/raw data` (forward slashes, since `.env` reads a backslash before `r` or `n` as a control character). Each source's folder has one owner, so two people never write the same files. Interim files stay on your machine because they're rebuilt on every run.
 
 ## Running the pipeline
 
@@ -48,7 +91,9 @@ python -m src.peers                          # the peer set and its identifiers,
 python -m pytest                             # tests for the pipeline code
 ```
 
-The checks write `data/processed/checks_report.md` and exit with code 1 if anything fails.
+**Run the full pipeline once on a new machine before using `--sources` or `--skip-ingest`.** Both rebuild every table from the interim files in `data/interim/`, which aren't committed. On a fresh clone they overwrite `msa_year.parquet` and `msa_year_history.parquet` with tables that are missing most of their columns, and the checks fail. If that happens, `git restore data/processed data/manifest.csv` puts the committed files back. The first full run took about 20 minutes in the pod's clean-clone test.
+
+The checks write `data/processed/checks_report.md` and exit with code 1 if anything fails. Every run rewrites that report with a new run time, and a run that downloads anything updates the pull times in `data/manifest.csv`, so `git status` shows changes after a run even when no table changed. A scoring run does the same to the `_run.json` files under `outputs/`. `git restore data/manifest.csv data/processed/checks_report.md` drops the first two.
 
 Each source publishes on its own schedule. [Refresh cadence](docs/refresh_cadence.md) says when to rerun each one and what a refresh takes.
 
