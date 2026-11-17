@@ -1,16 +1,14 @@
 # BankUnited Quarto documentation migration
 
-This folder is a **Quarto Book source project** to be committed under `docs/handoff/quarto/` in the existing BankUnited repository.
+This folder contains the Quarto Book source project within `docs/handoff/`. The existing handoff documents and repository evidence are retained alongside the book source files.
 
 ## Build
 
 Install [Quarto](https://quarto.org/docs/get-started/) and, for PDF rendering, a LaTeX distribution (for example TinyTeX).
 
-```bash
-cd docs/handoff/quarto
+cd docs/handoff
 quarto render --to html
 quarto render --to pdf
-```
 
 Output is written to `_site/` (HTML and PDF outputs, depending on format). This environment did not have the Quarto CLI installed, so rendered outputs were **not** tested here.
 
