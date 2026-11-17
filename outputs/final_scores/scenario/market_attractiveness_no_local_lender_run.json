@@ -1,6 +1,6 @@
 {
-  "run_date": "2026-11-12",
-  "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
+  "run_date": "2026-11-16",
+  "score": "Market Attractiveness, ranked after the size floor and Fit filters (see universe and fit)",
   "scenario": "no_local_lender",
   "weights_source": "weights/scenarios/no_local_lender.toml",
   "pillars_in_run": [
@@ -58,7 +58,17 @@
     "universe": {
       "min_population": 0
     },
-    "universe_set": false
+    "universe_set": false,
+    "fit": {
+      "max_miles_to_bankunited": 0,
+      "min_miles_to_bankunited": 0,
+      "exclude_current_markets": false,
+      "min_industry_share": 0
+    },
+    "fit_given": {},
+    "industries_given": null,
+    "fit_set": false,
+    "options_given": {}
   },
   "weights_effective": {
     "pillar1": 0.25,
@@ -111,10 +121,53 @@
     "sensitivity": 0.25,
     "source": "metrics"
   },
+  "options": {
+    "industry_hhi_missing_sectors": "leave_out"
+  },
+  "fit": {
+    "max_miles_to_bankunited": 0,
+    "min_miles_to_bankunited": 0,
+    "exclude_current_markets": false,
+    "min_industry_share": 0,
+    "coordinates_available": true,
+    "bankunited_markets": [
+      "12060",
+      "15980",
+      "16740",
+      "19100",
+      "26420",
+      "33100",
+      "34940",
+      "35620",
+      "35840",
+      "36740",
+      "38940",
+      "42680",
+      "45300"
+    ],
+    "outside_distance_range": 0,
+    "current_markets_excluded": 0,
+    "industries": [
+      "22",
+      "23",
+      "31",
+      "42",
+      "44",
+      "48",
+      "52",
+      "53",
+      "54",
+      "61",
+      "62"
+    ],
+    "industry_year": 2023,
+    "below_industry_share": 0,
+    "industry_insufficient_data": 0
+  },
   "universe": {
     "min_population": 250000,
     "population_year": 2024,
-    "below_size_floor": 111
+    "below_size_floor": 191
   },
   "as_of": null,
   "inputs": {
@@ -181,7 +234,7 @@
     "pillar4": {
       "source": "src.scoring.pillar4",
       "rows": 387,
-      "complete": 287,
+      "complete": 382,
       "metrics_defined": 8,
       "metrics_weighted": 8,
       "settings": {
@@ -197,6 +250,6 @@
     }
   },
   "msas": 387,
-  "complete_msas": 176,
+  "complete_msas": 190,
   "warnings": []
 }

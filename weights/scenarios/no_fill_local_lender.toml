@@ -1,9 +1,9 @@
-# Scenario: keep Pillar 1's local-lender metrics, but fill the gaps instead of dropping metros.
-# Question: where do the ~55 MSAs with no local lender (incl. Naples, Port St. Lucie) rank when their
-# missing local-lender metrics count as average (50th percentile)? Compare with no_local_lender.
-# Change: adds the [fill] table at the end. Weights are the baseline (weights/baseline.toml as of 2026-10-29).
-# Filled metros are listed in the filled_metrics column of the output.
-# Run:  python -m src.market_attractiveness --weights weights/scenarios/fill_local_lender.toml
+# Scenario: no gap filling for Pillar 1's local-lender metrics.
+# Question: what does the baseline's [fill] do? Here a metro with no local lender (61 metros, incl. Naples and
+# Port St. Lucie) has no local-lender C&I or CRE growth, so its Pillar 1 is partial and it isn't ranked.
+# Change from the baseline: no [fill] table (weights files don't inherit [fill]). Compare with no_local_lender,
+# which drops the two metrics for every metro instead.
+# Run:  python -m src.scoring.run   (or python -m src.market_attractiveness --weights weights/scenarios/no_fill_local_lender.toml)
 
 [pillars]
 pillar1 = 25   # Commercial lending
@@ -45,6 +45,3 @@ industry_hhi            = 12.5   # blank for 95 MSAs (CBP suppression); set to 0
 establishment_growth    = 12.5
 population_growth       = 12.5
 net_migration_rate      = 12.5
-
-[fill]  # missing values for these metrics count as the 50th percentile
-pillar1 = ["local_ci_growth", "local_cre_growth"]

@@ -39,9 +39,10 @@ def with_history(tables: dict) -> dict:
     return tables
 
 
-def build_metric_sets(root=config.ROOT, settings_file=None, as_of=None) -> dict:
+def build_metric_sets(root=config.ROOT, settings_file=None, as_of=None, with_settings=False):
     """Every pillar's MetricSet (raw values of all its metrics) from data/processed.
-    With as_of, the settings move to what was released by that date (src/scoring/asof.py)."""
+    With as_of, the settings move to what was released by that date (src/scoring/asof.py).
+    with_settings=True also returns the settings actually used (as-of adjusted), e.g. [fit] industry_year."""
     settings = load_settings(settings_file)
     tables = with_history(load_tables(Path(root) / "data" / "processed", names=TABLES))
     if as_of is not None:
@@ -52,14 +53,14 @@ def build_metric_sets(root=config.ROOT, settings_file=None, as_of=None) -> dict:
     sets = {key: build(tables, settings[key]) for key, build in BUILDERS.items()}
     # composite metrics, which combine metrics from more than one pillar
     sets["pillar3"] = pillar3.add_competition_growth(sets["pillar3"], sets, settings["pillar3"])
-    return sets
+    return (sets, settings) if with_settings else sets
 
 
 def write_pillar_files(root=config.ROOT, out_dir=None, weights_file=None, as_of=None) -> dict:
     """Pillar files and the metric catalog (for reading, the app and the dashboard)."""
     root = Path(root)
     weights_cfg = ma.load_weights(weights_file or root / "weights" / "baseline.toml")
-    sets = ma.metric_sets(root, as_of)
+    sets = ma.apply_options(ma.metric_sets(root, as_of), ma.resolve_options(root, weights_cfg))
     if out_dir is None and as_of is not None:
         out_dir = root / "outputs" / "as_of" / str(pd.Timestamp(as_of).date()) / "pillar_scores"
     out_dir = Path(out_dir or root / "outputs" / "pillar_scores")

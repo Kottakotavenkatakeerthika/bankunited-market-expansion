@@ -103,12 +103,19 @@ def build(tables: dict[str, pd.DataFrame], settings: dict) -> MetricSet:
     classified = groups.sum(axis=1, min_count=len(INDUSTRY_GROUPS))
     hhi = (groups.pow(2).sum(axis=1, min_count=len(INDUSTRY_GROUPS)) / classified.pow(2)).where(classified > 0).round(12)
     raw["industry_hhi"] = hhi
+    # Same HHI over the published sectors only: a suppressed sector is left out of its group and of the total.
+    # Used instead of industry_hhi when the weights file sets [options] industry_hhi_missing_sectors = "leave_out".
+    groups_pub = pd.DataFrame({g: sectors[c].sum(axis=1, min_count=1) for g, c in INDUSTRY_GROUPS.items()})
+    classified_pub = groups_pub.sum(axis=1, min_count=1)
+    hhi_published = (groups_pub.pow(2).sum(axis=1, min_count=1) / classified_pub.pow(2)).where(classified_pub > 0).round(12)
     all_jobs = pw("cbp_employment_count", [iy])[iy]
     diagnostics = pd.DataFrame({
         "published_classified_sectors": sectors.notna().sum(axis=1),
         "missing_naics_sectors": sectors.isna().apply(
             lambda r: ", ".join(c for c in CLASSIFIED_SECTORS if r[c]), axis=1),
         "classified_to_all_industry_ratio": (classified / all_jobs).where(all_jobs > 0),
+        "industry_hhi_published_sectors": hhi_published,
+        "industry_hhi_sectors_left_out": sectors.isna().sum(axis=1),
     }, index=uni.index)
 
     raw["establishment_growth"] = _cagr(cbp[e0], cbp[e1], e1 - e0)

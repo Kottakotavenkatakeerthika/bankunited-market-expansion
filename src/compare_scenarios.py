@@ -40,7 +40,7 @@ GROUPS = {"sensitivity": "weights/scenarios", "strategy": "weights/strategy"}
 BASELINE_LABEL = {"strategy": "baseline (balanced franchise)"}
 OUTPUT_SUFFIX = {"sensitivity": "", "strategy": "_strategy"}
 # Row order in the outputs; runs not listed follow in file-name order.
-ORDER = {"strategy": ["ci_led", "cre_led", "deposit_led", "talent_led", "adjacency", "emerging_market"]}
+ORDER = {"strategy": ["ci_led", "cre_led", "deposit_led", "adjacency", "emerging_market"]}
 
 
 def group_of(weights_source: str | None) -> str | None:
@@ -101,6 +101,11 @@ def summarize(runs: dict[str, tuple[pd.DataFrame, dict]], pop: pd.Series | None)
             "scenario": name,
             **pillar_weights(report),
             "min_population": (report.get("universe") or {}).get("min_population", 0),
+            "max_miles_to_bankunited": (report.get("fit") or {}).get("max_miles_to_bankunited", 0),
+            "min_miles_to_bankunited": (report.get("fit") or {}).get("min_miles_to_bankunited", 0),
+            "exclude_current_markets": (report.get("fit") or {}).get("exclude_current_markets", False),
+            "min_industry_share": (report.get("fit") or {}).get("min_industry_share", 0),
+            "industry_hhi_missing_sectors": (report.get("options") or {}).get("industry_hhi_missing_sectors", "blank"),
             "complete_msas": int(d["complete_score"].notna().sum()),
             "same_as_baseline": same,
             "rank_corr_vs_baseline": round(now.corr(before, method="spearman"), 3),

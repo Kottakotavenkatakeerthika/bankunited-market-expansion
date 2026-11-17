@@ -23,7 +23,7 @@ def grouped(four_pillars):  # noqa: F811
     write_toml(root / "weights/baseline.toml", EQUAL)
     write_toml(root / "weights/scenarios/lending_heavy.toml", {**EQUAL, "pillar1": 60})
     write_toml(root / "weights/strategy/deposit_led.toml", {**EQUAL, "pillar2": 60})
-    write_toml(root / "weights/strategy/talent_led.toml", EQUAL)   # differs only in Fit, like the real one
+    write_toml(root / "weights/strategy/talent_led.toml", EQUAL)   # same weights as the baseline
     return root
 
 

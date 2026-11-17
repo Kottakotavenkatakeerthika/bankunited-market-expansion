@@ -1,12 +1,8 @@
-# Strategy scenario (Phase 1 methodology): Adjacency.
-# Fit & Feasibility emphasis: Entry-pattern component at 40%.
-# Market Attractiveness weights are the same as the baseline (Balanced franchise): this scenario
-# differs only in Fit & Feasibility, which isn't built yet (src/bankunited_fit.py). Until it is, this
-# run gives the baseline ranking exactly; it's kept so the set of seven is complete.
-# Metric weights and [fill] are the baseline's (weights/baseline.toml as of 2026-10-29).
-# Balanced franchise is the baseline itself, so it has no file here.
-# Run:  python -m src.market_attractiveness --weights weights/strategy/adjacency.toml
-# Or run the whole group and compare:  python -m src.compare_scenarios --group strategy --run
+# Strategy scenario (Phase 1 methodology): Adjacency: grow next to BankUnited's existing network.
+# Market Attractiveness weights are the baseline's (Balanced franchise). The difference is a Fit filter: only metros
+# within 500 miles of a BankUnited market (Florida branch markets, New York, Dallas, and the Atlanta, Charlotte and
+# Houston offices) can rank; the rest are scored but not ranked. Every other [fit] setting comes from the baseline.
+# Run:  python -m src.scoring.run   (or python -m src.market_attractiveness --weights weights/strategy/adjacency.toml)
 
 [pillars]
 pillar1 = 25   # Commercial lending
@@ -51,3 +47,6 @@ net_migration_rate      = 12.5
 
 [fill]  # missing values for these metrics count as the 50th percentile
 pillar1 = ["local_ci_growth", "local_cre_growth"]
+
+[fit]
+max_miles_to_bankunited = 500   # adjacency: within 500 miles of a BankUnited market (adjust to taste)

@@ -27,14 +27,18 @@ Method (same conventions as the pillar notebooks):
        used where it exists, otherwise its available-data score if it covers at least MIN_PILLAR_COVERAGE of
        the pillar's weight.
     3. available_score = weighted mean of the pillar percentiles an MSA has (weights renormalized).
-       complete_score = the same, only when every pillar in the run is complete for that MSA.
-       rank is among complete MSAs only.
+       complete_score = the same, only when every pillar in the run is complete for that MSA and it passes
+       every filter below. rank is among those MSAs only.
     4. best_rank / worst_rank: rank range when each pillar weight alone moves +/-25%, as in the notebooks.
 
 Optional [fill] table in the weights file: metrics listed there count as the FILL_PERCENTILE (50th) where an
 MSA has no value, instead of leaving the pillar partial. Filled metrics are listed per MSA in filled_metrics.
 
-This is Market Attractiveness only. The Fit & Feasibility gate (src/bankunited_fit.py) is applied after it.
+Filters, applied after scoring (a metro that fails keeps its available_score but gets no rank; other scores
+are unchanged): [universe] min_population (the size floor), and [fit] max/min_miles_to_bankunited,
+min_industry_share with [fit.industries], exclude_current_markets (src/scoring/fit.py). A scenario without
+[universe] uses the baseline's floor; each [fit] setting a scenario doesn't set comes from the baseline, and a
+scenario's own [fit.industries] replaces the baseline's list. See src/scoring/README.md, sections 7-7c.
 """
 from __future__ import annotations
 
@@ -61,6 +65,12 @@ MIN_PILLAR_COVERAGE = 0.50    # a partial pillar score counts only if it covers 
 SENSITIVITY = 0.25            # +/- shock to each pillar weight for best_rank / worst_rank
 FILL_PERCENTILE = 50.0        # value given to a missing metric listed under [fill] in the weights file
 EXAMPLE_CBSA = "16740"        # Charlotte, the pilot
+# [options]: choices about how a metric is scored. Without the table, a weights file uses the baseline's choices,
+# and the baseline falls back to these defaults (the behaviour before [options] existed).
+OPTION_DEFAULTS = {"industry_hhi_missing_sectors": "blank"}
+OPTION_VALUES = {"industry_hhi_missing_sectors": ("blank", "leave_out")}
+FIT_DEFAULTS = {"max_miles_to_bankunited": 0, "min_miles_to_bankunited": 0, "exclude_current_markets": False,
+                "min_industry_share": 0}
 DEFAULT_SOURCE = "metrics"    # "metrics": build pillars from src/scoring; "exports": read notebook-format files (legacy)
 
 # Markets BankUnited serves from offices with no branch, which SOD can't see (same list as the pillar notebooks).
@@ -113,8 +123,10 @@ def load_weights(path: Path) -> dict:
     with open(path, "rb") as f:
         cfg = tomllib.load(f)
     return normalize_weights({"pillars": cfg.get("pillars", {}), "fill": cfg.get("fill", {}),
-                              "universe": cfg.get("universe", {}),
-                              "metrics": {k: v for k, v in cfg.items() if k not in ("pillars", "fill", "universe")}},
+                              "universe": cfg.get("universe", {}), "fit": cfg.get("fit", {}),
+                              "options": cfg.get("options", {}),
+                              "metrics": {k: v for k, v in cfg.items()
+                                          if k not in ("pillars", "fill", "universe", "fit", "options")}},
                              source=str(path))
 
 
@@ -157,8 +169,42 @@ def normalize_weights(weights: dict | None, source: str = "weights") -> dict:
     floor = universe.get("min_population", 0)
     if not isinstance(floor, (int, float)) or isinstance(floor, bool) or floor < 0:
         raise ValueError(f"{source}: [universe] min_population must be a number, 0 or more (0 = off)")
+    fit = dict(weights.get("fit") or {})
+    industries = fit.pop("industries", None)
+    unknown_f = sorted(set(fit) - set(FIT_DEFAULTS))
+    if unknown_f:
+        raise ValueError(f"{source}: [fit] takes {sorted(FIT_DEFAULTS)} and a [fit.industries] table; got {unknown_f}")
+    for k in ("max_miles_to_bankunited", "min_miles_to_bankunited"):
+        v = fit.get(k, 0)
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0:
+            raise ValueError(f"{source}: [fit] {k} must be a number, 0 or more (0 = off)")
+    v = fit.get("min_industry_share", 0)
+    if not isinstance(v, (int, float)) or isinstance(v, bool) or not 0 <= v <= 100:
+        raise ValueError(f"{source}: [fit] min_industry_share must be a percent from 0 to 100 (0 = off)")
+    if not isinstance(fit.get("exclude_current_markets", False), bool):
+        raise ValueError(f"{source}: [fit] exclude_current_markets must be true or false")
+    selected = None
+    if industries is not None:
+        from src.scoring.fit import CBP_SECTORS
+        if not isinstance(industries, dict):
+            raise ValueError(f'{source}: [fit.industries] must list sectors as "23" = true / false')
+        bad = sorted(k for k in industries if k not in CBP_SECTORS)
+        if bad:
+            raise ValueError(f"{source}: [fit.industries] has codes that aren't CBP sectors: {bad}. "
+                             f"Use two-digit codes {sorted(CBP_SECTORS)} (31 = 31-33, 44 = 44-45, 48 = 48-49)")
+        not_bool = sorted(k for k, x in industries.items() if not isinstance(x, bool))
+        if not_bool:
+            raise ValueError(f"{source}: [fit.industries] values must be true or false; check {not_bool}")
+        selected = sorted(k for k, x in industries.items() if x)
+        if not selected:
+            raise ValueError(f"{source}: [fit.industries] selects no sector; set at least one to true")
+    fit_cfg = {**FIT_DEFAULTS, **fit}
+    if fit_cfg["max_miles_to_bankunited"] and fit_cfg["min_miles_to_bankunited"] > fit_cfg["max_miles_to_bankunited"]:
+        raise ValueError(f"{source}: [fit] min_miles_to_bankunited is above max_miles_to_bankunited")
     return {"pillars": pillars, "metrics": metrics, "fill": {k: list(v) for k, v in fill.items() if v},
-            "universe": {"min_population": int(floor)}, "universe_set": "min_population" in universe}
+            "universe": {"min_population": int(floor)}, "universe_set": "min_population" in universe,
+            "fit": fit_cfg, "fit_given": fit, "industries_given": selected,
+            "fit_set": bool(fit) or selected is not None, "options_given": _check_options(weights, source)}
 
 
 def scenario_name(name: str) -> str:
@@ -372,6 +418,38 @@ def weight_table(report: dict) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["pillar", "metric", "pillar_weight", "weight_in_pillar", "share_of_final"])
 
 
+def _check_options(weights: dict, source: str) -> dict:
+    opts = dict(weights.get("options") or {})
+    unknown = sorted(set(opts) - set(OPTION_VALUES))
+    if unknown:
+        raise ValueError(f"{source}: [options] takes {sorted(OPTION_VALUES)}; got {unknown}")
+    for k, v in opts.items():
+        if v not in OPTION_VALUES[k]:
+            raise ValueError(f"{source}: [options] {k} must be one of {list(OPTION_VALUES[k])}; got {v!r}")
+    return opts
+
+
+def resolve_options(root: Path, cfg: dict) -> dict:
+    """[options] for a run: defaults, then the baseline's, then this weights file's own."""
+    opts = dict(OPTION_DEFAULTS)
+    base_file = Path(root) / WEIGHTS_DIR / f"{BASELINE}.toml"
+    if base_file.exists():
+        opts.update(load_weights(base_file).get("options_given", {}))
+    opts.update(cfg.get("options_given", {}))
+    return opts
+
+
+def apply_options(sets: dict, opts: dict) -> dict:
+    """Metric sets adjusted for [options] (a copy; the cached sets are never changed)."""
+    if opts.get("industry_hhi_missing_sectors") == "leave_out" and "pillar4" in sets:
+        import dataclasses
+        p4 = sets["pillar4"]
+        values = p4.values.copy()
+        values["industry_hhi"] = p4.diagnostics["industry_hhi_published_sectors"]
+        sets = {**sets, "pillar4": dataclasses.replace(p4, values=values)}
+    return sets
+
+
 # --- Pillar inputs built from src/scoring ------------------------------------------------------------
 _METRIC_CACHE: dict = {}
 
@@ -387,8 +465,14 @@ def metric_sets(root: Path, as_of=None) -> dict:
     if key not in _METRIC_CACHE:
         if len(_METRIC_CACHE) > 4:
             _METRIC_CACHE.clear()
-        _METRIC_CACHE[key] = build_metric_sets(root, settings, as_of=as_of)
-    return _METRIC_CACHE[key]
+        _METRIC_CACHE[key] = build_metric_sets(root, settings, as_of=as_of, with_settings=True)
+    return _METRIC_CACHE[key][0]
+
+
+def run_settings(root: Path, as_of=None) -> dict:
+    """The settings the metric builders used for this repo and as-of date (as-of adjusted)."""
+    metric_sets(root, as_of)
+    return next(v[1] for k, v in _METRIC_CACHE.items() if k[0] == str(Path(root).resolve()) and k[3] == str(as_of))
 
 
 def pillar_from_metrics(ms) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -407,7 +491,9 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         name: str | None = None, normalize: str = NORMALIZE, min_coverage: float = MIN_PILLAR_COVERAGE,
         allow_missing: bool = False, out_dir: Path | None = None, write: bool = True,
         compare_baseline: bool = True, source: str | None = None, as_of=None,
-        min_population: int | None = None) -> tuple[pd.DataFrame, dict]:
+        min_population: int | None = None, max_miles: float | None = None, min_miles: float | None = None,
+        exclude_current_markets: bool | None = None,
+        min_industry_share: float | None = None) -> tuple[pd.DataFrame, dict]:
     """Build (or read) the pillars, score and combine them, and (if write) save the final table and run report.
 
     source "metrics" (default) builds every pillar from its metric builder in src/scoring; "exports" reads
@@ -448,6 +534,8 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
     if as_of is not None and input_source != "metrics":
         raise ValueError("as_of needs source 'metrics'")
     sets = metric_sets(root, as_of) if input_source == "metrics" else {}
+    run_options = resolve_options(root, cfg)
+    sets = apply_options(sets, run_options)
     for p in PILLARS:
         if cfg["pillars"][p.key] == 0:
             warnings.append(f"{p.key}: weight is 0, left out")
@@ -515,8 +603,10 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         if processed.exists() and path.stat().st_mtime < processed.stat().st_mtime:
             warnings.append(f"{p.key}: export is older than data/processed/msa_year.parquet; rerun the notebook")
 
-    if len(tables) < 2 and not errors:
-        errors.append(f"only {len(tables)} pillar(s) available; need at least 2")
+    # Need two pillars, unless the weights deliberately use fewer (others set to 0): then all weighted ones.
+    weighted = sum(1 for p in PILLARS if cfg["pillars"][p.key] > 0)
+    if len(tables) < min(2, weighted) and not errors:
+        errors.append(f"only {len(tables)} pillar(s) available; need at least {min(2, weighted)}")
     if errors:
         raise GateError("Integration gate failed:\n  - " + "\n  - ".join(errors))
 
@@ -545,7 +635,59 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         if pop_year is None:
             pop_year = int(pd.read_parquet(root / "data" / "processed" / "msa_year.parquet", columns=["year"]).year.max())
         pop = population(root, pop_year).reindex(universe)
-    eligible = (pop >= floor) if floor > 0 else None
+    # Fit filters ([fit]). Each setting inherits from the baseline unless this weights file sets it; a
+    # [fit.industries] table replaces the baseline's whole list (sectors it doesn't list count as false).
+    from src.scoring import fit as fitm
+    fit_cfg, industries = dict(FIT_DEFAULTS), list(fitm.DEFAULT_INDUSTRIES)
+    base_file = root / WEIGHTS_DIR / f"{BASELINE}.toml"
+    if base_file.exists():
+        base_cfg = load_weights(base_file)
+        fit_cfg.update(base_cfg["fit_given"])
+        industries = base_cfg["industries_given"] or industries
+    fit_cfg.update(cfg["fit_given"])
+    industries = cfg["industries_given"] or industries
+    for k, v in (("max_miles_to_bankunited", max_miles), ("min_miles_to_bankunited", min_miles),
+                 ("exclude_current_markets", exclude_current_markets), ("min_industry_share", min_industry_share)):
+        if v is not None:
+            fit_cfg[k] = v
+    sod_year = int(sets["pillar3"].settings["score_year"]) if sets else None
+    bu_labels = bankunited_markets(root, sod_year, as_of)
+    coords = fitm.load_coordinates(root)
+    distance_on = bool(fit_cfg["max_miles_to_bankunited"] or fit_cfg["min_miles_to_bankunited"])
+    if distance_on and coords is None:
+        raise GateError("a distance filter ([fit] max/min_miles_to_bankunited) needs the Gazetteer coordinates in "
+                        f"data/processed/msa_year.parquet ({fitm.LAT}, {fitm.LON}; data-v0.6)")
+    fitcols = fitm.distance_columns(pd.Index(universe, name="cbsa_code"), coords, bu_labels.index)
+    miles = fitcols["miles_to_nearest_bankunited_market"]
+    out_of_range = pd.Series(False, index=fitcols.index)
+    if fit_cfg["max_miles_to_bankunited"]:
+        out_of_range |= miles > fit_cfg["max_miles_to_bankunited"]
+    if fit_cfg["min_miles_to_bankunited"]:
+        out_of_range |= miles < fit_cfg["min_miles_to_bankunited"]
+    no_distance = miles.isna() & distance_on
+    current = fitcols["is_bankunited_market"] & bool(fit_cfg["exclude_current_markets"])
+    # industry share: the CBP year comes from config/settings.toml [fit] (moved by --as-of)
+    industry_on = bool(fit_cfg["min_industry_share"])
+    ind_inputs = fitm.load_industry_inputs(root) if sets else None
+    industry_year = None
+    if ind_inputs is not None:
+        built = run_settings(root, as_of)
+        industry_year = int((built.get("fit") or {}).get("industry_year", built["pillar4"]["industry_year"]))
+        indcols = fitm.industry_share(fitcols.index, *ind_inputs, industry_year, industries)
+    else:
+        if industry_on:
+            raise GateError("an industry share filter ([fit] min_industry_share) needs "
+                            "data/processed/msa_naics_year.parquet and msa_year.parquet")
+        indcols = pd.DataFrame(index=fitcols.index, columns=fitm.INDUSTRY_COLUMNS, dtype=float)
+    share = indcols["industry_share"]
+    below_industry = (share < fit_cfg["min_industry_share"]) & industry_on
+    no_industry = share.isna() & industry_on
+    eligible = pd.Series(True, index=fitcols.index)
+    if floor > 0:
+        eligible &= (pop >= floor).reindex(fitcols.index).fillna(False)
+    eligible &= ~out_of_range & ~no_distance & ~below_industry & ~no_industry & ~current
+    if eligible.all():
+        eligible = None
     result = combine(scaled, status, run_weights, eligible).join(
         rank_ranges(scaled, status, run_weights, SENSITIVITY, eligible))
     wn = pd.Series(run_weights) / sum(run_weights.values())
@@ -554,13 +696,25 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
     out = pd.DataFrame({"msa": title}).join(result)
     all_complete = status.eq("complete").all(axis=1).reindex(out.index)
     below = (pop < floor).reindex(out.index).fillna(False) if floor > 0 else pd.Series(False, index=out.index)
+    rng = " to ".join(x for x in [f"min {fit_cfg['min_miles_to_bankunited']:,} mi" if fit_cfg["min_miles_to_bankunited"] else "",
+                                  f"max {fit_cfg['max_miles_to_bankunited']:,} mi" if fit_cfg["max_miles_to_bankunited"] else ""] if x)
+    oor, nod, cur, bin_, nin = (x.reindex(out.index).fillna(False) for x in
+                                (out_of_range, no_distance, current, below_industry, no_industry))
     out["coverage_status"] = np.select(
-        [out.complete_score.notna(), all_complete & below, out.pillars_scored > 0],
-        [f"Complete ({len(tables)}/{len(tables)} pillars)", f"Below size floor ({floor:,})", "Partial"],
-        "No pillar scores")
+        [out.complete_score.notna(), all_complete & below, all_complete & nod, all_complete & oor,
+         all_complete & nin, all_complete & bin_, all_complete & cur, out.pillars_scored > 0],
+        [f"Complete ({len(tables)}/{len(tables)} pillars)", f"Below size floor ({floor:,})",
+         "Insufficient data (no coordinates)", f"Outside distance range ({rng})",
+         "Insufficient data (selected industry suppressed)",
+         f"Below industry share ({fit_cfg['min_industry_share']:g}%)", "Current BankUnited market",
+         "Partial"], "No pillar scores")
     if pop is not None:
         out["population"] = pop.reindex(out.index)
     out["below_size_floor"] = below
+    out = out.join(fitcols)
+    out["outside_distance_range"] = oor
+    out = out.join(indcols)
+    out["below_industry_share"] = bin_
     out["missing_or_partial_pillars"] = status.apply(
         lambda r: ", ".join(f"{k} {v}" for k, v in r.items() if v != "complete"), axis=1)
     if filled:
@@ -573,7 +727,7 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         if normalize == "percentile":
             out[f"{k}_percentile"] = scaled[k]
         out[f"{k}_points"] = scaled[k] * wn[k]   # the points sum to complete_score for complete MSAs
-    out = out.join(bankunited_markets(root, int(sets["pillar3"].settings["score_year"]) if sets else None, as_of))
+    out = out.join(bu_labels)
     out.index.name = "cbsa_code"
 
     baseline_file = root / WEIGHTS_DIR / f"{BASELINE}.toml"
@@ -581,7 +735,9 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
     if compared:
         base, _ = run(root, weights_file=baseline_file, normalize=normalize, min_coverage=min_coverage,
                       allow_missing=allow_missing, write=False, compare_baseline=False,
-                      source=input_source, as_of=as_of, min_population=min_population)
+                      source=input_source, as_of=as_of, min_population=min_population, max_miles=max_miles,
+                      min_miles=min_miles, exclude_current_markets=exclude_current_markets,
+                      min_industry_share=min_industry_share)
         out["baseline_rank"] = base["rank"].reindex(out.index)
         # Rank change among MSAs complete in both runs, so MSAs entering or leaving the complete set
         # (e.g. when a metric with gaps is weighted 0) don't shift everyone else. Positive = moved up.
@@ -597,7 +753,7 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
 
     report = {
         "run_date": str(pd.Timestamp.today().date()),
-        "score": "Market Attractiveness (Fit & Feasibility gate not applied)",
+        "score": "Market Attractiveness, ranked after the size floor and Fit filters (see universe and fit)",
         "scenario": name,
         "weights_source": source,
         "pillars_in_run": list(tables),
@@ -610,6 +766,15 @@ def run(root: Path = config.ROOT, weights: dict | None = None, weights_file: Pat
         **report_extra,
         "settings": {"normalize": normalize, "min_pillar_coverage": min_coverage, "sensitivity": SENSITIVITY,
                      "source": input_source},
+        "options": run_options,
+        "fit": {**fit_cfg, "coordinates_available": coords is not None,
+                "bankunited_markets": sorted(bu_labels.index.tolist()),
+                "outside_distance_range": int(out["coverage_status"].str.startswith("Outside distance range").sum()),
+                "current_markets_excluded": int((out["coverage_status"] == "Current BankUnited market").sum()),
+                "industries": industries, "industry_year": industry_year,
+                "below_industry_share": int(out["coverage_status"].str.startswith("Below industry share").sum()),
+                "industry_insufficient_data": int((out["coverage_status"]
+                                                   == "Insufficient data (selected industry suppressed)").sum())},
         "universe": {"min_population": floor, "population_year": pop_year,
                      "below_size_floor": int((all_complete & below).sum())},
         "as_of": sets["pillar1"].settings.get("_as_of") if sets else None,
@@ -669,10 +834,18 @@ def main(argv=None) -> int:
     ap.add_argument("--show-weights", action="store_true", help="print the effective weights and stop")
     ap.add_argument("--min-population", type=int, help="size floor: metros below it are scored, not ranked (0 = off)")
     ap.add_argument("--as-of", help="decision date (YYYY-MM-DD): use only data released by then")
+    ap.add_argument("--max-miles", type=float, help="distance filter: only metros within this many miles of a BankUnited market rank (0 = off)")
+    ap.add_argument("--min-miles", type=float, help="distance filter: only metros at least this far from a BankUnited market rank (0 = off)")
+    ap.add_argument("--min-industry-share", type=float,
+                    help="industry filter: only metros with at least this %% of jobs in the selected industries rank (0 = off)")
+    ap.add_argument("--exclude-current-markets", action="store_true", default=None,
+                    help="BankUnited's own markets are scored but not ranked")
     args = ap.parse_args(argv)
     try:
         out, report = run(weights_file=args.weights, name=args.name, allow_missing=args.allow_missing,
-                          min_population=args.min_population, as_of=args.as_of,
+                          min_population=args.min_population, as_of=args.as_of, max_miles=args.max_miles,
+                          min_miles=args.min_miles, exclude_current_markets=args.exclude_current_markets,
+                          min_industry_share=args.min_industry_share,
                           normalize=args.normalize, write=not args.show_weights)
     except (GateError, ValueError, FileNotFoundError) as e:
         print(e, file=sys.stderr)
