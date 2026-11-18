@@ -5,7 +5,7 @@ title: "Data sources and access"
 
 ## Reported rebuild approach
 
-Per Austin and Akayiah's November 2026 updates, users supply their own API keys for FDIC, FRED, BEA and BLS (Census optional), and configure `HTTP_USER_AGENT` with a name and email. Approximately 2 GB of other data is reported to download through the pipeline.
+Users supply their own API keys for FDIC (from api.data.gov), FRED and BEA, set as `FDIC_API_KEY`, `FRED_API_KEY` and `BEA_API_KEY` in `.env` or as environment variables, and configure `HTTP_USER_AGENT` with a name and email. No source reads a BLS or Census key: their data comes as public files (repository `README.md`, "API keys"). Approximately 2 GB of other data is reported to download through the pipeline.
 
 **Exception:** 30 FFIEC CRA files cannot be downloaded automatically through the scripted workflow and were manually copied from the authorized `data-v0.5` Drive archive in the clean-clone test.
 
