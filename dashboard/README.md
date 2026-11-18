@@ -59,12 +59,12 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 | Overview | Full ranking with green-to-red colors, Charlotte's rank and score, BankUnited's markets, and pillar-weight sliders (0–100) that re-rank metros live |
 | Map | Every metro on an Azure Map (needs internet): color = score, size = population, BankUnited's markets in navy; click a metro for its details |
 | Market Profile | For any metro: score, rank, scenario range, distance to BankUnited, industry share, how the score adds up, all 27 measures, strongest and weakest measures |
-| P1–P4 | One page per pillar: pillar ranking, the selected metro's measures, data notes, owner |
-| Scenarios | Ranks under the strategy scenarios (Balanced, C&I-led, CRE-led, Deposit-led, Adjacency within 500 miles, Emerging market) and the robustness checks |
 | Compare | Two or more metros side by side: rank, score, pillar percentiles, distance, industry share and all 27 measures |
-| Rank by Measure | All metros ranked on any one of the 27 measures, with BankUnited's markets |
+| Rank by Measure | All metros ranked on any one of the 27 measures, with BankUnited's markets. The rank counts metros of 250,000+ with data for that measure (190 ranked plus the 5 Connecticut metros); percentiles compare all metros of every size |
+| Lending, Deposits, Competition, Market Quality | One page per pillar: pillar ranking, the selected metro's measures, data notes, owner |
+| Scenarios | Ranks under the strategy scenarios (Balanced, C&I-led, CRE-led, Deposit-led, Adjacency within 500 miles, Emerging market) and the robustness checks |
 | Filters | Size floor (default 250,000), distance to BankUnited's markets, minimum industry share and excluding current markets (0 = off); shows which metros and BankUnited markets drop out and why |
-| Method & Status | Method, data sources, pillar owners and open decisions |
+| Method | Method, data sources, pillar owners and open decisions |
 
 ## Key insights
 
@@ -77,8 +77,7 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 ## Limitations
 
 - Fit & Feasibility is available as filters (distance, industry share); a combined Fit score is not built.
-- Weights are starting hypotheses, not fitted to outcomes; approved ranges are a sponsor decision.
-- "Lower competition is better" in Pillar 3 is a working assumption to be confirmed with BankUnited.
+- Weights are not fitted to outcomes. BankUnited asked for open 0–100 weights with no guardrails (11/17), and the six scenario weight sets are starting points.
 - The Charlotte result is a pre-entry ranking test, not proof that the entry will succeed.
 
 ## How to open
