@@ -11,7 +11,7 @@ title: "Evidence and repository audit"
 
 ## Evidence inventory
 - Source code, automated tests, `requirements.txt`, processed Parquet data, reference data, `data/manifest.csv`, scenario score CSV/JSON files, and Power BI v0.7 dashboard are present.
-- Data checks: **161 passing, 0 failing**, counted directly in `data/processed/checks_report.md`; report dated 2026-10-28 on historical commit `b753452`. This reconciles the **included report**, not Austin's separate 163-check claim.
+- Data checks: **167 passed, 0 failed, 16 warnings**, counted directly in `data/processed/checks_report.md` as committed with data-v0.6 (PR #126; run 2026-11-15 on commit `e6ac53a`). This replaces the 161 passing in the 2026-10-28 report (commit `b753452`) and the 163 from the clean-clone rebuild of `integrated-v0.2`.
 - Tagged pytest: **222 passing, zero failures, 25 deprecation warnings** reported by Keerthika; complete test-run output is not in the uploaded ZIP and was not rerun in this review.
 - Reported tag: `integrated-v0.2`; team-provided SHA: `3c48fd512e9a0bf9b43a2ec5755c7145bee9833e`. The main ZIP lacks Git tag metadata, so tag-to-SHA mapping cannot be verified from it.
 - The repository now contains `docs/handoff/README.md`, `docs/handoff/BankUnited_TR03_Repository_Audit.md`, and duplicate tracker workbooks in `docs/` and `docs/handoff/`.
@@ -45,7 +45,7 @@ Compared uploaded `bankunited-market-expansion-main (1).zip` against earlier `ba
 - `docs/handoff/README.md`
 
 ## Technical observations
-- `data/processed/checks_report.md` includes **161 pass and 0 fail** rows from 2026-10-28 (commit `b753452`); this is not a new tagged-release rerun.
+- `data/processed/checks_report.md` includes **161 pass and 0 fail** rows from 2026-10-28 (commit `b753452`); this is not a new tagged-release rerun. Since data-v0.6 (PR #126, merged 2026-11-15), the committed report shows **167 passed, 0 failed, 16 warnings**.
 - Two tracked copies of the master workbook are byte-identical; select `docs/handoff/` as canonical.
 - `docs/technical_handoff.md`, `docs/methodology.md`, `app/app.py`, `src/bankunited_fit.py`, and `src/entry_scenarios.py` remain empty.
 - `dashboard/README.md` describes a Market Attractiveness-only MVP; Fit & Feasibility not applied.
