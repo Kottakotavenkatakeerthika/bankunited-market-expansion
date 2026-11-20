@@ -32,7 +32,7 @@ Each task is something a Corporate Treasury user would do, traced to a sponsor r
 | U9 | Switch scenarios and check rank robustness | Scenario design (T34) | Scenarios | Charlotte's rank in each scenario matches the scenario summary file | Six scenarios: #19, #18, #18, #16, #16, #16 | Pass |
 | U10 | Move between all pages without help | Usability | Navigation bar | All pages open with no errors or blank visuals | All 12 pages opened, no errors or blank visuals | Pass |
 
-Checked 11/19 against the scores file in the rerun folder (`outputs/final_scores/market_attractiveness_scores.csv`, 387 rows): 190 ranked; Charlotte rank 19, score 88.43. `scenario_summary.csv` and the dashboard Scenarios page agree: baseline 19, C&I-led 18, CRE-led 18, Deposit-led 16, Adjacency 16, Emerging market 16.
+Checked 11/19 against the scores file in the rerun folder (`outputs/final_scores/market_attractiveness_scores.csv`, 387 rows): 190 ranked; Charlotte rank 19, score 88.43. `outputs/final_scores/strategy/scenario_summary_strategy.csv` and the dashboard Scenarios page agree (the robustness checks are in `outputs/final_scores/scenario/scenario_summary.csv`): baseline 19, C&I-led 18, CRE-led 18, Deposit-led 16, Adjacency 16, Emerging market 16.
 
 ### 1b. Items found, fix commit and status
 
@@ -48,7 +48,7 @@ None of these changed a rank or score.
 | 6 | Floor 0: Charlotte stays #19 of 381; confirm no metro under 250,000 scores above it | None yet | Open (owner: Matt) | n/a |
 | 7 | Pillar sliders for Deposits, Competition and Market Quality not yet tested | None | Open | n/a |
 | 8 | Map on the demo machine not yet checked (needs internet; BankUnited IT confirming Azure Maps is enabled) | None | Open | n/a |
-| 9 | Rerun finding: `bank_quarter.parquet` differs after a fresh FDIC pull. 1,720 of 240,330 rows differ (0.7%) in 34 Call Report columns, 304 banks. Shape is the same. No downstream table and no score changed. Cause not confirmed (likely FDIC revisions or late filings) | None | Open (Matt, Austin or Keerthika to confirm if expected) | n/a |
+| 9 | Rerun finding: `bank_quarter.parquet` differs after a fresh FDIC pull. 1,720 of 240,330 rows differ (0.7%) in 34 Call Report columns, 304 banks. Shape is the same. No downstream table and no score changed. Cause confirmed by Austin 11/19: FDIC published revised data on 11/16 (no new quarter); 1,671 of the 1,720 rows differ only in FDIC's domestic office count | None. Austin adds a note to the data dictionary | Explained: FDIC revised past quarters on 11/16; expected, no action | n/a |
 
 ### 1c. Later results (to be filled in without changing the format)
 
@@ -68,7 +68,7 @@ A new person followed only the README on a fresh copy of the repository.
 - Tester: Bhavana Vasireddy
 - Date: 11/18/2026 (clone 6:09 PM; full rebuild started 6:22 PM)
 - Commit: `079a2e4782634635939219ab6dfd2cc026f4f08c` (merge of PR #120; main on 11/18). Short form: `079a2e4`
-- Tag: [integrated-v0.3, proposed by Akayiah 11/18; confirm once it is pushed. As of 11/19 9:48 AM it was not on GitHub]
+- Tag: `integrated-v0.3` on 079a2e4 (pushed)
 - Folder: fresh Windows folder `C:\t63_rerun`, cloned and then `git switch --detach 079a2e4`
 - Environment: Microsoft Windows [Version 10.0.26300.9974], Python 3.14.5, git 2.55.0.windows.5, virtual environment `.venv`, packages installed from the pinned versions in `requirements.txt` at this commit
 - Exceptions to "README only": I reused my own FDIC, FRED and BEA keys and my name and email from an earlier `.env` (RAW_DATA_DIR cleared); the 30 CRA files came from the Drive folder `BankUnited Pod Data/archive/data-v0.5`, as the README describes.
@@ -89,7 +89,7 @@ If PR #122 (QCEW) is merged and rebuilt as data-v0.7, the expected counts are 19
 
 ### 2b. Step log
 
-The full step log is in `t63_clean_clone_rerun_log_079a2e4` (same PR). Commands in order: `git clone`, `git switch --detach 079a2e4`, `python -m venv .venv`, `.venv\Scripts\activate`, `pip install -r requirements.txt`, `copy .env.example .env`, `python -m pytest`, `python -m src.checks`, `python -m src.run_pipeline`, `python -m src.scoring.run`, then `python -m pytest` again.
+The full step log is `docs/handoff/clean_clone_step_log_079a2e4.md` (same PR). Commands in order: `git clone`, `git switch --detach 079a2e4`, `python -m venv .venv`, `.venv\Scripts\activate`, `pip install -r requirements.txt`, `copy .env.example .env`, `python -m pytest`, `python -m src.checks`, `python -m src.run_pipeline`, `python -m src.scoring.run`, then `python -m pytest` again.
 
 ### 2c. README gaps still open at 079a2e4 (checked 11/19)
 
@@ -109,4 +109,4 @@ The full step log is in `t63_clean_clone_rerun_log_079a2e4` (same PR). Commands 
 
 | Reviewer | Date | Result |
 |---|---|---|
-| Keerthika | [ ] | [ ] |
+| Austin Edwards | 11/19/2026 | Results hold. He checked the committed scores, strategy ranks, run files, and the 298 tests and 167/0/16 checks on 079a2e4 against his own runs. Not rerun by him: the Windows install and the 33-minute rebuild |
