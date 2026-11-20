@@ -63,6 +63,8 @@ Set these in `.env`, which is never committed:
 
 The three keys are separate sign-ups, each free.
 
+Keep any key file you download or save (for example the page or text file a sign-up gives you) outside the repository folder, such as in `Documents`. The only file in the repository that holds keys is `.env`, and git ignores it. Never commit a key file.
+
 ### Raw data
 
 Leave `RAW_DATA_DIR` empty. Raw files then go to `data/raw/<source>/` in your clone, which git ignores. A full run downloads them itself, about 2 GB, most of it BLS's QCEW files. The exception is 30 CRA files: FFIEC refuses scripted downloads, so they have to be in place before the first run.
@@ -91,11 +93,34 @@ python -m src.peers                          # the peer set and its identifiers,
 python -m pytest                             # tests for the pipeline code
 ```
 
-**Run the full pipeline once on a new machine before using `--sources` or `--skip-ingest`.** Both rebuild every table from the interim files in `data/interim/`, which aren't committed. On a fresh clone they overwrite `msa_year.parquet` and `msa_year_history.parquet` with tables that are missing most of their columns, and the checks fail. If that happens, `git restore data/processed data/manifest.csv` puts the committed files back. The first full run took about 20 minutes in the pod's clean-clone test.
+**Run the full pipeline once on a new machine before using `--sources` or `--skip-ingest`.** Both rebuild every table from the interim files in `data/interim/`, which aren't committed. On a fresh clone they overwrite `msa_year.parquet` and `msa_year_history.parquet` with tables that are missing most of their columns, and the checks fail. If that happens, `git restore data/processed data/manifest.csv` puts the committed files back. The first full run took about 33 minutes in the pod's clean-clone rerun on Windows (T63, 11/18/2026); allow 30 to 40 minutes.
 
 The checks write `data/processed/checks_report.md` and exit with code 1 if anything fails. Every run rewrites that report with a new run time, and a run that downloads anything updates the pull times in `data/manifest.csv`, so `git status` shows changes after a run even when no table changed. A scoring run does the same to the `_run.json` files under `outputs/`. `git restore data/manifest.csv data/processed/checks_report.md` drops the first two.
 
 Each source publishes on its own schedule. [Refresh cadence](docs/refresh_cadence.md) says when to rerun each one and what a refresh takes.
+
+## Scoring
+
+The Market Attractiveness scores are built from the committed tables in `data/processed/`, so a fresh clone can run them without rebuilding the data first. From the repository root, with the environment active:
+
+```bash
+python -m src.scoring.run                    # every metric, pillar file, the baseline score and all scenarios (about a minute)
+python -m pytest                             # check that everything still lines up
+```
+
+Results go to `outputs/`: the baseline scores in `outputs/final_scores/market_attractiveness_scores.csv`, the strategy scenarios in `outputs/final_scores/strategy/`, the robustness checks in `outputs/final_scores/scenario/`, and each pillar's metrics in `outputs/pillar_scores/`. A scoring run rewrites the date inside the `*_run.json` files, so `git status` shows them as changed even when no score changed. How the score works, how to change weights and filters, and the full list of commands are in [Scoring](src/scoring/README.md).
+
+## Dashboard
+
+The Power BI dashboard is in `dashboard/`. To look at it, install Power BI Desktop (Windows, free) and open `dashboard/BankUnited_Market_Opportunity_Engine_v0.9.pbix`. The scores are saved inside that file, so it does not read the repository and does not change when you rerun the scoring: after a new scoring run, the dashboard owner has to rebuild the file. The Map page needs an internet connection. Pages, how the score is built and the known limits are in [dashboard/README.md](dashboard/README.md).
+
+## Notebooks
+
+The pillar notebooks in `notebooks/` need Jupyter and matplotlib, which `requirements.txt` installs. Start Jupyter from the repository root, with the environment active, so the notebooks can import `src`:
+
+```bash
+jupyter lab
+```
 
 ## Using the data (modelers)
 
