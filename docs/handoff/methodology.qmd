@@ -1,0 +1,7 @@
+---
+title: "Methodology and assumptions"
+---
+
+> **Document status:** The repository methodology file was empty in the reviewed snapshot. This is an explicit gap, not a completed methodology.
+
+Methodology file is empty in the reviewed repository snapshot. **Owner input required.**

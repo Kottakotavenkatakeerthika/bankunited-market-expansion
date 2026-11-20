@@ -1,0 +1,22 @@
+---
+title: "Audience, scope and deliverables"
+---
+
+
+## Intended readers
+
+- **BankUnited technical operators:** set up, rebuild data, rerun scoring and inspect/refresh the dashboard, subject to approved access.
+- **Business sponsors:** interpret market-attractiveness results, assumptions, limitations and decisions.
+- **Practicum reviewers:** assess reproducibility, methodology, evidence and scope.
+
+## Release boundary requiring approval
+
+The reviewed Power BI dashboard documents a **Market Attractiveness MVP**. The reviewed repository has empty `src/bankunited_fit.py`, `src/entry_scenarios.py` and `app/app.py`. Their implementation or explicit exclusion requires an owner/sponsor decision.
+
+## Delivery formats
+
+Quarto source (`.qmd`) is version-controlled; render a navigable HTML book and consolidated PDF. Retain the editable `.xlsx` tracker and `.pbix` dashboard separately. Do not publish bank-specific content publicly without authorization.
+
+## Completion standard (proposed, not yet accepted)
+
+Technical owners review their chapters; evidence links resolve; instructions work from a clean clone; exclusions and warnings are documented; sponsor reviewers accept the package or record exceptions.

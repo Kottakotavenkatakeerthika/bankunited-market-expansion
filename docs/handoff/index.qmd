@@ -1,0 +1,14 @@
+---
+title: "Start here"
+---
+
+
+This is a **working Quarto migration** of existing BankUnited handoff materials, prepared November 13, 2026. It is not a final sponsor-approved release.
+
+**Reference release:** `integrated-v0.2` — reported and owner-confirmed commit `3c48fd512e9a0bf9b43a2ec5755c7145bee9833e`.
+
+**Navigation:** Read the scope chapter first, then follow the technical runbook, data and methodology chapters, validation evidence and acceptance checklist.
+
+**Source of truth:** Existing code, tests, data artifacts and `.pbix` remain in the main repository. This Quarto project consolidates *documentation*, not executable product artifacts.
+
+**Evidence:** See the original files retained one directory above in `docs/handoff/`. Content here is migrated from the November 12 documentation package and the November 11 repository ZIP. Any missing material is explicitly marked as pending.

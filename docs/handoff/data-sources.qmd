@@ -1,0 +1,19 @@
+---
+title: "Data sources and access"
+---
+
+
+## Reported rebuild approach
+
+Users supply their own API keys for FDIC (from api.data.gov), FRED and BEA, set as `FDIC_API_KEY`, `FRED_API_KEY` and `BEA_API_KEY` in `.env` or as environment variables, and configure `HTTP_USER_AGENT` with a name and email. No source reads a BLS or Census key: their data comes as public files (repository `README.md`, "API keys"). Approximately 2 GB of other data is reported to download through the pipeline.
+
+**Exception:** 30 FFIEC CRA files cannot be downloaded automatically through the scripted workflow and were manually copied from the authorized `data-v0.5` Drive archive in the clean-clone test.
+
+## Required before bank handoff
+
+1. Obtain permission and a bank-approved mechanism for accessing/transferring the CRA files.
+2. Document source links, download dates, checksums and destination folder layout.
+3. Document API-key acquisition and environment configuration without committing secrets.
+4. Retest corrected README instructions under T63.
+
+**Status:** Process demonstrated on tester's machine; recipient access and transfer approval pending.
