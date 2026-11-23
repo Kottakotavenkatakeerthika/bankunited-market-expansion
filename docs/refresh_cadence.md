@@ -1,6 +1,6 @@
 # Refresh cadence
 
-When each source publishes, what a refresh takes, and how often to run the pipeline (plan task T46). Release timing comes from `data/reference/release_dates.csv`; what's out now was checked on October 26, 2026. Owner: Austin.
+When each source publishes, what a refresh takes, and how often to run the pipeline (plan task T46). Release timing comes from `data/reference/release_dates.csv`; what's out now was checked on October 26, 2026, and CRA's 2025 release on November 23, 2026. Owner: Austin. The step-by-step operating guide is the [runbook](runbook.md).
 
 ## Recommendation: on-demand runs, on a release calendar
 
@@ -18,7 +18,7 @@ If BankUnited later wants a scheduled job, the Call Reports are the natural cand
 |---|---|---|---|---|---|---|
 | Call Reports, through FDIC BankFind `/financials` | `ffiec` | Quarterly | Due 30 days after the quarter ends (35 for banks with more than one foreign office); FDIC posts the quarter after that | 2015 Q1 to 2026 Q2 | Late filers and amendments, picked up by the 200-day re-pull | Run it. A run before FDIC posts a quarter skips that quarter. Key: `FDIC_API_KEY` |
 | FDIC Summary of Deposits (SOD), BankFind `/sod` | `fdic` | Yearly, as of June 30 | Mid to late September, about 2.5 months after June 30 (September 20, 2024; September 18, 2026) | 2015–2024. 2025 and 2026 are out | A saved year is reused; `--force-download` pulls it again | A new year comes in when `END_YEAR` reaches it. Key: `FDIC_API_KEY` |
-| FFIEC CRA aggregate files (`<YY>exp_aggr.zip`) | `cra` | Yearly | Mid-November to mid-December of the next year (November 13, 2025 for 2024) | 2015–2024 | FFIEC has posted revised files for some years; the pipeline keeps the originals | Save the file from a browser into `raw/cra/` and log it with `register_local_file()`, then move `CRA_LATEST_AVAILABLE_YEAR` in `src/ingest_cra.py` |
+| FFIEC CRA aggregate files (`<YY>exp_aggr.zip`) | `cra` | Yearly | Mid-November to mid-December of the next year (November 13, 2025 for 2024; November 5, 2026 for 2025) | 2015–2024 | FFIEC has posted revised files for some years; the pipeline keeps the originals | Save the file from a browser into `raw/cra/` and log it with `register_local_file()`, then move `CRA_LATEST_AVAILABLE_YEAR` in `src/ingest_cra.py` |
 | FFIEC CRA by lender (`<YY>exp_discl.zip`, `<YY>exp_trans.zip`) | `ffiec` | Yearly, with the aggregate files | Same release | 2015–2024 | As above | Save both files from a browser into `raw/cra_bank/`; the run logs them in the manifest |
 | BEA county personal income (CAINC1) and GDP (CAGDP2) | `bea_bls` | Yearly | Income in mid-November and GDP in early December of the next year, until 2024's came out together on February 5, 2026. 2025's is scheduled for December 2, 2026 | 2015–2024 | Each release can revise earlier years; the 2022 release revised 2017–2021 GDP | `--force-download`, since BEA's files hold every year and change in place. Key: `BEA_API_KEY` |
 | BLS LAUS county averages | `bea_bls` | Yearly | Late April or early May of the next year | 2015–2024. 2025 is out | Revised each spring | `--force-download` for revisions; move `LAUS_LATEST_AVAILABLE_YEAR` in `src/ingest_bea_bls.py` for a new year |
@@ -29,7 +29,7 @@ If BankUnited later wants a scheduled job, the Call Reports are the natural cand
 | Census Gazetteer, Core Based Statistical Areas (each metro's internal point) | `gazetteer` | Yearly, with the TIGER/Line boundaries | The 2026 files are dated September 8, 2026 on census.gov | The 2026 file, one point per metro, repeated for every year | Points move a little as boundaries are updated: at most 3.1 miles for our metros between the 2024 and 2026 files | Nothing routine; geography needs no yearly refresh. With a new delineation, move `GAZETTEER_YEAR` in `src/config.py` to a year that lists its metros. The ingest stops if a metro in `msa_universe.csv` has no point |
 | OMB metro delineation | none: `--rebuild-crosswalk` | Irregular | | July 2023 (Bulletin 23-01) | | Change `DELINEATION_VINTAGE` and `DELINEATION_URL` in `src/config.py`, and `GAZETTEER_YEAR` if its file doesn't list the new metros. A new delineation moves counties between metros in every table, so it calls for a new major data version, not a routine refresh |
 
-A new year also needs `END_YEAR` to reach it (see the last section). `cre` downloads nothing: it reads the CBP and QCEW files, so run it after `census` or `bea_bls`. Census and BLS files need no API key.
+A new year also needs `END_YEAR` to reach it (see the last section). `qcew` and `cre` download nothing: `qcew` reads the QCEW files that `bea_bls` downloads, and `cre` reads the CBP and QCEW files, so run them after `census` or `bea_bls`. Census and BLS files need no API key.
 
 **CBP 2024.** Census's CBP data page (last revised September 16, 2026) says 2023 is the latest year and that there is no planned release date for 2024. A Commerce Department administrative order prohibits noise infusion, which CBP has used since 2018 instead of withholding cells, and Census is evaluating other approaches. Until 2024 comes out, the `cbp_` columns stay empty for 2024 and the `cre_` columns use QCEW, as they already do.
 
@@ -49,7 +49,7 @@ A new year also needs `END_YEAR` to reach it (see the last section). `cre` downl
 | Mid-November to mid-December | CRA for last year; BEA county income and GDP (December 2, 2026 for 2025) | Save the CRA files by hand, then `--sources cra ffiec`; `--sources bea_bls --force-download` |
 | No date yet | CBP 2024; any new OMB delineation | See above |
 
-The Call Report dates are filing deadlines; a run before FDIC posts the quarter skips it, and the next run picks it up. `--force-download` pulls every file of the sources named again, which for `bea_bls` includes ten years of QCEW files. To pull one file again instead, delete it from the raw folder and run without the flag.
+The Call Report dates are filing deadlines; a run before FDIC posts the quarter skips it, and the next run picks it up. `--force-download` pulls every file of the sources named again, which for `bea_bls` includes ten years of QCEW files. Don't use it with `cra` or `ffiec`, or on a full run: it also asks FFIEC for the CRA files, FFIEC refuses scripted downloads, and the run stops (the [runbook](runbook.md) has the command for pulling every Call Report quarter again). To pull one file again instead, delete it from the raw folder and run without the flag.
 
 ## After every refresh
 
@@ -59,4 +59,4 @@ The Call Report dates are filing deadlines; a run before FDIC posts the quarter 
 
 ## Rolling the panel to a new year
 
-`END_YEAR` in `src/config.py` (2024) ends the yearly tables for every source at once; only the Call Reports run past it. As of October 26, 2026, 2025 is out for PEP, LAUS, QCEW, FRED and SOD, and SOD has 2026 too. BEA's 2025 is due December 2, 2026, and CRA's 2025 usually comes in November or December. Moving `END_YEAR` to 2025 makes sense once both are out. Until CBP catches up, its columns stay empty for the newest years.
+`END_YEAR` in `src/config.py` (2024) ends the yearly tables for every source at once; only the Call Reports run past it. As of October 26, 2026, 2025 is out for PEP, LAUS, QCEW, FRED and SOD, and SOD has 2026 too. BEA's 2025 is due December 2, 2026, and CRA's came out November 5, 2026. Moving `END_YEAR` to 2025 makes sense once both are out; the [runbook](runbook.md) lists every setting to change. Until CBP catches up, its columns stay empty for the newest years.
