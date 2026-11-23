@@ -1,6 +1,6 @@
 # Data checks
 
-Run 2026-11-15 18:50 UTC on commit `e6ac53a`
+Run 2026-11-23 02:30 UTC on commit `55f7061`
 
 | Table | Check | Result | Detail |
 |---|---|---|---|
@@ -182,8 +182,41 @@ Run 2026-11-15 18:50 UTC on commit `e6ac53a`
 | msa_year_history | no column has two dictionary rows | pass |  |
 | msa_year_history | every dictionary Type is known | pass |  |
 | msa_year_history | values fit their dictionary Type | pass |  |
+| msa_industry_year | key columns present | pass |  |
+| msa_industry_year | no empty keys | pass |  |
+| msa_industry_year | one row per key | pass |  |
+| msa_industry_year | cbsa_code is 5 digits | pass |  |
+| msa_industry_year | bls_qcew_private_establishments_count >= 0 | pass |  |
+| msa_industry_year | bls_qcew_private_employment_count >= 0 | pass |  |
+| msa_industry_year | bls_qcew_private_total_wages_usd >= 0 | pass |  |
+| msa_industry_year | bls_qcew_private_counties_reported_count >= 0 | pass |  |
+| msa_industry_year | bls_qcew_private_counties_suppressed_count >= 0 | pass |  |
+| msa_industry_year | every column has a dictionary row | pass |  |
+| msa_industry_year | no column has two dictionary rows | pass |  |
+| msa_industry_year | every dictionary Type is known | pass |  |
+| msa_industry_year | values fit their dictionary Type | pass |  |
+| us_industry_year | key columns present | pass |  |
+| us_industry_year | no empty keys | pass |  |
+| us_industry_year | one row per key | pass |  |
+| us_industry_year | bls_qcew_private_establishments_count >= 0 | pass |  |
+| us_industry_year | bls_qcew_private_employment_count >= 0 | pass |  |
+| us_industry_year | bls_qcew_private_total_wages_usd >= 0 | pass |  |
+| us_industry_year | every column has a dictionary row | pass |  |
+| us_industry_year | no column has two dictionary rows | pass |  |
+| us_industry_year | every dictionary Type is known | pass |  |
+| us_industry_year | values fit their dictionary Type | pass |  |
 | bank_quarter | each FDIC cert belongs to one RSSD ID per quarter | pass |  |
 | bank_quarter | every bank-quarter has an FDIC cert | pass |  |
 | bank_quarter + bank_msa_year | SOD certs match the bank's June 30 Call Report cert | warning | 15 bank-metro-years, e.g. RSSD 694904 2022 |
 | bank_quarter + bank_msa_year | every SOD bank has a June 30 Call Report | warning | 11 bank-years, e.g. RSSD 125707 2015; RSSD 125707 2016; RSSD 125707 2017 |
 | bank_quarter + bank_msa_year | every CRA lender filed a Call Report that year | warning | 4 lender-years, e.g. RSSD 1007846 2022; RSSD 131650 2022; RSSD 19730 2017 |
+| msa_industry_year | industry codes are among the 32 allowed | pass |  |
+| us_industry_year | industry codes are among the 32 allowed | pass |  |
+| us_industry_year | every year has all 32 industries | pass |  |
+| msa_industry_year | supersectors add up to the private total (establishments_count, no county suppressed) | pass |  |
+| msa_industry_year | supersectors add up to the private total (establishments_count, a county suppressed) | pass |  |
+| msa_industry_year | supersectors add up to the private total (employment_count, no county suppressed) | pass |  |
+| msa_industry_year | supersectors add up to the private total (employment_count, a county suppressed) | warning | 869 metro-years differ, e.g. [('10180', 2017), ('10180', 2018), ('10380', 2015)] |
+| msa_industry_year | supersectors add up to the private total (total_wages_usd, no county suppressed) | pass |  |
+| msa_industry_year | supersectors add up to the private total (total_wages_usd, a county suppressed) | warning | 1036 metro-years differ, e.g. [('10180', 2017), ('10180', 2018), ('10380', 2015)] |
+| msa_industry_year | a metro's establishments never exceed the U.S. figure | pass |  |
