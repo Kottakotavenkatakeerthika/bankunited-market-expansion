@@ -2,51 +2,46 @@
 title: "Evidence and repository audit"
 ---
 
-> **Document status:** Audit based on reviewed repository snapshots; update when PRs merge.
+> **Document status:** Updated for data-v0.7; historical repository comparisons retained.
 
-# BankUnited TR-03 repository audit — updated 2026-11-11
+## BankUnited TR-03 repository audit — updated 2026-11-23
 
 ## Conclusion
-**Release candidate; final handoff acceptance pending.** The newest main-branch ZIP adds four documentation files and leaves technical files unchanged relative to the prior integrated-v0.2 ZIP.
 
-## Evidence inventory
-- Source code, automated tests, `requirements.txt`, processed Parquet data, reference data, `data/manifest.csv`, scenario score CSV/JSON files, and Power BI v0.7 dashboard are present.
-- Data checks: **167 passed, 0 failed, 16 warnings**, counted directly in `data/processed/checks_report.md` as committed with data-v0.6 (PR #126; run 2026-11-15 on commit `e6ac53a`). This replaces the 161 passing in the 2026-10-28 report (commit `b753452`) and the 163 from the clean-clone rebuild of `integrated-v0.2`.
-- Tagged pytest: **222 passing, zero failures, 25 deprecation warnings** reported by Keerthika; complete test-run output is not in the uploaded ZIP and was not rerun in this review.
-- Reported tag: `integrated-v0.2`; team-provided SHA: `3c48fd512e9a0bf9b43a2ec5755c7145bee9833e`. The main ZIP lacks Git tag metadata, so tag-to-SHA mapping cannot be verified from it.
-- The repository now contains `docs/handoff/README.md`, `docs/handoff/BankUnited_TR03_Repository_Audit.md`, and duplicate tracker workbooks in `docs/` and `docs/handoff/`.
+**Release published; final handoff acceptance pending.** The data-v0.7 release adds two QCEW industry tables while leaving every other table byte-identical to the prior release. The new tables are not used by the scoring process, so no score changes resulted.
 
-## Material gaps
-1. Raw inputs remain external; independent rebuild and output hash comparison not shown.
-2. `docs/technical_handoff.md` and `docs/methodology.md` are empty.
-3. `src/bankunited_fit.py`, `src/entry_scenarios.py`, and `app/app.py` are empty. The dashboard README explicitly limits the MVP to Market Attractiveness.
-4. Power BI file present; opening, refresh, and full normal/exception-case demo not independently verified.
-5. No reviewer-approved semantic contract, worked-example evidence chain, final customer journey, sponsor sign-off, or final aligned presentation is established by the ZIP.
-6. Current README describes 287 ranked / 100 unranked metros, including five Connecticut metros without comparable base-year data; disclose as limitation.
-7. Resolve whether the faculty's final handoff scope includes Fit & Feasibility or expressly excludes it.
+## Current release evidence
+
+- **Release:** `data-v0.7`, published November 23, 2026.
+- **Main commit reported by the team:** `55f7061`.
+- **New tables:** `msa_industry_year` (121,744 rows) and `us_industry_year` (320 rows), containing BLS QCEW industry data for 2015–2024.
+- **Data checks:** **198 passed, 0 failed, 18 warnings**, as reported for data-v0.7.
+- **Automated tests:** **313 tests**, as reported by the team.
+- **Scoring impact:** No score changes; the scoring process does not read the two newly added industry tables.
+- **Documentation updates:** The data dictionary traces Atlanta's 0.1% gap to FRED and notes that FDIC revises historical quarters.
+
+## Historical evidence
+
+- Data-v0.6 reported 167 checks passed, 0 failed, and 16 warnings.
+- The earlier integrated-v0.2 clean-clone rebuild reported 163 checks passed, 0 failed, and 16 warnings.
+- The October 28, 2026 report recorded 161 passing checks.
+- Earlier test evidence reported 222 passing tests. These historical figures are retained for release traceability and are not the current data-v0.7 results.
+
+## Material gaps and limitations
+
+1. Raw inputs and independent rebuild evidence should remain documented for reproducibility.
+2. BLS suppresses some county-level data. Metro employment and wage totals may therefore be understated. The `bls_qcew_private_counties_suppressed_count` field identifies affected metros.
+3. The final handoff still requires the remaining Quarto documentation, rendered outputs, review, and sponsor acceptance.
+4. The repository ZIP and release metadata should be retained with the handoff package.
 
 ## Acceptance standard
-Data/ML/AI pod leads provide implementation evidence, normal and exception-case examples and documented limitations; integration lead verifies reproducibility and shared interfaces; Documentation Lead consolidates and tracks; PM liaison obtains reviews; sponsor validates decision meaning and signs off. No completion status is inferred from presence of a placeholder or an unverified team-reported test run.
 
+Data, ML, and AI pod leads provide implementation evidence, normal and exception-case examples, and documented limitations. The integration lead verifies reproducibility and shared interfaces. The Documentation Lead consolidates the handoff, and the sponsor validates the decision meaning and provides sign-off.
 
-## Repository delta
+## Release reference
 
-# Repository snapshot delta — 2026-11-11
-
-Compared uploaded `bankunited-market-expansion-main (1).zip` against earlier `bankunited-market-expansion-integrated-v0.2.zip` by relative path and byte content. This is a ZIP-to-ZIP comparison, not a Git history comparison.
-
-- New ZIP files: **160**; added: **4**; modified: **0**; removed: **0**.
-- No existing file bytes changed; four documentation files were added.
-
-## Added files
-- `docs/BankUnited_TR03_Master_Tracker.xlsx`
-- `docs/handoff/BankUnited_TR03_Master_Tracker.xlsx`
-- `docs/handoff/BankUnited_TR03_Repository_Audit.md`
-- `docs/handoff/README.md`
-
-## Technical observations
-- `data/processed/checks_report.md` includes **161 pass and 0 fail** rows from 2026-10-28 (commit `b753452`); this is not a new tagged-release rerun. Since data-v0.6 (PR #126, merged 2026-11-15), the committed report shows **167 passed, 0 failed, 16 warnings**.
-- Two tracked copies of the master workbook are byte-identical; select `docs/handoff/` as canonical.
-- `docs/technical_handoff.md`, `docs/methodology.md`, `app/app.py`, `src/bankunited_fit.py`, and `src/entry_scenarios.py` remain empty.
-- `dashboard/README.md` describes a Market Attractiveness-only MVP; Fit & Feasibility not applied.
-- Source ZIP does not prove tag SHA; team provided `3c48fd512e9a0bf9b43a2ec5755c7145bee9833e`.
+- **Release:** `data-v0.7`
+- **Main commit reported by the team:** `55f7061`
+- **Data checks:** 198 passed, 0 failed, 18 warnings
+- **Automated tests:** 313 tests
+- **Release URL:** https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/releases/tag/data-v0.7

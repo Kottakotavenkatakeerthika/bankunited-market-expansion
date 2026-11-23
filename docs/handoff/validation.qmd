@@ -4,7 +4,7 @@ title: "Release validation and clean-clone evidence"
 
 > **Document status:** Bhavana-reported test evidence; preserve run-specific dates and warnings. Owner acceptance separate.
 
-# TR-03 validation and release evidence update — 2026-11-12
+## TR-03 validation and release evidence update — 2026-11-12
 
 **Evidence scope:** Team emails from Austin, Akayiah and Bhavana, plus the supplied `clean_clone_step_log_integrated-v0.2.md`. This note does not assert sponsor acceptance or independently re-execute the pipeline.
 
@@ -22,7 +22,7 @@ title: "Release validation and clean-clone evidence"
 
 ## Independent clean-clone step log
 
-# Clean-clone test: step log (T75, feeds T69)
+## Clean-clone test: step log (T75, feeds T69)
 
 Tester: Bhavana Vasireddy
 Release tested: tag `integrated-v0.2` (per Austin, on the PR #100 merge commit 3c48fd5)

@@ -4,7 +4,7 @@ title: "Course alignment and documentation governance"
 
 > **Document status:** Course alignment is a working crosswalk, not sponsor sign-off.
 
-# Faculty final-delivery alignment — November 2026 guidance
+## Faculty final-delivery alignment — November 2026 guidance
 
 The guidance requires **three coordinated deliverables**, all describing the same release and scope.
 

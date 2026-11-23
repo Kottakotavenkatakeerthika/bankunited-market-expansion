@@ -4,4 +4,4 @@ title: "Data dictionary"
 
 > **Document status:** This chapter includes the repository's data dictionary, `docs/data_dictionary.md`, when the book is rendered, so it always matches the file every build checks the processed tables against.
 
-{{< include ../data_dictionary.md >}}
+{{< include ../data_dictionary.md shift-heading-level-by=1 >}}

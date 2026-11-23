@@ -4,7 +4,7 @@ title: "Dashboard guide"
 
 > **Document status:** Migrated from dashboard README. Confirm the actual PBIX filename and refresh steps during T76/T63 remediation.
 
-# BankUnited Market Opportunity Engine – Power BI Dashboard
+## BankUnited Market Opportunity Engine – Power BI Dashboard
 
 Interactive Power BI dashboard for the BankUnited market-expansion project (DSBA 6390 Project Practicum, UNC Charlotte). It ranks U.S. metropolitan areas on **Market Attractiveness** for a commercial-first bank like BankUnited, and shows how every score is built from public data.
 

@@ -1,7 +1,79 @@
 ---
-title: "Methodology and assumptions"
+title: "Methodology and assumptions — T65 working draft"
 ---
 
-> **Document status:** The repository methodology file was empty in the reviewed snapshot. This is an explicit gap, not a completed methodology.
+## T65 — methodology, assumptions and analytical decisions
 
-Methodology file is empty in the reviewed repository snapshot. **Owner input required.**
+**Draft date:** November 17, 2026
+**Evidence baseline:** Austin’s reported rerun of `main` at commit `4145dfa` (November 17); PR #128 merged November 16; Austin’s *How Our Data Works* (data-v0.6, November 16).
+**Status:** Documentation draft, not final ML, sponsor or Model Risk Management (MRM) approval. The actual commit and logs have not been independently reproduced for this package.
+
+## Objective, universe and ranking
+
+The model compares **393 U.S. metros** using four pillars: **commercial lending, deposits, competition and market quality**. The scoring v0.4 baseline applies **25% to each pillar** and a **250,000 population floor**. These are current implementation settings, not evidence that BankUnited has approved final weight ranges or guardrails. Power BI is intended as the sponsor-facing interface, subject to dashboard acceptance.
+
+Austin reports **381 complete metros**, of which **191 fall below the population floor**, yielding **190 ranked metros**. **Six have partial scores** (five Connecticut metros and Eagle Pass, Texas); **six Puerto Rico metros are not scored** due to coverage gaps in BEA, County Business Patterns and population estimates. Charlotte is **19th of 190**. The previous **176 ranked / Charlotte 17th** is the pre-#128 v0.3 result and must remain explicitly historical. These counts reconcile: 381 + 6 partial + 6 not scored = 393.
+
+## Why the ranking changed — suppressed industry sectors
+
+In 2023 Census County Business Patterns (CBP), **95 metros** have at least one unpublished sector among the **19 sectors** used for industry concentration (mining in **69**). Previously the industry HHI was blank for these metros, preventing a complete score. Since **PR #128**, the HHI is calculated using **published sectors only**; raw data cells remain missing. Under the old rule, Austin’s rerun reproduces **176 ranked / Charlotte 17th** exactly. With the new rule, **14 additional metros** rank, including Huntsville (**11th**) and Wilmington, NC (**14th**), both ahead of Charlotte. Another **80** are complete but below the population floor; Eagle Pass remains partial. Thus the change to **190 ranked / Charlotte 19th** is attributable to HHI treatment, **not** default Fit filters (which are disabled).
+
+### Sensitivity and residual uncertainty
+
+Austin reports omitted sectors represent at most approximately **1% of a metro’s jobs** (median **0.07%**). Including those jobs changes HHI by at most **1.6%** in his sensitivity assessment. Across three low/intermediate/high rescorings, **190 metros remain ranked**, no metro moves more than **three places**, and Charlotte ranges **18th–19th**; its baseline score is **0.03 points behind Tampa**. This is sensitivity evidence, not a guarantee of rank stability under all future inputs or weight choices.
+
+**Reversibility:** `[options] industry_hhi_missing_sectors = "blank"` restores the older HHI treatment. The weights configuration comments reportedly still describe the older blank-for-95 behavior in `baseline.toml` and twelve other files; these comments need a follow-up correction, without implying a scoring-code defect.
+
+## Fit & Feasibility filters — PR #128
+
+The final-score CSV includes the following configurable screening dimensions, which affect **ranking eligibility, not the underlying attractiveness score**:
+
+1. **Distance** in miles to the nearest BankUnited market.
+2. **Industry employment share** for selected industries defined in `baseline.toml`.
+3. **Exclude current BankUnited markets**.
+
+All three are **off by default**. The **Adjacency** scenario applies a **500-mile** distance cutoff. The **Talent-led** scenario was removed, and `fill_local_lender` was replaced by `no_fill_local_lender`. BankUnited footprint includes **13 markets**: ten branch markets in the 2024 deposit survey plus office-only Atlanta, Charlotte and Houston. An as-of run excludes Atlanta before **April 7, 2022**, and Charlotte before **July 17, 2025**.
+
+**Important distinction:** HHI uses available sectors when a sector is suppressed, but the **industry-share filter** treats an unpublished *selected* sector as an unknown share. With that filter enabled, **11 metros** have blank shares (all for utilities) and cannot rank; only **Huntsville** is otherwise above the population floor. This asymmetry is an explicit model assumption and should be visible in the MRM review.
+
+## Analytical decision register
+
+The data engineering decisions, including rationale, alternatives, ownership, sensitivity and limitations, are in [D1–D15](data-decisions.qmd). Austin’s November 17 supplied replacement entries have been incorporated into **D2, D4, D14 and D15**. **D6, D13, D14 and D15** still require Matt’s review as requested in the team action list. The source Word file is retained unchanged under `reference/` for audit traceability.
+
+| Area | Current implementation / decision | Review or acceptance dependency |
+|---|---|---|
+| Metro universe | 393 metros, consistent boundaries | DE owner confirmation of versioned source |
+| Four pillars | Lending, deposits, competition, market quality | ML methodology evidence |
+| Baseline weighting | 25% per pillar | Sponsor-approved weight guardrails not yet established |
+| Eligibility | 250,000 population floor; 190 ranked | Confirm final scoring CSV and release commit |
+| Industry HHI | Compute from published sectors | Matt sensitivity review |
+| Fit filters | Three optional filters, all off in baseline | Verify acceptance criteria for REL-07 |
+| Pillar 3 | Competition × growth design (Nov 5 sponsor selection, per team report) | Confirm implemented configuration and sponsor evidence |
+| Scenario design | Adjacency 500 miles; Talent-led removed | Confirm final scenario manifest |
+| Dashboard | Sonia reports Power BI v0.9 / PR #129 matches Matt’s ranks | Keerthika/Bhavana test results and PR acceptance pending |
+
+## Reproducibility and verification
+
+Austin reports that the scoring rerun at `4145dfa` **reproduces committed scores exactly**. Data checks: **167 passed, 0 failed, 16 warnings**. Automated tests: **297** (previously 276). These are **team-reported execution results**, not independently validated by this Quarto patch. Link the T63 rerun log, release SHA, checks report and test logs in the evidence index when available. The T68 full technical runbook is due **November 29**.
+
+## Known limitations and MRM questions
+
+- Source suppression: HHI’s published-sector treatment can affect rank eligibility and close rank ordering; source cells are not imputed or recovered.
+- Data coverage: Connecticut partial scores, Eagle Pass partial score and Puerto Rico exclusion need to remain visible.
+- Distance uses Census Gazetteer internal points and **straight-line** miles, not travel distance; Detroit **503.1 miles** from New York and El Paso **508.1 miles** from Dallas sit just outside the Adjacency cutoff.
+- Fit filters may exclude scored metros from ranked output; a filtered-out metro is **not** necessarily unattractive.
+- Selected-industry share and HHI intentionally use different missing-sector treatments; rationale and impact must be signed off by ML/MRM reviewers.
+- Weight sliders in Power BI (reported 0–100) are sensitivity controls; they do not establish sponsor approval for arbitrary weight combinations.
+- The Quarto draft should not claim dashboard v0.9 acceptance before PR #129 testing, or declare T65 closed before owner review.
+
+## Open actions before final T65 sign-off
+
+1. **Austin:** revised Markdown and fact-check rows received November 17; confirm final data-owner sign-off and retain supporting test/check logs.
+2. **Matt:** return corrections for D6, D13, D14, D15 and the ML decision entries (weights, floor, HHI, fit filters, 500-mile cutoff, industry-share missingness); correct outdated weights-file comments via PR.
+3. **Varun:** reconcile T65 evidence IDs in TR-03 and confirm source links and revision dates.
+4. **Sonia, Keerthika and Bhavana:** supply final Power BI v0.9 validation results for a later dashboard chapter update; this does not block the T65 draft.
+5. **Sponsor/MRM:** review assumptions, sensitivities, exclusions and final weight governance before acceptance.
+
+## Source-confirmed known-limit wording (Austin, November 17)
+
+- **190 of the 393 metros are ranked.** A metro is ranked only when all four pillars, the groups of measures the score averages, are complete and it has at least 250,000 people. That floor is the default BankUnited chose at the November 6 gate, and 0 turns it off. 381 metros are complete, and 191 of them fall under the floor. Connecticut's 5 (explained next) and Eagle Pass, Texas, have partial scores, and Puerto Rico's 6 aren't scored, since BEA, County Business Patterns and the population estimates don't cover them. Where Census leaves out an industry sector (95 metros, mining in 69), the industry-concentration measure uses the sectors it publishes. Charlotte ranks 19th of 190.
