@@ -139,7 +139,7 @@ the final score is a quarter of its pillar weight. All 32 metrics (27 weighted i
 | `mm_establishments` | 20% | Higher | Establishments with 20–249 employees, CBP 2023 |
 | `mm_growth` | 20% | Higher | Growth in that count, 2018–2023 |
 | `cre_payroll_growth` | 20% | Higher | Payroll growth in real estate (NAICS 531) plus nonresidential construction, 2018–2023 |
-| `local_ci_growth` | 10% | Higher | C&I growth at banks with at least 50% of their deposits in the metro, 2019–2024; each bank capped at 25% a year |
+| `local_ci_growth` | 10% | Higher | C&I growth at banks with at least 50% of their deposits in the metro, 2019–2024; each bank capped at 191% a year (sponsor rule: 5th-highest observed bank growth, rounded up) |
 | `local_cre_growth` | 10% | Higher | The same, for CRE |
 | `local_loans_to_deposits` | 0% | Higher | Local lenders' commercial loans ÷ deposits (computed, not scored) |
 | `mm_share` | 0% | Higher | Middle-market share of establishments (computed, not scored) |
