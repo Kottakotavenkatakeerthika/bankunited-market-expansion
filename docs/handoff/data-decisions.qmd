@@ -4,7 +4,7 @@ title: "Data engineering decision log (D1–D15)"
 
 ## Austin Edwards — T65 decision register
 
-**Source:** *How Our Data Works*, November 16, 2026, data-v0.6, commit `231281b`. This chapter transcribes the 15 source decision entries; the source Word document is included in `../reference/`.
+**Source:** *How Our Data Works*, November 16, 2026, data-v0.6, commit `231281b`. This chapter transcribes the 15 source decision entries; the November 17 replacement passages are kept in `reference/how-our-data-works-v0.4-changes.md`.
 
 **November 17 source update:** Austin supplied the complete replacement entries for D2, D4, D14 and D15 in `how-our-data-works-v0.4-changes.md`. Matt's technical review of D6, D13, D14 and D15 remains pending.
 

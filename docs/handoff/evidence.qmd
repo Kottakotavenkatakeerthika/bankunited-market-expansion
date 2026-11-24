@@ -13,7 +13,7 @@ title: "Evidence and repository audit"
 ## Current release evidence
 
 - **Release:** `data-v0.7`, published November 23, 2026.
-- **Main commit reported by the team:** `55f7061`.
+- **Release commit:** `4597975`, where the `data-v0.7` tag points (the PR #134 merge on main).
 - **New tables:** `msa_industry_year` (121,744 rows) and `us_industry_year` (320 rows), containing BLS QCEW industry data for 2015–2024.
 - **Data checks:** **198 passed, 0 failed, 18 warnings**, as reported for data-v0.7.
 - **Automated tests:** **313 tests**, as reported by the team.
@@ -41,7 +41,7 @@ Data, ML, and AI pod leads provide implementation evidence, normal and exception
 ## Release reference
 
 - **Release:** `data-v0.7`
-- **Main commit reported by the team:** `55f7061`
+- **Release commit:** `4597975` (tag `data-v0.7`)
 - **Data checks:** 198 passed, 0 failed, 18 warnings
 - **Automated tests:** 313 tests
 - **Release URL:** https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/releases/tag/data-v0.7
