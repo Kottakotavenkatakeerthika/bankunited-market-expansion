@@ -39,7 +39,7 @@ The seven tables at data-v0.7:
 
 ## 2. Setting up a machine
 
-1. **Get the code.** How BankUnited receives it is still open (plan blocker B2): a download from GitHub, or a ZIP of the repository that BankUnited's IT scans. A ZIP has no git history. If you received one, put the folder under version control before the first run, so you can see what a run changed and undo it:
+1. **Get the code.** BankUnited receives it as a ZIP of the repository: the pod sends it to Elliot Leibowitz and Frankely Ortiz Catano (BankUnited InfoSec) on November 30, 2026, and InfoSec scans it (plan blocker B2, now closed). A ZIP has no git history. Put the folder under version control before the first run, so you can see what a run changed and undo it:
 
    ```bash
    git init
@@ -68,13 +68,13 @@ The seven tables at data-v0.7:
 **How the code reads them.** `src/config.py` reads each value from an environment variable, after loading a `.env` file in the repository folder if there is one. A variable that is already set in the environment wins over `.env`, and `.env` fills in the rest. The download log (`data/manifest.csv`) never records a key: `fetch()` replaces it with `REDACTED`.
 
 - **On a laptop:** put the values in `.env`. Git ignores it, and it's the only file in the repository that holds keys. Keep any file a sign-up gives you outside the repository folder.
-- **At BankUnited:** keep the four values as one JSON secret in BankUnited's secrets manager (its choice, October 19), for example:
+- **At BankUnited:** keep the four values as one JSON secret in AWS Secrets Manager, which BankUnited confirmed in November is its secrets manager, for example:
 
   ```json
   {"FDIC_API_KEY": "...", "FRED_API_KEY": "...", "BEA_API_KEY": "...", "HTTP_USER_AGENT": "Name email@bankunited.com"}
   ```
 
-  Before a run, set each field as an environment variable. Nothing in the code needs to change, and no `.env` file is needed. If the secrets manager is AWS Secrets Manager (BankUnited said on October 19 it likely is), one way, with `<secret name>` filled in:
+  Before a run, set each field as an environment variable. Nothing in the code needs to change, and no `.env` file is needed. One way, with `<secret name>` filled in:
 
   ```powershell
   # PowerShell
@@ -244,7 +244,7 @@ These come from what the public sources publish. The gaps stay visible instead o
 | Documentation | Varun Sawant |
 | Project manager | Akayiah Bell |
 
-**After the handoff:** BankUnited's owner for the pipeline: *[to be named by BankUnited]*.
+**After the handoff:** BankUnited's owners for the pipeline and this runbook are Elliot Leibowitz and Amandeep Kohli. The repository ZIP also goes to Frankely Ortiz Catano in BankUnited InfoSec (section 2).
 
 **The sources:**
 
