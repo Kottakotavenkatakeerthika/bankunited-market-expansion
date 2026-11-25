@@ -16,7 +16,7 @@ corners = { few_growing = 100, many_growing = 50, few_stable = 0, many_stable = 
 [pillar1]
 local_lender_threshold       = 0.50          # a bank is a local lender in a metro holding >= this share of its domestic deposits
 growth_cap                   = 1.91          # max annual same-bank loan growth counted. Set by hand at sponsor request (11/2026):
-                                             # 5th-highest observed bank growth, 2019-24 (190.6%), rounded up. Was 0.25.
+                                             # 5th-highest observed bank growth, 2019-24 (190.6%), rounded up. Was 0.25 (so acquisitions don't read as demand).
 base_quarter                 = "2019-06-30"  # Call Report / SOD start
 end_quarter                  = "2024-06-30"  # Call Report / SOD end (SOD June 30 survey)
 cbp_start                    = 2018
