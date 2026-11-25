@@ -1,7 +1,7 @@
 # Scenario: drop Pillar 4's industry HHI.
-# Question: how much of the incomplete-MSA problem is this one metric, and do the newly ranked
-# MSAs (e.g. Huntsville, Wilmington NC) belong near the top?
-# Change: [pillar4] industry_hhi 12.5 -> 0. It is blank for ~95 MSAs because of CBP suppression.
+# Question: how much does industry HHI move the ranking? (Since #128 it no longer affects
+# which MSAs are complete; the baseline and this scenario rank the same 190.)
+# Change: [pillar4] industry_hhi 12.5 -> 0. Before #128 (fit-filters-v0.4) it was blank for 95 MSAs because of CBP suppression.
 # Everything else is the baseline (weights/baseline.toml as of 2026-10-29).
 # Run:  python -m src.market_attractiveness --weights weights/scenarios/no_industry_hhi.toml
 
@@ -41,7 +41,7 @@ gdp_growth              = 12.5
 gdp_volatility          = 12.5
 unemployment_level      = 12.5
 unemployment_volatility = 12.5
-industry_hhi            = 0     # blank for 95 MSAs (CBP suppression); set to 0 to score them complete
+industry_hhi            = 0     # suppressed CBP sectors: see [options] in baseline.toml
 establishment_growth    = 12.5
 population_growth       = 12.5
 net_migration_rate      = 12.5
