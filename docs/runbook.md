@@ -2,7 +2,7 @@
 
 How to run, refresh, check and maintain the BankUnited market expansion data pipeline and scores (plan task T68). Written for whoever runs it at BankUnited after the handoff, and for the pod until then.
 
-**Status:** first draft for review, written against **data-v0.7** (main at `4597975`, November 23, 2026): seven processed tables, 313 tests, and checks at 198 passed, 0 failed, 18 warnings. Owner: Austin Edwards, with Bhavana Vasireddy and Kottakota Venkata Keerthika.
+**Status:** first draft for review, written against **data-v0.7** (main at `4597975`, November 23, 2026): seven processed tables, 313 tests, and checks at 198 passed, 0 failed, 18 warnings. Owner: Austin Edwards, with Bhavana Vasireddy and Venkata Keerthika Kottakota.
 
 This runbook gives the order of operations and what to do when something goes wrong. The details it points to:
 
@@ -39,7 +39,7 @@ The seven tables at data-v0.7:
 
 ## 2. Setting up a machine
 
-1. **Get the code.** BankUnited receives it as a ZIP of the repository: the pod sends it to Elliot Leibowitz and Frankely Ortiz Catano (BankUnited InfoSec) on November 30, 2026, and InfoSec scans it (plan blocker B2, now closed). A ZIP has no git history. Put the folder under version control before the first run, so you can see what a run changed and undo it:
+1. **Get the code.** BankUnited receives it as a ZIP of the repository: the pod sends it to Elliot Leibowitz and BankUnited InfoSec on November 30, 2026, and InfoSec scans it (plan blocker B2, now closed). A ZIP has no git history. Put the folder under version control before the first run, so you can see what a run changed and undo it:
 
    ```bash
    git init
@@ -238,13 +238,13 @@ These come from what the public sources publish. The gaps stay visible instead o
 |---|---|
 | Bank sources (FDIC Summary of Deposits, Call Reports, CRA lending by bank, the peer set, metro coordinates) and the shared pipeline (crosswalk, checks, data releases) | Austin Edwards |
 | Economic sources (County Business Patterns, population estimates, BEA, BLS LAUS and QCEW, FRED, CRA county totals, the CRE measures) | Bhavana Vasireddy |
-| Scoring: Pillars 1 and 2 / Pillar 3 / Pillar 4 | Matt D'Allaird / Jainesh Lad / Evan de Guzman |
+| Scoring: Pillars 1 and 2 / Pillar 3 / Pillar 4 | Matt D'Allaird / Jainesh Lad / Evan De Guzman |
 | Dashboard | Sonia Chavelas Gonzalez |
-| Repository, integration and final release | Kottakota Venkata Keerthika |
+| Repository, integration and final release | Venkata Keerthika Kottakota |
 | Documentation | Varun Sawant |
 | Project manager | Akayiah Bell |
 
-**After the handoff:** BankUnited's owners for the pipeline and this runbook are Elliot Leibowitz and Amandeep Kohli. The repository ZIP also goes to Frankely Ortiz Catano in BankUnited InfoSec (section 2).
+**After the handoff:** BankUnited's owners for the pipeline and this runbook are Elliot Leibowitz and Amandeep Kohli. The repository ZIP also goes to BankUnited InfoSec (section 2).
 
 **The sources:**
 
