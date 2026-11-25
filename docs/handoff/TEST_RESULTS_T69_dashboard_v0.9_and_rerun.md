@@ -48,7 +48,7 @@ None of these changed a rank or score.
 | 6 | Floor 0: Charlotte stays #19 of 381; confirm no metro under 250,000 scores above it | None yet | Open (owner: Matt) | n/a |
 | 7 | Pillar sliders for Deposits, Competition and Market Quality not yet tested | None | Open | n/a |
 | 8 | Map on the demo machine not yet checked (needs internet; BankUnited IT confirming Azure Maps is enabled) | None | Open | n/a |
-| 9 | Rerun finding: `bank_quarter.parquet` differs after a fresh FDIC pull. 1,720 of 240,330 rows differ (0.7%) in 34 Call Report columns, 304 banks. Shape is the same. No downstream table and no score changed. Cause confirmed by Austin 11/19: FDIC published revised data on 11/16 (no new quarter); 1,671 of the 1,720 rows differ only in FDIC's domestic office count | None. Austin adds a note to the data dictionary | Explained: FDIC revised past quarters on 11/16; expected, no action | n/a |
+| 9 | Rerun finding: `bank_quarter.parquet` differs after a fresh FDIC pull. 1,720 of 240,330 rows differ (0.7%) in 34 Call Report columns, 300 banks by FDIC certificate or RSSD ID (304 counts bank names). Shape is the same. No downstream table and no score changed. Cause confirmed by Austin 11/19: FDIC published revised data on 11/16 (no new quarter); 1,671 of the 1,720 rows differ only in FDIC's domestic office count | None. Austin adds a note to the data dictionary | Explained: FDIC revised past quarters on 11/16; expected, no action | n/a |
 
 ### 1c. Later results (to be filled in without changing the format)
 
