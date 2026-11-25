@@ -4,7 +4,7 @@ Gathers the metrics only; directions are part of each metric's definition, and w
 weights/baseline.toml. Ported from notebooks/pillar4_market_quality_durability.ipynb
 (definition mode "dataset_2024"). The industry-coverage columns (published sectors, missing sectors,
 classified-to-all ratio) are reported as diagnostics; they show which sectors CBP suppressed, which industry HHI leaves out under the baseline
-# ([options] industry_hhi_missing_sectors = "leave_out") or which make it blank under "blank".
+([options] industry_hhi_missing_sectors = "leave_out") or which make it blank under "blank".
 """
 from __future__ import annotations
 
