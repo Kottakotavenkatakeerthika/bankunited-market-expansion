@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-16",
+  "run_date": "2026-11-24",
   "score": "Market Attractiveness, ranked after the size floor and Fit filters (see universe and fit)",
   "scenario": "no_fill_local_lender",
   "weights_source": "weights/scenarios/no_fill_local_lender.toml",
@@ -181,7 +181,7 @@
       "metrics_weighted": 6,
       "settings": {
         "local_lender_threshold": 0.5,
-        "growth_cap": 0.25,
+        "growth_cap": 1.91,
         "base_quarter": "2019-06-30",
         "end_quarter": "2024-06-30",
         "cbp_start": 2018,
