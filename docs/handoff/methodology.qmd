@@ -38,7 +38,7 @@ All three are **off by default**. The **Adjacency** scenario applies a **500-mil
 
 ## Analytical decision register
 
-The data engineering decisions, including rationale, alternatives, ownership, sensitivity and limitations, are in [D1–D15](data-decisions.qmd). Austin’s November 17 supplied replacement entries have been incorporated into **D2, D4, D14 and D15**. **D6, D13, D14 and D15** still require Matt’s review as requested in the team action list. The source Word file is retained unchanged under `reference/` for audit traceability.
+The data engineering decisions, including rationale, alternatives, ownership, sensitivity and limitations, are in [D1–D15](data-decisions.qmd). Austin’s November 17 supplied replacement entries have been incorporated into **D2, D4, D14 and D15**. **D6, D13, D14 and D15** still require Matt’s review as requested in the team action list. The November 17 replacement passages are kept in `reference/how-our-data-works-v0.4-changes.md` for audit traceability.
 
 | Area | Current implementation / decision | Review or acceptance dependency |
 |---|---|---|
