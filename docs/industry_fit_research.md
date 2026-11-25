@@ -15,11 +15,11 @@ Industry Fit measures how much of a metro's CBP-covered employment is in industr
 
 ## Files and implementation status
 
-- [Exploratory workbook](Industry_Fit_2023.xlsx): 2023 snapshot, including research rationales, growth, specialization, comparisons, and coverage.
-- [Python module](../src/bankunited_fit.py): reusable `industry_mix()` calculation and TOML priority loader.
+- Exploratory workbook (`docs/Industry_Fit_2023.xlsx` in pull request 124, not merged): 2023 snapshot, including research rationales, growth, specialization, comparisons, and coverage.
+- Python module (`src/bankunited_fit.py` in pull request 124, not merged): reusable `industry_mix()` calculation and TOML priority loader.
 - [Configuration](../weights/baseline.toml): `[industry_fit.priorities]`, editable independently of scoring weights.
-- [Read-only notebook](../notebooks/industry_fit_exploration.ipynb): displays existing generated results; saved outputs are cleared.
-- [Tests](../tests/test_industry_mix.py): year selection, release-date gating, missingness, validation, and configuration separation.
+- Read-only notebook (`notebooks/industry_fit_exploration.ipynb` in pull request 124, not merged): displays existing generated results; saved outputs are cleared.
+- Tests (`tests/test_industry_mix.py` in pull request 124, not merged): year selection, release-date gating, missingness, validation, and configuration separation.
 
 Industry Fit is generated alongside the command available in this branch:
 
