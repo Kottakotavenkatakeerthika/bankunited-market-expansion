@@ -43,7 +43,7 @@ Unit of analysis: metropolitan statistical areas (OMB 2023 delineation), 387 met
 3. Each pillar score is converted to a percentile among metros.
 4. The Attractiveness Score is the weighted average of the four pillar percentiles (25% each at baseline).
 
-A metro is ranked only when all four pillars are complete **and** its population is at least 250,000 (the size floor): **190 ranked**. 191 metros have complete data but are below the floor; they keep their score but are not ranked. 6 metros have incomplete data (5 Connecticut metros and Eagle Pass, TX). The filters for distance to BankUnited's markets, industry fit and excluding current markets work the same way and are off by default. Industry fit is each metro's share of jobs in 11 commercial-banking industries, filtered as a percentile (0–100, the default filter) or, as an option, as the raw percent of jobs. No missing value is filled with zero. Percentiles are calculated across all metros before the floor is applied, so the floor changes ranks, not scores. In Pillar 1, local-lender growth is set to the 50th percentile for the 61 metros with no local lender.
+A metro is ranked only when all four pillars are complete and its population is at least 250,000 (the size floor): **190 ranked**. 191 metros have complete data but are below the floor; they keep their score but are not ranked. 6 metros have incomplete data (5 Connecticut metros and Eagle Pass, TX). The filters for distance to BankUnited's markets, industry fit and excluding current markets work the same way and are off by default. Industry fit is each metro's share of jobs in 11 commercial-banking industries, filtered as a percentile (0–100, the default filter) or, as an option, as the raw percent of jobs. No missing value is filled with zero. Percentiles are calculated across all metros before the floor is applied, so the floor changes ranks, not scores. In Pillar 1, local-lender growth is set to the 50th percentile for the 61 metros with no local-lender growth figure (55 have no local lender).
 
 Deposits exclude bookings at main offices and home-banking offices, so headquarters deposits don't inflate a market (for example, Bank of America and Truist in Charlotte).
 
@@ -58,16 +58,16 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 
 | Page | What it shows |
 | --- | --- |
-| Overview | Full ranking with green-to-red colors, the selected metro's rank, score and scenario range, BankUnited's markets, the filters in use, and pillar-weight sliders (0–100) that re-rank metros live. The weights entered are rescaled to 100%: the header shows their total, and four cards show each pillar's share of the score |
-| Map | Every metro on an Azure Map (needs internet): color = score, size = population, BankUnited's markets in navy; click a metro for its details |
-| Market Profile | For any metro: score, rank, scenario range, distance to BankUnited, industry-fit jobs, how the score adds up, all 27 measures, strongest and weakest measures. Metros with partial data are labeled "Partial data" and are not ranked |
-| Compare | Two or more metros side by side: rank, score, pillar percentiles, distance, industry-fit jobs (% and percentile) and all 27 measures |
-| Rank by Measure | All metros ranked on any one of the 27 measures, with BankUnited's markets. The rank counts metros that pass the current filters and have data for that measure (at the defaults, the 190 ranked plus the 5 Connecticut metros); percentiles compare all metros of every size |
-| Lending, Deposits, Competition, Market Quality | One page per pillar: pillar ranking, the selected metro's measures, key terms, data notes, owner, and measure-weight sliders that re-score that pillar on its page |
-| Scenarios | Ranks under the strategy scenarios (Balanced, C&I-led, CRE-led, Deposit-led, Adjacency within 500 miles, Emerging market) and the robustness checks |
-| Filters | Population minimum (default 250,000), distance to BankUnited's markets, industry fit (percentile, default 0; raw percent of jobs as an option) and excluding current markets; shows which metros and BankUnited markets drop out and why. These filters also apply on Overview, Map and Rank by Measure |
-| Method | How the engine works, the four pillars, filters, coverage, key modeling choices and limitations |
-| Pillar Guide | For each pillar: definition, lending segments (C&I, CRE, middle market), measures and weights, how it is scored and its data sources |
+| Overview | Full ranking with green-to-red colors, the selected metro's rank, score and scenario range, BankUnited's markets, the filters in use, and pillar-weight sliders (0–100) that re-rank metros live. The weights entered are rescaled to 100%: the header shows their total, and four cards show each pillar's share of the score. |
+| Map | Every metro on an Azure Map (needs internet): color = score, size = population, BankUnited's markets in navy; click a metro for its details. |
+| Market Profile | For any metro: score, rank, scenario range, distance to BankUnited, industry-fit jobs, how the score adds up, all 27 measures, strongest and weakest measures. Metros with partial data are labeled "Partial data" and are not ranked. |
+| Compare | Two or more metros side by side: rank, score, pillar percentiles, distance, industry-fit jobs (% and percentile) and all 27 measures. |
+| Rank by Measure | All metros ranked on any one of the 27 measures, with BankUnited's markets. The rank counts metros that pass the current filters and have data for that measure (at the defaults, the 190 ranked plus the 5 Connecticut metros); percentiles compare all metros of every size. |
+| Lending, Deposits, Competition, Market Quality | One page per pillar: pillar ranking, the selected metro's measures, key terms, data notes, owner, and measure-weight sliders that re-score that pillar on its page. |
+| Scenarios | Ranks under the strategy scenarios (Balanced, C&I-led, CRE-led, Deposit-led, Adjacency within 500 miles, Emerging market) and the robustness checks. |
+| Filters | Population minimum (default 250,000), distance to BankUnited's markets, industry fit (percentile, default 0; raw percent of jobs as an option) and excluding current markets; shows which metros and BankUnited markets drop out and why. These filters also apply on Overview, Map and Rank by Measure. |
+| Method | How the engine works, the four pillars, filters, coverage, key modeling choices and limitations. |
+| Pillar Guide | For each pillar: definition, lending segments (C&I, CRE, middle market), measures and weights, how it is scored and its data sources. |
 
 ## Key insights
 
@@ -75,7 +75,7 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 - Charlotte's strongest pillar is **Market Quality** (13th of 382). Its weakest is **Competition** (82nd of 382): deposits are concentrated in a few holding companies, although the leaders lost share from 2021 to 2024.
 - **Seven of BankUnited's 13 current markets rank in the top 20**: Sarasota (7th), Cape Coral (12th), Atlanta (13th), Orlando (15th), Tampa (17th), Charlotte (18th) and Naples (19th).
 - Top five at baseline: Austin, Raleigh, Nashville, Phoenix, Indianapolis.
-- **New York (151st) and Chicago (96th) rank lower than their size suggests.** The score rewards growth, stability and room to compete, not size alone: only 2 of the 27 measures (middle-market establishments and total wage bill) measure scale, and both metros score near the top on them. New York is held back by slow commercial loan and middle-market growth (Lending: 314th of 381) and by volatile unemployment (Market Quality: 279th of 382). Chicago's weakest pillar is Market Quality (324th of 382): high and volatile unemployment, and slow population and income growth.
+- **New York (151st) and Chicago (96th) rank lower than their size suggests.** The score rewards growth, stability and room to compete, not size alone: only 2 of the 27 measures (middle-market establishments and total wage bill) measure scale, and both metros score near the top on them. New York is held back by slow commercial loan and middle-market growth (Lending: 314th of 381) and by volatile unemployment (Market Quality: 279th of 382). Chicago's weakest pillar is Market Quality (324th of 382): high and volatile unemployment, and slow population and GDP growth.
 - Sebastian–Vero Beach (population 171,560) is the one BankUnited market below the 250,000 floor, so it is scored but not ranked.
 
 ## Limitations
@@ -91,7 +91,7 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 
 1. Install Power BI Desktop (Windows, free).
 2. Download `BankUnited_Market_Opportunity_Engine_v1.0.pbix` and open it. The data is included; no connection or sign-in is needed (only the Map's background needs internet). The file opens at the baseline: pillar weights 25 each, population minimum 250,000, all other filters off.
-3. Start on the Overview page and use the navigation bar at the top (in Power BI Desktop, hold Ctrl and click). Pick a metro in any "Selected metro" dropdown (type to search) and the other pages follow. Change pillar weights on Overview and the filters on the Filters page; they carry to the Map, Filters and Rank by Measure. Market Profile, Compare, the pillar pages and Scenarios show the official baseline.
+3. Start on the Overview page and use the navigation bar at the top (in Power BI Desktop, hold Ctrl and click). Pick a metro in any "Selected metro" dropdown (type to search) and the other pages follow. Change pillar weights on Overview (they also update the Map and Filters) and the filters on the Filters page (they also update Overview, the Map and Rank by Measure). Market Profile, Compare, the pillar pages and Scenarios show the official baseline.
 4. To reset, set all four weights to 25 and the Filters page back to its defaults, or close the file without saving and reopen it.
 
 ## Project Team and Contributions
@@ -101,11 +101,11 @@ DSBA 6390 Project Practicum, University of North Carolina at Charlotte, with pro
 | Team Member | Project Role |
 | --- | --- |
 | Akayiah Bell | PM Liaison |
-| Kottakota Venkata | Technical Integration Lead |
-| Sonia G. Chavelas Gonzalez | AI Engineer |
+| Venkata Keerthika Kottakota | Technical Integration Lead |
+| Sonia G. Chavelas Gonzalez | Dashboard & Analytics Engineer |
 | Bhavana Vasireddy | Data Engineer |
 | Austin Edwards | Data Engineer |
 | Matt D'Allaird | Machine Learning |
 | Jainesh Lad | Machine Learning |
-| Evan de Guzman | Machine Learning |
+| Evan De Guzman | Machine Learning |
 | Varun Sawant | Documentation Lead |
