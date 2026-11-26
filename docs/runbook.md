@@ -2,7 +2,7 @@
 
 How to run, refresh, check and maintain the BankUnited market expansion data pipeline and scores (plan task T68). Written for whoever runs it at BankUnited after the handoff, and for the pod until then.
 
-**Status:** first draft for review, written against **data-v0.7** (main at `4597975`, November 23, 2026): seven processed tables, 313 tests, and checks at 198 passed, 0 failed, 18 warnings. Owner: Austin Edwards, with Bhavana Vasireddy and Venkata Keerthika Kottakota.
+**Status:** final, reviewed November 24–26, 2026 by Bhavana Vasireddy (sections 2, 4, 6 and 7), Akayiah Bell (section 10) and Matt D'Allaird (section 5). Written against **data-v0.7** (main at `4597975`, November 23, 2026): seven processed tables, 313 tests, and checks at 198 passed, 0 failed, 18 warnings. Owner: Austin Edwards, with Bhavana Vasireddy and Venkata Keerthika Kottakota.
 
 This runbook gives the order of operations and what to do when something goes wrong. The details it points to:
 
