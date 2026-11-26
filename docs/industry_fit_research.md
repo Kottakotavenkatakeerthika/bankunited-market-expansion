@@ -29,13 +29,9 @@ python -m src.market_attractiveness --year 2024
 
 This combines existing pillar exports and also rebuilds `outputs/industry_fit/industry_fit_report.xlsx` from parquet inputs and TOML priorities. **Industry Fit remains separate from the final score and does not change final rankings.** In this older branch, `--year` selects Industry Fit's scoring year; it does not rebuild or redate the existing four-pillar exports. The newer v0.3 `src.scoring.run` runner is not present in this checkout, so this integration does not claim to rebuild all pillar metrics.
 
-To refresh only Industry Fit without rewriting final-score files:
+In pull request 124 (not merged), `python -m src.bankunited_fit --year 2024` refreshed only Industry Fit, without rewriting final-score files. That module is not in this repository; on main, the industry share is computed by the scoring run (`python -m src.scoring.run`).
 
-```bash
-python -m src.bankunited_fit --year 2024
-```
-
-Then open the read-only notebook and Run All. It reads the generated workbook's settings and worksheets, with no CSV bundle or metadata JSON. Its saved outputs remain cleared. The Excel in `docs/` is optional research background, not a live calculation input.
+In that pull request, the read-only notebook (not merged) was then opened with Run All. It reads the generated workbook's settings and worksheets, with no CSV bundle or metadata JSON. Its saved outputs remain cleared. The Excel in `docs/` is optional research background, not a live calculation input.
 
 A clean checkout needs the source modules, processed CBP/metro parquet tables, county crosswalk, TOML priorities, and Python dependencies. Run one of the commands above before opening the report. Generated workbooks need not be committed because the generator reproduces them. The report validates source fingerprints and directs the user to regenerate after a configuration or data change.
 
@@ -107,7 +103,7 @@ For historical runs, pass `as_of` and the release ledger. The module restricts C
 
 ## Python interface and validation
 
-From the repository root, the scoring runner can call:
+In pull request 124 (not merged), the scoring runner could call the code below. The module is not in this repository, so the code is shown for reference only; on main, the industry share is computed in `src/scoring/fit.py`.
 
 ```python
 import pandas as pd
@@ -133,10 +129,6 @@ Validation to date: the refactored core reproduces the prior notebook's 2023 emp
 
 `[industry_fit]` configures `growth_years` (default four) and `comparison_metros`. Priorities remain in `[industry_fit.priorities]`; no numerical rating weights are added. Evidence rationales use configured rationale text when supplied, otherwise refer to this methodology document. A different final-score scenario does not implicitly replace the industry mapping: use `--fit-priorities` with the Market Attractiveness command or `--priorities` with the standalone generator to select another TOML.
 
-For release-aware Industry Fit only:
-
-```bash
-python -m src.bankunited_fit --year 2024 --as-of 2024-12-31
-```
+In pull request 124 (not merged), `python -m src.bankunited_fit --year 2024 --as-of 2024-12-31` gave a release-aware Industry Fit run. On main, as-of runs go through the scoring run (`python -m src.scoring.run --as-of <date>`).
 
 Historical workbooks are written under `outputs/as_of/<date>/industry_fit/industry_fit_report.xlsx`. Point the report's `WORKBOOK` setting at that path. The historical cutoff gates the supporting growth window before calculations. Missing/unavailable starting years yield missing CAGR; they are not silently replaced. This historical option does not rerun the older final scorer as of that date.
