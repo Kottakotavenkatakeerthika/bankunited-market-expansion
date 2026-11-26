@@ -3,3 +3,5 @@ title: "Technical handoff"
 ---
 
 The operational guide is `docs/runbook.md`. It covers setup, three free API keys, AWS Secrets Manager at BankUnited, 30 CRA files downloaded through a browser, data refresh, adding a year, troubleshooting and the 18 standing warnings. BankUnited owners: Elliot Leibowitz and Amandeep Kohli. Source: Austin Edwards, technical handoff review, November 24, 2026.
+
+**Next steps:** entry scenarios are not built and remain a next step; the empty placeholder for them was removed on November 25 (pull request 142).

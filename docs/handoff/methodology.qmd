@@ -54,6 +54,8 @@ Current Pillar 1 uses all C&I (LNCI) and CRE construction, multifamily and nonfa
 
 C&I follows Call Report LNCI (`call_ci_loans_usd`); CRE combines construction (LNRECONS), multifamily (LNREMULT), and nonfarm nonresidential (LNRENRES), including owner-occupied property. These are regulatory balance categories and do not map directly to BankUnited's management segments. All loan sizes are included; owner-occupied CRE is included and all loan sizes are retained, as confirmed November 24. Residential and national specialty platforms are excluded from this local opportunity framework. CRA small-business lending is not a Pillar 1 input because small-ticket lending is not a suitable proxy for the target franchise; CRA remains relevant for separate fit/whitespace analysis.
 
+**Multifamily test (November 25):** the published scores include multifamily in CRE, as the team decided on November 25. A rerun of scoring v0.5 on main without multifamily moves 141 of the 190 ranks (19 by more than five places): Charlotte from 18th to 17th (88.95), Chicago from 96th to 91st, and New York stays 151st. The top five (in order) and the top 25 markets stay the same, and seven BankUnited markets stay in the top 20 (Naples drops out and Dallas comes in). Source: Austin Edwards, rerun on main, November 25 and 26, 2026.
+
 ## Pillar 2 — Deposits and treasury
 
 Owner: Matt D'Allaird. The pillar estimates potential operating-deposit demand using deposit depth, growth, payroll and household-income signals. All eight weighted measures are higher-is-better.
