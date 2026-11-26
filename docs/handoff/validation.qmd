@@ -16,7 +16,7 @@ Scoring v0.5 with data-v0.7 ranks Charlotte #18 of 190 (88.82; displayed as 88.8
 | Data checks | 198 passed, 0 failed, 18 warnings |
 | Exit code | 0 |
 
-Source: Austin Edwards, November 24 rerun on main `546f659`. The data-v0.7 check-report commit `55f7061` is distinct from the tag. The main validation run is not a clean-clone test of the final frozen release.
+Source: Austin Edwards, November 24 rerun on main `546f659`. The data-v0.7 rebuild ran on `55f7061` (the PR #122 merge); its tables and checks report were committed in `455efa2` and merged as `4597975`, where the tag points. The main validation run is not a clean-clone test of the final frozen release.
 
 ### Saved scoring output evidence
 

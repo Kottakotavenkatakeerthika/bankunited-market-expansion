@@ -154,7 +154,7 @@ The model does not estimate local pricing, funding costs, margins or investment 
 
 ## Source register
 
-- Jainesh Lad, Pillar 3 Metric Definitions, November 24; Evan de Guzman, November 24 email; Elliot Leibowitz, email, November 24, 2026, 10:04 AM; Austin Edwards, main validation 546f659, November 24.
+- Jainesh Lad, Pillar 3 Metric Definitions, November 24; Evan De Guzman, November 24 email; Elliot Leibowitz, email, November 24, 2026, 10:04 AM; Austin Edwards, main validation 546f659, November 24.
 - [Reconciled data and ML decisions](data-decisions.qmd).
 
 - Matt D'Allaird, *Pillars 1 & 2 — Metric Definitions*, November 23, 2026 (owner-supplied document).

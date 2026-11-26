@@ -4,9 +4,9 @@ project:
 
 book:
   title: "BankUnited Market Expansion - Technical & Sponsor Handoff"
-  subtitle: "Working documentation - scoring v0.4, data-v0.7"
+  subtitle: "Scoring v0.5, data-v0.7"
   author: "BankUnited Practicum Team"
-  date: "2026-11-23"
+  date: today
   chapters:
     - index.qmd
     - scope-and-audience.qmd
