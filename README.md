@@ -112,7 +112,7 @@ Results go to `outputs/`: the baseline scores in `outputs/final_scores/market_at
 
 ## Dashboard
 
-The Power BI dashboard is in `dashboard/`. To look at it, install Power BI Desktop (Windows, free) and open `dashboard/BankUnited_Market_Opportunity_Engine_v0.9.pbix`. The scores are saved inside that file, so it does not read the repository and does not change when you rerun the scoring: after a new scoring run, the dashboard owner has to rebuild the file. The Map page needs an internet connection. Pages, how the score is built and the known limits are in [dashboard/README.md](dashboard/README.md).
+The Power BI dashboard is in `dashboard/`. To look at it, install Power BI Desktop (Windows, free) and open `dashboard/BankUnited_Market_Opportunity_Engine_v1.0.pbix`. The scores are saved inside that file, so it does not read the repository and does not change when you rerun the scoring: after a new scoring run, the dashboard owner has to rebuild the file. The Map page needs an internet connection. Pages, how the score is built and the known limits are in [dashboard/README.md](dashboard/README.md).
 
 ## Notebooks
 
