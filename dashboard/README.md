@@ -52,7 +52,7 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 | P1 Commercial Lending Opportunity | Is there enough business borrowing demand to build a commercial loan book? | 6 | Matt D'Allaird |
 | P2 Deposit & Treasury Opportunity | Is there a business deposit and treasury pool BankUnited could realistically win? | 8 | Matt D'Allaird |
 | P3 Competition & Entry Window | How hard is it to win deposit share, and is there an opening? | 5 | Jainesh Lad |
-| P4 Market Quality & Durability | Will the market hold up through a cycle? | 8 | Evan de Guzman |
+| P4 Market Quality & Durability | Will the market hold up through a cycle? | 8 | Evan De Guzman |
 
 ## Dashboard pages
 
