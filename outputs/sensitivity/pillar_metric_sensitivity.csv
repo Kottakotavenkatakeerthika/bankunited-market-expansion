@@ -1,0 +1,28 @@
+﻿Pillar,Metric,Share of final score (%),Biggest rank change,Metros moving more than 5 places,Metros moving more than 10 places,Metros moving more than 20 places,Typical rank change,Ranking similarity (1 = identical),Top 25 still in top 25,Metros with data (of 387),"Biggest rank change, weight ±25%","Metros moving more than 5 places, weight ±25%"
+1 Lending,local_ci_growth,2.5,14,28,5,0,2.0,0.997,24,326,8,2
+1 Lending,local_cre_growth,2.5,13,35,4,0,2.0,0.997,25,330,8,2
+1 Lending,allocated_loan_growth,5.0,22,82,42,3,4.0,0.989,25,382,13,10
+1 Lending,mm_establishments,5.0,15,53,12,0,3.0,0.995,23,387,8,7
+1 Lending,mm_growth,5.0,26,78,38,2,4.0,0.989,23,382,9,14
+1 Lending,cre_payroll_growth,5.0,22,64,26,1,3.0,0.992,23,381,10,9
+2 Deposits,deposits_per_capita,3.12,13,50,8,0,3.0,0.996,25,387,6,2
+2 Deposits,deposit_growth,3.12,15,31,6,0,3.0,0.997,25,382,6,2
+2 Deposits,deposits_per_branch,3.12,13,26,3,0,2.0,0.998,24,387,5,0
+2 Deposits,wage_bill,3.12,10,6,0,0,1.0,0.999,25,387,6,1
+2 Deposits,wage_bill_growth,3.12,13,39,1,0,2.0,0.997,24,382,5,0
+2 Deposits,payroll_per_establishment,3.12,16,37,5,0,3.0,0.997,24,387,5,0
+2 Deposits,income_per_capita,3.12,16,34,8,0,2.0,0.996,24,387,5,0
+2 Deposits,income_growth,3.12,13,38,3,0,2.0,0.997,25,382,7,2
+3 Competition,deposit_hhi,5.0,25,81,39,2,4.5,0.989,23,387,9,8
+3 Competition,top3_share,5.0,25,85,41,3,5.0,0.989,23,387,9,10
+3 Competition,competitors_per_billion,5.0,17,75,24,0,4.0,0.993,23,387,7,8
+3 Competition,branches_per_billion,5.0,18,85,33,0,5.0,0.991,23,387,9,8
+3 Competition,leader_share_change,5.0,24,93,37,3,5.0,0.99,24,382,9,11
+4 Market quality,gdp_growth,3.12,12,27,5,0,2.0,0.997,24,382,5,0
+4 Market quality,gdp_volatility,3.12,15,38,7,0,2.0,0.997,25,382,5,0
+4 Market quality,unemployment_level,3.12,14,30,6,0,2.0,0.997,24,387,7,1
+4 Market quality,unemployment_volatility,3.12,13,31,2,0,2.0,0.997,25,387,5,0
+4 Market quality,industry_hhi,3.12,16,36,7,0,3.0,0.997,23,387,7,2
+4 Market quality,establishment_growth,3.12,17,32,5,0,2.0,0.997,24,382,7,2
+4 Market quality,population_growth,3.12,16,18,3,0,1.0,0.998,24,382,7,2
+4 Market quality,net_migration_rate,3.12,11,28,6,0,2.0,0.998,24,387,7,1

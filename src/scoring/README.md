@@ -57,6 +57,7 @@ To look at a pillar, open its report in `notebooks/` and run all cells.
 | `src/scoring/fit.py` | Fit measures: distance to BankUnited markets, industry share | rarely |
 | `src/market_attractiveness.py` | Combines the pillars into the final score and ranks metros | rarely |
 | `src/compare_scenarios.py` | Runs every scenario and writes the comparison tables | rarely |
+| `src/pillar_sensitivity.py` | Metric sensitivity: how much the ranking depends on each metric (section 9b) | rarely |
 | `config/settings.toml` | **How metrics are built**: years, windows, thresholds, the HQ-deposit treatment, the competition × growth corners, the industry-share year | change a year, window, threshold or corner |
 | `weights/baseline.toml` | **How much each metric and pillar counts**, gap filling, and the filters: size floor (`[universe]`), Fit filters and industry selection (`[fit]`, `[fit.industries]`) | change a weight, the size floor or a Fit filter |
 | `weights/strategy/*.toml` | The six Phase 1 strategy scenarios | change or add a strategy scenario |
@@ -431,6 +432,42 @@ All are rewritten by every run.
   flagged at 50%).
 - **Pillar 4:** `published_classified_sectors`, `missing_naics_sectors`, `classified_to_all_industry_ratio`,
   `industry_hhi_published_sectors` (the HHI over published sectors only) and `industry_hhi_sectors_left_out`.
+
+---
+
+## 9b. Metric sensitivity
+
+`src/pillar_sensitivity.py` shows how much the final ranking depends on each scored metric. It isn't part of
+`python -m src.scoring.run`; run it on its own after the scores are up to date:
+
+```bash
+python -m src.pillar_sensitivity                                          # baseline weights
+python -m src.pillar_sensitivity --weights weights/strategy/cre_led.toml  # a scenario's weights
+python -m src.pillar_sensitivity --as-of 2025-06-30                       # point in time
+```
+
+It takes about 20 seconds. For every metric with a weight, it reruns the final score twice:
+
+- **Drop:** the metric's weight is set to 0, and the rest of its pillar rescales.
+- **Weight ±25%:** the metric's weight is raised and lowered by a quarter, other weights unchanged.
+
+Each rerun applies gap filling, the size floor and the Fit filters exactly as the run it is compared with,
+and rank changes count ranked metros only (190 in the baseline).
+
+| Column | Meaning |
+|---|---|
+| `Share of final score (%)` | pillar weight × the metric's weight within its pillar |
+| `Biggest rank change`, `Metros moving more than 5 / 10 / 20 places` | rank changes when the metric is dropped |
+| `Typical rank change` | the median rank change when it is dropped |
+| `Ranking similarity (1 = identical)` | Spearman correlation of the ranks with and without the metric |
+| `Top 25 still in top 25` | baseline top-25 metros that stay in the top 25 when it is dropped |
+| `Metros with data (of 387)` | metros with a value for the metric |
+| `Biggest rank change, weight ±25%` | the larger move of the +25% and −25% runs |
+| `Metros moving more than 5 places, weight ±25%` | metros that move more than 5 places in either run |
+
+**Output:** `outputs/sensitivity/pillar_metric_sensitivity.csv` (committed), with `_<scenario>` added for
+`--weights`, or under `outputs/as_of/<date>/sensitivity/` for `--as-of` (not committed). Rerun it and commit
+the CSV after any change to weights, settings or metrics, as with the other outputs.
 
 ---
 
