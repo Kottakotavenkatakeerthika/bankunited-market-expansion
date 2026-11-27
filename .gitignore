@@ -23,6 +23,7 @@ __pycache__/
 !outputs/final_scores/scenario/*.csv
 !outputs/final_scores/strategy/*.csv
 !outputs/pillar_scores/*.csv
+!outputs/sensitivity/*.csv
 # Executed notebook copies: not tracked
 outputs/executed/
 # Point-in-time (--as-of) runs: regenerate them, don't commit them
