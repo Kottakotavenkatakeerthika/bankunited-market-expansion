@@ -449,7 +449,7 @@ python -m src.pillar_sensitivity --as-of 2025-06-30                       # poin
 It takes about 20 seconds. For every metric with a weight, it reruns the final score twice:
 
 - **Drop:** the metric's weight is set to 0, and the rest of its pillar rescales.
-- **Weight ±25%:** the metric's weight is raised and lowered by a quarter, other weights unchanged.
+- **Weight ±25%:** the metric's weight is raised and lowered by a quarter, other weights rescale to 100% so the effective move is less than 25%.
 
 Each rerun applies gap filling, the size floor and the Fit filters exactly as the run it is compared with,
 and rank changes count ranked metros only (190 in the baseline).
