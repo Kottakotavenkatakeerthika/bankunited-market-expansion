@@ -1,17 +1,17 @@
 ---
-title: "Data engineering decision log (D1–D15)"
+title: "Data and ML decisions — T65"
 ---
+
+> **November 24 release reconciliation:** Scoring v0.5 with data-v0.7 ranks Charlotte #18 of 190 (88.82; displayed as 88.8). The scoring configuration and saved outputs reflect PR #140. The scoring run uses an industry filter minimum of 0 and exports both raw share and percentile.
+
+
+Revision: November 24, 2026. D1–D15 preserve Austin’s November 16 rules with November 17 replacement entries D2, D4, D14, D15. Historical figures remain historical; current validation is data-v0.7 (313 tests; 198 checks passed, 0 failed, 18 warnings). M1–M10 are newly assigned documentation IDs, not original tracker IDs.
 
 ## Austin Edwards — T65 decision register
 
-**Source:** *How Our Data Works*, November 16, 2026, data-v0.6, commit `231281b`. This chapter transcribes the 15 source decision entries; the November 17 replacement passages are kept in `reference/how-our-data-works-v0.4-changes.md`.
-
-**November 17 source update:** Austin supplied the complete replacement entries for D2, D4, D14 and D15 in `how-our-data-works-v0.4-changes.md`. Matt's technical review of D6, D13, D14 and D15 remains pending.
-
-These are the 15 rules the data layer applies before any score is computed, in T65's format. Figures are from data-v0.6 (main at commit 231281b) unless a date says otherwise, and score figures are from scoring v0.4 (main at 4145dfa, November 17); the fact-check section at the end shows how each was checked. Pillar weights, metric choices, the size floor and the Fit filters belong in the ML pod's entries.
+Source: How Our Data Works, November 16, data-v0.6, commit 231281b, with November 17 replacement entries.
 
 ## D1 One set of metro boundaries
-
 **Rule:** All 393 metros, built from their 1,252 counties with OMB's July 2023 definitions, applied to every year.
 **Why:** A metro covers the same counties in 2015 as in 2024, so a trend is real change, not a moved border. No candidate market is screened out up front.
 **Decided by:** BankUnited, 10/19: score all 393 metros (B9). Austin, as crosswalk owner: one 2023 vintage for every year.
@@ -31,10 +31,9 @@ These are the 15 rules the data layer applies before any score is computed, in T
 
 **If it changed:** Zero-filling would score metros with gaps, such as Connecticut's, as weak instead of leaving them unranked.
 
-**Limitation:** Every model has to handle blanks on purpose; 6 metros have a partial score in scoring v0.4: Connecticut's 5 and Eagle Pass, TX. Examples: Connecticut's BEA values before 2024, uninsured deposits at banks under $1 billion.
+**Limitation:** Every model has to handle blanks on purpose; 6 metros have a partial score in scoring v0.5: Connecticut's 5 and Eagle Pass, TX. Examples: Connecticut's BEA values before 2024, uninsured deposits at banks under $1 billion.
 
 ## D3 Counties summed into metros
-
 **Rule:** Counts and dollars are summed from county to metro. Rates are computed after summing, never averaged across counties.
 **Why:** Sums are exact. An average of county rates would weigh a small county the same as a large one.
 **Decided by:** Austin and Bhavana, in the 9/28 source split; written into the data dictionary.
@@ -57,7 +56,6 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** From 2017, CBP omits county-sector rows under 3 establishments. In 2023, 95 metros lack at least one sector (mining in 69). Since scoring v0.4 (#128), their industry HHI uses the sectors Census publishes, which hold all but at most about 1% of their jobs; setting `[options] industry_hhi_missing_sectors` to `"blank"` restores the old rule.
 
 ## D5 Deposits booked at headquarters
-
 **Rule:** Concentration is measured two ways: as reported, and without every main office and home-banking office. Deposit totals stay as FDIC reports them.
 **Why:** Banks book deposits that aren't local at headquarters. In Charlotte, 84% of 2024's $457.3 billion sat at main offices, nearly all Bank of America's and Truist's.
 **Decided by:** BankUnited on the 10/26 call: leave headquarters deposits out and say so in the docs (B10). Sonia and Matt added home-banking offices the same day.
@@ -66,7 +64,6 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** A main office's local deposits are dropped along with the booked ones, so a bank headquartered in a metro is understated there.
 
 ## D6 Commercial loans over $1 million
-
 **Rule:** Bank level only: C&I and nonfarm nonresidential loans minus the part with original amounts of $1 million or less (Call Report RC-C Part II). The scoring spreads each bank's loans across metros by its deposits outside headquarters.
 **Why:** No public source has these loans by place, and CRA stops at $1 million.
 **Decided by:** Austin found the measure, 10/15 (B4). BankUnited agreed to the deposit spread on the 10/26 call and confirmed on 10/29 that multifamily stays out.
@@ -74,8 +71,11 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **If it changed:** Matt's 10/26 test found the spread estimate over 95% correlated with metro payroll and deposits.
 **Limitation:** A bank's lending needn't follow its deposits. Construction and multifamily loans have no size split, and smaller banks report the split only for June and December.
 
-## D7 Commercial real estate by proxy
+**November 24 reconciliation:** Current Pillar 1 uses all C&I (LNCI) and CRE construction, multifamily and nonfarm nonresidential loans, including owner-occupied, all sizes, for both allocated and local-lender measures. D6 records the October 29 exclusion of multifamily in the historical data-layer decision; scoring does not read D6 over-$1m fields.
 
+**November 25 decision:** multifamily stays in Pillar 1's aggregate CRE (construction + multifamily + nonfarm nonresidential, all loan sizes), with no rerun. Akayiah Bell decided this in the team chat on November 25 (4:34 PM), after Matt D'Allaird's and Austin Edwards's review, and Elliot Leibowitz was informed. The HMDA multifamily and 5+ unit permit measures stay excluded. D6's October 29 exclusion applies only to the over-$1 million measures.
+
+## D7 Commercial real estate by proxy
 **Rule:** Real estate (NAICS 531) and nonresidential building construction (NAICS 2362): establishments, jobs and payroll from CBP, with QCEW filling missing cells and all of 2024.
 **Why:** No public source has commercial vacancies, rents or sales by metro.
 **Decided by:** BankUnited, 11/5: it found no metro-level CRE source, so CRE stays on public proxies (B8). Built by Bhavana (PR #2); Austin checked the licenses on 10/13.
@@ -84,7 +84,6 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** NAICS 531 includes residential landlords. Business counts track activity, not prices or credit demand.
 
 ## D8 Small-business lending from CRA
-
 **Rule:** CRA loans of $1 million or less, the three loan-size bands added together, by county and by lender.
 **Why:** It is the only public small-business lending by place.
 **Decided by:** BankUnited, 10/19: drop the size bands, since CRA matters once BankUnited is in a region, not as a reason to enter one (B7).
@@ -93,7 +92,6 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** Only banks with $1.564 billion or more in assets must report (2024). They hold 77.6% of small business loans outstanding, so a lender's share is of what reporters lent.
 
 ## D9 Banks keyed on the RSSD ID
-
 **Rule:** Every table keys banks on the Federal Reserve's RSSD ID and groups them into organizations by top holder. FDIC certificates are kept but never joined on.
 **Why:** Every bank source carries the RSSD ID, and CRA carries nothing else. Certificates move in mergers: 15 moved between RSSD IDs in 2015 to 2026.
 **Decided by:** Austin (T45, PR #93), approved by Bhavana 10/27 and merged 10/29.
@@ -102,7 +100,6 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** Three standing check warnings come from mergers and filing quirks, such as Flagstar's 2022 offices listed under New York Community Bank.
 
 ## D10 Peer set
-
 **Rule:** Organizations with $10 billion to $100 billion in combined bank assets: 126 organizations with 168 banks at June 30, 2026.
 **Why:** It is BankUnited's size range: $34.86 billion at June 30, 2026.
 **Decided by:** Elliot confirmed the pod's 10/15 proposal on 10/19 (B1).
@@ -111,7 +108,6 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** It includes six insured U.S. branches of foreign banks, flagged in organization_type. The scores hold peers out as a check on the weights (pod meeting, 10/29).
 
 ## D11 Release dates for the back-test
-
 **Rule:** release_dates.csv dates the first release of every source, dataset and year. A year is usable from its earliest release date, a Call Report from 35 days after its quarter ends.
 **Why:** The Charlotte back-test may use only what was public before its decision date.
 **Decided by:** Austin and Sonia agreed the five rules on 10/15 (T52); Bhavana added the dictionary's Released column (PR #97, 10/29).
@@ -120,7 +116,6 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** Where no first-release date turned up, the row carries the earliest date the data was provably public, an upper bound.
 
 ## D12 BEA's combined county areas
-
 **Rule:** BEA reports 23 Virginia counties together with their independent cities (codes 519xx), and Maui with Kalawao (15901). Each code goes to the metro of its parts.
 **Why:** Left out, they cost data-v0.3 29% of Washington's GDP and every BEA value for Harrisonburg, Staunton and Kahului-Wailuku.
 **Decided by:** Found in Austin's reviews, 10/19 and 10/21; fixed by Bhavana in PR #14, approved 10/21, released in data-v0.4.
@@ -129,13 +124,16 @@ These are the 15 rules the data layer applies before any score is computed, in T
 **Limitation:** Codes in a micropolitan area or outside any metro don't reach the tables.
 
 ## D13 BEA history to 2010
-
 **Rule:** BEA's 2010 to 2014 values sit in their own table, msa_year_history, with the same metros and columns.
 **Why:** The ML pod asked for history back to 2010 for its volatility measures, and only BEA reaches back that far.
 **Decided by:** The ML pod at the 10/21 meeting; shipped in data-v0.5 (PR #92).
 **Alternatives:** Shorter windows, which the ML pod said it could work with.
 **If it changed:** 2013 is a real dip in personal income, falling in 108 of 382 metros, so a window that includes it reads more volatile.
 **Limitation:** 382 of the 393 metros have history: none in Connecticut or Puerto Rico.
+
+**November 24 reconciliation:** Evan confirms GDP volatility uses nine annual growth rates 2016–2024; the baseline uses no BEA years before 2015; back-dated runs may use 2010–2014 history.
+
+**D13 clarification:** The baseline uses no BEA years before 2015; the 2010–2014 history is used only by back-dated runs. GDP volatility uses nine annual rates, 2016–2024.
 
 ## D14 A map point for every metro
 
@@ -151,6 +149,7 @@ These are the 15 rules the data layer applies before any score is computed, in T
 
 **Limitation:** A geographic center, not where people live; distances are straight-line. The distance filter is in main since #128 (11/16): off in the baseline, 500 miles in the Adjacency scenario.
 
+
 ## D15 BankUnited's own footprint
 
 **Rule:** The `bankunited_` columns come from the SOD offices and CRA loans of BankUnited, N.A. (RSSD 3938186).
@@ -165,13 +164,125 @@ These are the 15 rules the data layer applies before any score is computed, in T
 
 **Limitation:** An office with no deposits or few CRA loans doesn't show: the Atlanta corporate banking office, opened April 2022, isn't in SOD through June 2024.
 
-## Scoring v0.4 addendum — Matt / PR #128 (team-reported)
 
-These are **ML implementation updates**, not amendments to Austin's original data-v0.6 D1–D15 decisions.
+# ML and scoring decisions
 
-- **Suppressed CBP sector in industry HHI:** Previously a missing sector could make a metro's industry-concentration value blank (see historical D4 limitation). v0.4 leaves out the suppressed sector, generally mining, and computes HHI using the remaining reported sectors. This improves coverage but does **not** restore the missing data or guarantee comparability with fully observed metros.
-- **Ranking eligibility:** 190 ranked metros, Charlotte #19, versus historical v0.3 176 ranked / Charlotte #17.
-- **Configurable fit filters:** nearest BankUnited market distance (miles), selected-industry jobs share (`baseline.toml`), and exclusion of existing BankUnited markets. All off by default; a failed filter removes the metro from the ranked set but not the score computation. Filter columns appear in final-score CSV, per Matt.
-- **Scenario changes:** adjacency applies a 500-mile limit; Talent-led removed; `fill_local_lender` renamed/replaced by `no_fill_local_lender`.
+## M1 Balanced pillar weights
 
-**Evidence required:** merged PR #128 commit, relevant code/configuration diff, final-score CSV header and 190-row rank audit, Charlotte record, scenario manifest, and ML owner sign-off.
+**Rule:** 25% each; metric weights normalized; pillar percentiles combined.
+
+**Why:** Equal starting point; adjustable for strategic priorities.
+
+**Evidence:** Baseline configuration; Matt
+
+**Alternatives:** Alternative pillar weights
+
+**Impact / limitation:** Ranks may change; not calibrated to profitability.
+
+## M2 Population floor
+
+**Rule:** 250,000; zero disables.
+
+**Why:** Minimum market scale.
+
+**Evidence:** Nov 6 gate; Austin Nov 17
+
+**Alternatives:** No floor
+
+**Impact / limitation:** 190 ranked; 191 complete below floor.
+
+## M3 Fit filters
+
+**Rule:** Industry percentile default 0; distance and existing-market exclusion off; Adjacency 500 miles.
+
+**Why:** Separate strategic fit from attractiveness.
+
+**Evidence:** Elliot Nov 24; PR #128
+
+**Alternatives:** Different thresholds
+
+**Impact / limitation:** Eligibility only; unknown industry shares and straight-line distance limitations.
+
+## M4 Lending scope
+
+**Rule:** 20–249 employees; owner-occupied CRE included; all loan sizes.
+
+**Why:** Public-data proxy and target franchise alignment.
+
+**Evidence:** Matt / sponsor Nov 24
+
+**Alternatives:** 20–499 or >$1M
+
+**Impact / limitation:** Establishments not firms; bank-wide loans allocated by deposits.
+
+## M5 Local lenders
+
+**Rule:** 50% domestic deposit threshold; fifth-highest growth cap 191%; both measures weighted; neutral 50 percentile fill when configured.
+
+**Why:** Limit extreme growth and retain sparse markets.
+
+**Evidence:** Elliot Nov 24; prior chapter
+
+**Alternatives:** 25% cap; no fill; zero weights
+
+**Impact / limitation:** Neutral fill applies to missing local-lender measures.
+
+## M6 Diagnostics
+
+**Rule:** Four zero-weight metrics retained; competition × growth also zero baseline, 80% in dedicated scenario.
+
+**Why:** Preserve optional analysis.
+
+**Evidence:** Matt and Jainesh Nov 24
+
+**Alternatives:** Remove or weight diagnostics
+
+**Impact / limitation:** Scenario not baseline; no win-rate calibration.
+
+## M7 Industry HHI
+
+**Rule:** 2023 CBP classified employment; omit suppressed sectors under v0.4.
+
+**Why:** Avoid losing entire metro for small missing sectors.
+
+**Evidence:** PR #128; Evan Nov 24
+
+**Alternatives:** Blank entire HHI
+
+**Impact / limitation:** Historical 14 additional ranked metros.
+
+## M8 Pillar 3
+
+**Rule:** Five lower-is-better metrics, 20% each; fixed 2021 leaders through 2024.
+
+**Why:** Measure deposit contestability.
+
+**Evidence:** Jainesh Nov 24
+
+**Alternatives:** Competition × growth scenario
+
+**Impact / limitation:** Deposit not loan rivalry; mergers distort share.
+
+## M9 Pillar 4
+
+**Rule:** Eight metrics, 12.5% each; Census population/migration; establishment growth proxy.
+
+**Why:** Assess durability.
+
+**Evidence:** Evan, November 24
+
+**Alternatives:** QCEW HHI or separate formation measure
+
+**Impact / limitation:** QCEW additions supplementary.
+
+## M10 Sensitivity and release evidence
+
+**Rule:** Scoring v0.5 sensitivity retains 23–25 of the original top 25; 313 tests; 198 checks passed, 0 failed, 18 warnings.
+
+**Why:** Document robustness and validation.
+
+**Evidence:** Matt’s final v0.5 sensitivity figures communicated November 25; Austin’s November 24 rerun on main 546f659
+
+**Alternatives:** Alternative weights and removals
+
+**Impact / limitation:** Austin reran both tests and checks. Matt D’Allaird’s final scoring v0.5 sensitivity analysis, confirmed November 25, retained 23–25 of the original top 25 markets when individual measures were removed. Similarity ranged from 0.989 to 0.999; the largest single-measure movement was 26 places (middle-market growth), and the maximum movement under ±25% weight changes was 13 places. Repository drop-measure scenarios are separate: 23–24 on main and 22–24 on the v0.5 branch (Austin, November 24).

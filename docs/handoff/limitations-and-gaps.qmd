@@ -2,20 +2,29 @@
 title: "Open gaps and known limitations"
 ---
 
+## Closed since the November 12 gap review
 
-The live gap register is retained as `../GAP_STATUS_2026-11-12.csv` and the editable tracker as `../BankUnited_TR03_Master_Tracker.xlsx`.
+- **Clean-clone usability retest (T63):** Bhavana Vasireddy's November 18–19 rerun at `079a2e4` (validation chapter).
+- **Methodology, technical handoff and runbook:** the methodology chapter in this book and `docs/runbook.md` (pull request 136, merged November 27 after section reviews by Bhavana Vasireddy, Matt D'Allaird and Akayiah Bell).
+- **Raw FFIEC CRA files:** the runbook documents downloading the 30 files through a browser, since FFIEC blocks scripted downloads.
+- **Dashboard file name and refresh:** dashboard v1.0 and its README (pull requests 141 and 143); the runbook covers rebuilding the scores and the dashboard.
+- **Scenario outputs:** rerunning the scoring reproduces every committed scenario file (validation chapter).
+- **Empty placeholder files (T76 gap 8):** removed November 25 (pull request 142).
 
-## Outstanding handoff items
+## Remaining before sponsor acceptance
 
-- Raw FFIEC CRA access and permitted transfer method.
-- Corrected technical README and clean-clone usability retest (T63, planned November 18–19).
-- Complete methodology, technical handoff and owner-reviewed runbook.
-- Scenario-output reproduction report from ML owners.
-- Full dashboard refresh documentation and filename correction.
-- Point-in-time/leakage controls and competition-scoring decisions.
-- Explicit Fit & Feasibility, application and entry-scenario scope decisions.
-- Sponsor approval, confidentiality review and final acceptance.
+- The release tag after the November 27 code freeze, with the clean-machine check and the tests and checks on the tag.
+- Repository delivery: BankUnited downloads the final tagged release; InfoSec review in progress.
+- Sponsor testing (from November 30) and acceptance.
+
+## Known limitations
+
+- Fit & Feasibility is available as filters (distance, industry fit); a combined Fit score is not built, and entry scenarios remain a next step.
+- Public data only: no pricing, profitability or nonbank competitors, and lending by metro is estimated from deposits.
+- The competition measures describe deposit markets, not commercial lending rivalry.
+- Where BLS suppresses a county, a metro's QCEW employment and wages come out short; `bls_qcew_private_counties_suppressed_count` shows where.
+- The dashboard's Map page needs internet and a Power BI sign-in.
 
 ## Evidence caution
 
-The 222 tests and 163 passing data checks support the reported `integrated-v0.2` validation. They do not alone establish sponsor acceptance or completeness of excluded modules.
+The current results (313 tests; 198 data checks passed, 0 failed, 18 warnings) validate data-v0.7 and scoring v0.5 in the repository. They do not by themselves establish sponsor acceptance.

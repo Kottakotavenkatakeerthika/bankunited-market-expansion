@@ -1,5 +1,5 @@
 ---
-title: "Data and scoring v0.4 fact-check — November 17"
+title: "Data fact-check (November 17)"
 ---
 
 ## Austin’s source-confirmed fact-check

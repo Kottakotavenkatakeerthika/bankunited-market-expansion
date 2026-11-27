@@ -9,11 +9,11 @@ Users supply their own API keys for FDIC (from api.data.gov), FRED and BEA, set 
 
 **Exception:** 30 FFIEC CRA files cannot be downloaded automatically through the scripted workflow and were manually copied from the authorized `data-v0.5` Drive archive in the clean-clone test.
 
-## Required before bank handoff
+## Handoff status
 
-1. Obtain permission and a bank-approved mechanism for accessing/transferring the CRA files.
-2. Document source links, download dates, checksums and destination folder layout.
-3. Document API-key acquisition and environment configuration without committing secrets.
-4. Retest corrected README instructions under T63.
+1. **CRA files:** the runbook documents downloading the 30 FFIEC CRA files through a browser (FFIEC blocks scripted downloads) and logging them in the manifest.
+2. **Source records:** `data/manifest.csv` records each file's source link, download time, SHA-256 checksum and size; the runbook gives the folder layout.
+3. **API keys:** the README's "API keys" section and the runbook, which keeps the keys in AWS Secrets Manager at BankUnited.
+4. **README retest (T63):** Bhavana Vasireddy's clean-clone reruns (validation chapter).
 
-**Status:** Process demonstrated on tester's machine; recipient access and transfer approval pending.
+**Status:** Process demonstrated on tester's machine; BankUnited downloads the final tagged release; InfoSec review in progress.

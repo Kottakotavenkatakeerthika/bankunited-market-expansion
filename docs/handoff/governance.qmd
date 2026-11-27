@@ -2,25 +2,28 @@
 title: "Course alignment and documentation governance"
 ---
 
-> **Document status:** Course alignment is a working crosswalk, not sponsor sign-off.
+## Faculty final-delivery alignment
 
-## Faculty final-delivery alignment — November 2026 guidance
+The final-delivery guidance requires **three coordinated deliverables**, all describing the same release and scope.
 
-The guidance requires **three coordinated deliverables**, all describing the same release and scope.
-
-| Faculty requirement | Repository / package evidence | Status / next step |
+| Deliverable | What it contains | Status (November 27) |
 |---|---|---|
-| 1. Complete product handoff | Code, processed data, tests, scores, dashboard present; tracker updated | **Partial** — add technical runbook, methodology, semantic contracts, final report, updated customer journey, normal/exception evidence, accessible raw-data procedure, owner reviews |
-| 2. Working final demonstration | Power BI v0.7 and scenario outputs present | **Not verified** — execute representative end-to-end journey, show one traceable finding and meaningful missing-data exception on same release |
-| 3. Short executive deck | Earlier demo slides exist separately; not validated against newest snapshot | **Pending** — prepare recommended five slides: decision, delivered journey, methodology, results/validation, handoff/next steps |
-| Decision story | README describes commercial-bank expansion market ranking | **Partial** — distinguish market ranking from recommendation/entry decision |
-| Semantic contract | Data dictionary and source metadata exist | **Partial** — explicit record unit, business meaning, units, missing-value semantics, version and owner required |
-| ML evaluation / leakage | Not fully established from new ZIP review | **Pending owner evidence** — cutoff, source release lag, splits, baselines, error cases, validation and model versions |
-| Architecture / interfaces | README and code structure present | **Partial** — diagram, interfaces, refresh/lineage, configuration and tested environment needed |
-| Methodology and worked example | Pillar notebooks and score outputs present; docs/methodology.md empty | **Incomplete** — explain formulas, weights, example input → score → dashboard and limitations |
-| Reproducibility | Pinned requirements and test files; external raw data | **Not independently verified** — tagged run log, clean rebuild and dashboard refresh evidence |
-| Sign-offs / sponsor access | Proposed owner roster in tracker | **Pending** — named reviewers, dates, approvals and verified sponsor repository access |
+| 1. Complete product handoff | The tagged release of the repository: code, processed data (data-v0.7), 313 automated tests and 198 data checks, scores (scoring v0.5), dashboard v1.0, the runbook (`docs/runbook.md`) and this book | Code freeze November 27, 6 PM; the release tag follows. BankUnited downloads the final tagged release; InfoSec review in progress |
+| 2. Working final demonstration | A live dashboard walkthrough on the same release, with one traceable finding (Charlotte, #18 of 190) and one missing-data exception (Hartford) | December 4, at BankUnited |
+| 3. Short executive deck | Five core slides: business problem and users, delivered solution and user journey, logic and methodology, results and validation, handoff and next steps | December 4, at BankUnited |
 
-**Important scope statement:** `dashboard/README.md` calls the dashboard Market Attractiveness MVP only; Fit & Feasibility is not yet applied. The demo and final report must not claim a complete two-score product unless implementation evidence is subsequently supplied.
+## Where the other guidance items are covered
+
+| Guidance item | Where it is covered |
+|---|---|
+| Decision story | Scope chapter: the tool ranks metro markets for further investigation; the entry decision stays with BankUnited |
+| Semantic contract | Data dictionary chapter (each table's grain and key, and each column's meaning and type) and data decisions D1–D15 |
+| Model evaluation and point-in-time use | Weights are set by the team and BankUnited, not fitted to outcomes, so there are no training splits. Point-in-time runs use `python -m src.scoring.run --as-of <date>` with the release dates in `data/reference/release_dates.csv` |
+| Architecture and interfaces | Technical handoff chapter and the runbook: setup, keys, refresh steps and troubleshooting |
+| Methodology and worked example | Methodology chapter: pillars, measures, weights and the multifamily test; the dashboard chapter's key insights walk through Charlotte's result |
+| Reproducibility | Validation chapter: clean-clone reruns, the dashboard v1.0 user test and the pre-freeze regression |
+| Sign-offs and sponsor access | Acceptance chapter |
+
+**Important scope statement:** `dashboard/README.md` (v1.0) describes a Market Attractiveness score with filters for population, distance and industry fit; a combined Fit score is not built. The demo and final report must not claim a complete two-score product unless implementation evidence is subsequently supplied.
 
 **Guidance source:** `Practicum Guidance Final Delivery Package.pdf`, pp. 1–3 and 6–9.

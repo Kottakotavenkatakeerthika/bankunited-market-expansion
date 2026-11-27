@@ -2,27 +2,50 @@
 title: "Release validation and clean-clone evidence"
 ---
 
-> **Document status:** Bhavana-reported test evidence; preserve run-specific dates and warnings. Owner acceptance separate.
+## Current release
 
-## TR-03 validation and release evidence update — 2026-11-12
+The current dashboard version is v1.0. Charlotte ranks 15th–18th across strategy scenarios. The final scoring v0.5 metric sensitivity analysis retains 23–25 of the original top 25 markets (Matt D’Allaird, final figures communicated November 25). Dashboard v1.0 passed its user test on November 26 (see Pre-freeze checks below); the historical dashboard tests further down do not apply to v1.0.
 
-**Evidence scope:** Team emails from Austin, Akayiah and Bhavana, plus the supplied `clean_clone_step_log_integrated-v0.2.md`. This note does not assert sponsor acceptance or independently re-execute the pipeline.
+Scoring v0.5 with data-v0.7 ranks Charlotte #18 of 190 (88.82; displayed as 88.8). The scoring configuration and saved outputs reflect PR #140. The scoring run uses an industry filter minimum of 0 and exports both raw share and percentile.
 
-- Release: `integrated-v0.2`; reported confirmed merge SHA `3c48fd512e9a0bf9b43a2ec5755c7145bee9833e` (PR #100).
-- T75 clean clone: Windows, Python 3.14.5, Git 2.55; full pipeline approximately 20 minutes; 222 tests passed; 163 checks passed, 0 failed, 16 warnings; no processed tables changed. Four T75 acceptance criteria passed.
-- Data-check reconciliation: Oct 28 data-v0.5: 161 passed and 13 warnings; PR #93 added five bank-ID checks, with two passes and three warnings; integrated-v0.2: 163 passed and 16 warnings.
-- Refreshed report: [PR #120](https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/pull/120), **reported not merged** as of Akayiah's message. Do not mark merged without verification.
-- Baseline ML reproduction: output identical to committed baseline, Charlotte #16 of 287, score 88.4. **Scenario comparison not rerun**.
-- Power BI: `dashboard/BankUnited_Market_Opportunity_Engine_v0.7.pbix` opened; Charlotte #16 of 287, 88.4. Dashboard README filename differs and refresh instructions remain pending T76.
-- Raw-data onboarding: most data (~2 GB) downloadable with user-owned FDIC/FRED/BEA/BLS keys and `HTTP_USER_AGENT`; 30 FFIEC CRA files need approved Drive archive transfer. Credentials and data must not be embedded in this ZIP.
-- Corrected README and independent retest: T76 fixes planned; T63 retest reported scheduled Nov 18–19.
+| Validation evidence | Result |
+|---|---|
+| Main validation commit | `546f659` |
+| Data-v0.7 tag commit | `4597975` |
+| Automated tests | 313 passed |
+| Data checks | 198 passed, 0 failed, 18 warnings |
+| Exit code | 0 |
 
-**Do not infer:** all scenario outputs validated; confidential data transfer approved; canonical technical handoff complete; sponsor signoff obtained.
+Source: Austin Edwards, November 24 rerun on main `546f659`. The data-v0.7 rebuild ran on `55f7061` (the PR #122 merge); its tables and checks report were committed in `455efa2` and merged as `4597975`, where the tag points. The main validation run is not a clean-clone test of the final frozen release.
+
+### Saved scoring output evidence
+
+Saved scoring outputs dated November 24 in main snapshot `d4ff27c7` confirm Charlotte #18 of 190 (88.82, displayed as 88.8). Sources: `outputs/final_scores/market_attractiveness_scores.csv`, `outputs/final_scores/market_attractiveness_run.json` and `config/settings.toml`. The configured local-lender growth cap is 191%. Austin’s 313-test and 198-check validation applies to `546f659`, not the later snapshot.
+
+### Dashboard v1.0 embedded-data verification
+
+On November 25, Sonia G. Chavelas Gonzalez reported comparing the embedded data in `BankUnited_Market_Opportunity_Engine_v1.0.pbix` (scoring v0.5, data-v0.7) against the score outputs on main at `d4ff27c` after PR #140. All compared files were identical. Charlotte ranks #18 of 190 (88.8), Chicago #96 and New York #151. The industry percentile filter defaults to 0, and raw share is available as an option. This owner-reported comparison establishes embedded-data parity for the compared files; it does not constitute a full dashboard functional test or frozen-release clean-clone validation.
+
+## Pre-freeze checks (November 26–27)
+
+These checks ran before the November 27 code freeze. The frozen-release validation (the clean-machine check and the tests and checks on the release tag) runs after the freeze and is reported separately.
+
+### Dashboard v1.0 user test (T69 section 1c)
+
+All ten tasks (U1–U10) passed on November 26 on main `30e64ad` (pull request 146; Austin Edwards, standing in for Venkata Keerthika Kottakota): Market Profile (Charlotte #18 of 190, 88.8), Compare, Rank by Measure, the Overview pillar sliders, the population, distance and industry-fit filters (including excluding current markets), the Map, the Scenarios page, and all 13 pages loading. The Map needs a Power BI sign-in in Power BI Desktop, not just internet (task U8 passed after signing in).
+
+### Regression on a test copy (November 27)
+
+Main at `b30fb60` (after pull request 136), merged with pull requests 130 and 145 (this book), 144 and 146: 313 tests passed; 198 data checks passed, 0 failed, 18 warnings. Rerunning the scoring reproduced every committed score file; only the run dates changed.
+
+## Earlier release history
+
+### November 18–19 clean-clone rerun
+
+Bhavana Vasireddy’s November 18–19 clean-clone rerun at `079a2e4` is documented in `docs/handoff/clean_clone_step_log_079a2e4.md`: 298 tests passed, 167 checks passed, 0 failed, 16 warnings; raw rebuild approximately 33 minutes; scores reproduced (Charlotte #19 of 190, 88.43). Dashboard v0.9 was tested separately at `7254f1a` (U1–U10). This is historical evidence, not validation of scoring v0.5.
 
 
-## Independent clean-clone step log
-
-## Clean-clone test: step log (T75, feeds T69)
+### Clean-clone test: step log (T75, feeds T69)
 
 Tester: Bhavana Vasireddy
 Release tested: tag `integrated-v0.2` (per Austin, on the PR #100 merge commit 3c48fd5)
@@ -69,7 +92,7 @@ Rule followed: the README only; no files from my own project folder and no data 
 
 File opened for criterion 4: `dashboard/BankUnited_Market_Opportunity_Engine_v0.7.pbix`. The dashboard README names `BankUnited_Market_Opportunity_Engine.pbix` (gap 7).
 
-## README gaps found (for T76)
+### README gaps observed in integrated-v0.2 (historical)
 
 1. The main README has no steps for the scoring run or the dashboard, and does not link dashboard/README.md.
 2. `cp .env.example .env` does not work in Windows Command Prompt (use `copy`).

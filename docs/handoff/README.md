@@ -16,7 +16,7 @@ Output is written to `_site/` (HTML and PDF outputs, depending on format). This 
 
 - `.qmd` files are the maintained documentation source.
 - The original November 12 handoff files remain in `docs/handoff/` as evidence and historical source material.
-- Do **not** overwrite root `README.md`, `docs/technical_handoff.md`, `docs/methodology.md`, code, data, or the dashboard with these unreviewed chapters.
+- Do **not** overwrite root `README.md`, code, data, or the dashboard with these unreviewed chapters.
 - Replace the old independent documentation drafts only after technical-owner review and agreement on the new canonical Quarto source.
 - Do not commit API keys, private CRA files or restricted sponsor information.
 
