@@ -2,7 +2,7 @@
 
 How to run, refresh, check and maintain the BankUnited market expansion data pipeline and scores (plan task T68). Written for whoever runs it at BankUnited after the handoff, and for the pod until then.
 
-**Status:** final, reviewed November 24–26, 2026 by Bhavana Vasireddy (sections 2, 4, 6 and 7), Akayiah Bell (section 10) and Matt D'Allaird (section 5). Written against **data-v0.7** (main at `4597975`, November 23, 2026): seven processed tables, 313 tests, and checks at 198 passed, 0 failed, 18 warnings. Owner: Austin Edwards, with Bhavana Vasireddy and Venkata Keerthika Kottakota.
+**Status:** final, reviewed November 24–26, 2026 by Bhavana Vasireddy (sections 2, 4, 6 and 7), Akayiah Bell (section 10) and Matt D'Allaird (section 5). Written against **data-v0.7** (main at `4597975`, November 23, 2026): seven processed tables, 320 tests, and checks at 198 passed, 0 failed, 18 warnings. Owner: Austin Edwards, with Bhavana Vasireddy and Venkata Keerthika Kottakota.
 
 This runbook gives the order of operations and what to do when something goes wrong. The details it points to:
 
@@ -48,7 +48,7 @@ The seven tables at data-v0.7:
    ```
 
 2. **Install.** Python 3.11 or newer, then the environment and packages from the README's [Setup](../README.md#setup) (`.venv\Scripts\activate` and `copy` on Windows, `source .venv/bin/activate` and `cp` elsewhere). The package versions are pinned in `requirements.txt`.
-3. **Check the install.** `python -m pytest` and `python -m src.checks` run on the committed tables with no keys and no raw files. Expect 313 tests passed and 198 passed, 0 failed, 18 warnings.
+3. **Check the install.** `python -m pytest` and `python -m src.checks` run on the committed tables with no keys and no raw files. Expect 320 tests passed and 198 passed, 0 failed, 18 warnings.
 4. **Keys:** section 3. Only needed to rebuild the tables.
 5. **Raw files.** Leave `RAW_DATA_DIR` empty for raw files to go to `data/raw/` (which git ignores), or point it at a folder outside the repository that you keep (use forward slashes in `.env`). A full run downloads about 2 GB by itself. The 30 FFIEC CRA files can't be downloaded by a script, so save them from a browser first, as the README's [Raw data](../README.md#raw-data) section lists: `15exp_aggr.zip` to `24exp_aggr.zip` in `cra/`, and the `<YY>exp_discl.zip` and `<YY>exp_trans.zip` files for 2015–2024 in `cra_bank/`, each from `https://www.ffiec.gov/sites/default/files/data/cra/flat-files/<file name>`.
 6. **First full run:** `python -m src.run_pipeline`. Allow 30 to 40 minutes (the pod's clean-clone rerun took 33 minutes on Windows). Then read `data/processed/checks_report.md` (section 6).
