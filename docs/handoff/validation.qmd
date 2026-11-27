@@ -4,7 +4,7 @@ title: "Release validation and clean-clone evidence"
 
 ## Current release
 
-The current dashboard version is v1.0. Charlotte ranks 15th–18th across strategy scenarios. The final scoring v0.5 metric sensitivity analysis retains 23–25 of the original top 25 markets (Matt D’Allaird, final figures communicated November 25). Historical dashboard tests below do not establish validation of v1.0.
+The current dashboard version is v1.0. Charlotte ranks 15th–18th across strategy scenarios. The final scoring v0.5 metric sensitivity analysis retains 23–25 of the original top 25 markets (Matt D’Allaird, final figures communicated November 25). Dashboard v1.0 passed its user test on November 26 (see Pre-freeze checks below); the historical dashboard tests further down do not apply to v1.0.
 
 Scoring v0.5 with data-v0.7 ranks Charlotte #18 of 190 (88.82; displayed as 88.8). The scoring configuration and saved outputs reflect PR #140. The scoring run uses an industry filter minimum of 0 and exports both raw share and percentile.
 
@@ -25,6 +25,18 @@ Saved scoring outputs dated November 24 in main snapshot `d4ff27c7` confirm Char
 ### Dashboard v1.0 embedded-data verification
 
 On November 25, Sonia G. Chavelas Gonzalez reported comparing the embedded data in `BankUnited_Market_Opportunity_Engine_v1.0.pbix` (scoring v0.5, data-v0.7) against the score outputs on main at `d4ff27c` after PR #140. All compared files were identical. Charlotte ranks #18 of 190 (88.8), Chicago #96 and New York #151. The industry percentile filter defaults to 0, and raw share is available as an option. This owner-reported comparison establishes embedded-data parity for the compared files; it does not constitute a full dashboard functional test or frozen-release clean-clone validation.
+
+## Pre-freeze checks (November 26–27)
+
+These checks ran before the November 27 code freeze. The frozen-release validation (the clean-machine check and the tests and checks on the release tag) runs after the freeze and is reported separately.
+
+### Dashboard v1.0 user test (T69 section 1c)
+
+All ten tasks (U1–U10) passed on November 26 on main `30e64ad` (pull request 146; Austin Edwards, standing in for Venkata Keerthika Kottakota): Market Profile (Charlotte #18 of 190, 88.8), Compare, Rank by Measure, the Overview pillar sliders, the population, distance and industry-fit filters (including excluding current markets), the Map, the Scenarios page, and all 13 pages loading. The Map needs a Power BI sign-in in Power BI Desktop, not just internet (task U8 passed after signing in).
+
+### Regression on a test copy (November 27)
+
+Main at `b30fb60` (after pull request 136), merged with pull requests 130 and 145 (this book), 144 and 146: 313 tests passed; 198 data checks passed, 0 failed, 18 warnings. Rerunning the scoring reproduced every committed score file; only the run dates changed.
 
 ## Earlier release history
 

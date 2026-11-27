@@ -65,7 +65,7 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 | Page | What it shows |
 | --- | --- |
 | Overview | Full ranking with green-to-red colors, the selected metro's rank, score and scenario range, BankUnited's markets, the filters in use, and pillar-weight sliders (0–100) that re-rank metros live. The weights entered are rescaled to 100%: the header shows their total, and four cards show each pillar's share of the score. |
-| Map | Every metro on an Azure Map (needs internet): color = score, size = population, BankUnited's markets in navy; click a metro for its details. |
+| Map | Every metro on an Azure Map (needs internet and a Power BI sign-in): color = score, size = population, BankUnited's markets in navy; click a metro for its details. |
 | Market Profile | For any metro: score, rank, scenario range, distance to BankUnited, industry-fit jobs, how the score adds up, all 27 measures, strongest and weakest measures. Metros with partial data are labeled "Partial data" and are not ranked. |
 | Compare | Two or more metros side by side: rank, score, pillar percentiles, distance, industry-fit jobs (% and percentile) and all 27 measures. |
 | Rank by Measure | All metros ranked on any one of the 27 measures, with BankUnited's markets. The rank counts metros that pass the current filters and have data for that measure (at the defaults, the 190 ranked plus the 5 Connecticut metros); percentiles compare all metros of every size. |
@@ -89,14 +89,14 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 - Fit & Feasibility is available as filters (distance, industry fit); a combined Fit score is not built.
 - Measure weights on a pillar page change that page only; the overall ranking uses the official measure weights.
 - Pillar-weight sliders cannot adjust one another; the weights entered are rescaled to 100%, the same rule as the scoring code.
-- The Map uses Azure Maps, which needs internet and can be turned off by an organization's Power BI settings.
+- The Map uses Azure Maps, which needs internet and a Power BI sign-in and can be turned off by an organization's Power BI settings.
 - Weights are not fitted to outcomes. BankUnited asked for open 0–100 weights with no guardrails (11/17), and the six scenario weight sets are starting points.
 - The Charlotte result is a pre-entry ranking test, not proof that the entry will succeed.
 
 ## How to open
 
 1. Install Power BI Desktop (Windows, free).
-2. Download `BankUnited_Market_Opportunity_Engine_v1.0.pbix` and open it. The data is included; no connection or sign-in is needed (only the Map's background needs internet). The file opens at the baseline: pillar weights 25 each, population minimum 250,000, all other filters off.
+2. Download `BankUnited_Market_Opportunity_Engine_v1.0.pbix` and open it. The data is included, so no data connection is needed; only the Map page needs internet and a Power BI sign-in (until you sign in, it shows "To display Azure Maps visuals, sign in."). The file opens at the baseline: pillar weights 25 each, population minimum 250,000, all other filters off.
 3. Start on the Overview page and use the navigation bar at the top (in Power BI Desktop, hold Ctrl and click). Pick a metro in any "Selected metro" dropdown (type to search) and the other pages follow. Change pillar weights on Overview (they also update the Map and Filters) and the filters on the Filters page (they also update Overview, the Map and Rank by Measure). Market Profile, Compare, the pillar pages and Scenarios show the official baseline.
 4. To reset, set all four weights to 25 and the Filters page back to its defaults, or close the file without saving and reopen it.
 

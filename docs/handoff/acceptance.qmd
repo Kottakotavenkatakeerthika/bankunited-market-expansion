@@ -2,18 +2,16 @@
 title: "Final review and acceptance"
 ---
 
+**Status (November 27):** the team's reviews are complete for the code freeze. BankUnited's acceptance follows sponsor testing (from November 30) and the final presentation (December 4).
 
-**Status: NOT SIGNED OFF.** This chapter is a proposed acceptance record.
-
-| Review area | Proposed reviewer | Evidence needed | Status |
+| Review area | Owners | Evidence | Status |
 |---|---|---|---|
-| Data acquisition and pipeline | Austin / Bhavana | Source-access guide, rebuild logs, warnings | Review pending |
-| Scoring and scenarios | Matt / Jainesh / Evan | Methodology, baseline and scenario comparisons | Review pending |
-| AI/explainability | Sonia | Explainability examples and scope | Review pending |
-| Integration and dashboard | Keerthika | Corrected README, PBIX refresh verification | Review pending |
-| Documentation completeness | Varun | Quarto book, tracker, evidence index | In progress |
-| Business acceptance | Akayiah / Kort / Elliot | Accepted scope, exceptions, approval date | Pending |
+| Data acquisition and pipeline | Austin Edwards, Bhavana Vasireddy | data-v0.7 (pull request 134, reviewed by Bhavana); clean-clone rerun (Bhavana, November 18–19); 198 data checks passed, 0 failed, 18 warnings | Complete |
+| Scoring and scenarios | Matt D'Allaird, Jainesh Lad, Evan De Guzman | Scoring v0.5 (pull request 140, reviewed by Austin, November 24); final sensitivity, 23–25 of the top 25 (Matt, November 25) | Complete; the sensitivity file and script are due before the freeze |
+| Dashboard | Sonia G. Chavelas Gonzalez | Dashboard v1.0 (pull request 141, approved by Bhavana, November 25); v1.0 user test, 10 of 10 (November 26, pull request 146) | Complete |
+| Runbook | Austin Edwards | Section reviews by Bhavana, Matt and Akayiah Bell; merged November 27 (pull request 136) | Complete |
+| Integration and release | Venkata Keerthika Kottakota | Dashboard export, clean-machine check and release tag after the November 27 freeze | In progress |
+| Documentation | Varun Sawant | Review of all 14 chapters (November 26) | Complete; final render under review |
+| Business acceptance | Akayiah Bell; Elliot Leibowitz and Kort Brown (BankUnited) | Sponsor testing and the December 4 presentation | Pending |
 
-**Proposed milestones:** November 20 draft; November 29 content-complete target; December 4 final delivery. Dates require team confirmation.
-
-Record actual reviewer names, approvals, exception decisions and dates here only after confirmation.
+**Milestones:** code freeze November 27, 6 PM; everything final in the shared Drive by November 29; sponsor testing from November 30; final presentation December 4.

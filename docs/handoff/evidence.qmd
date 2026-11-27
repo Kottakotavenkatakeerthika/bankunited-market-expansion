@@ -2,13 +2,13 @@
 title: "Evidence and repository audit"
 ---
 
-> **Document status:** Updated for data-v0.7; historical repository comparisons retained.
+> **Document status:** Updated for the November 27 code freeze (scoring v0.5, data-v0.7, dashboard v1.0); historical repository comparisons retained.
 
-## BankUnited TR-03 repository audit — updated 2026-11-23
+## BankUnited TR-03 repository audit — updated 2026-11-27
 
 ## Conclusion
 
-**Release published; final handoff acceptance pending.** The data-v0.7 release adds two QCEW industry tables while leaving every other table byte-identical to the prior release. The new tables are not used by the scoring process, so no score changes resulted.
+**Release published; final handoff acceptance pending.** The final tagged release follows the November 27 code freeze. The data-v0.7 release adds two QCEW industry tables while leaving every other table byte-identical to the prior release. The new tables are not used by the scoring process, so no score changes resulted.
 
 ## Current release evidence
 
@@ -19,6 +19,9 @@ title: "Evidence and repository audit"
 - **Automated tests:** **313 tests**, as reported by the team.
 - **Scoring impact:** No score changes; the scoring process does not read the two newly added industry tables.
 - **Documentation updates:** The data dictionary traces Atlanta's 0.1% gap to FRED and notes that FDIC revises historical quarters.
+- **Scoring:** scoring v0.5 (pull request 140): Charlotte #18 of 190 (88.8).
+- **Dashboard:** v1.0 (pull request 141), with a 10-of-10 user test on November 26 (pull request 146).
+- **Runbook:** `docs/runbook.md` (pull request 136, merged November 27).
 
 ## Historical evidence
 
@@ -29,14 +32,14 @@ title: "Evidence and repository audit"
 
 ## Material gaps and limitations
 
-1. Raw inputs and independent rebuild evidence should remain documented for reproducibility.
+1. Raw inputs: the runbook documents the downloads, including the 30 FFIEC CRA files fetched through a browser; independent rebuild evidence is in the validation chapter.
 2. BLS suppresses some county-level data. Metro employment and wage totals may therefore be understated. The `bls_qcew_private_counties_suppressed_count` field identifies affected metros.
-3. The final handoff still requires the remaining Quarto documentation, rendered outputs, review, and sponsor acceptance.
-4. The repository ZIP and release metadata should be retained with the handoff package.
+3. This book is integrated and renders to HTML and PDF; what remains is the release tag after the freeze and sponsor acceptance.
+4. BankUnited downloads the final tagged release; InfoSec review in progress. The tag and its commit identify the delivered release.
 
 ## Acceptance standard
 
-Data, ML, and AI pod leads provide implementation evidence, normal and exception-case examples, and documented limitations. The integration lead verifies reproducibility and shared interfaces. The Documentation Lead consolidates the handoff, and the sponsor validates the decision meaning and provides sign-off.
+Data, ML and dashboard leads provide implementation evidence, normal and exception-case examples, and documented limitations. The integration lead verifies reproducibility and shared interfaces. The Documentation Lead consolidates the handoff, and the sponsor validates the decision meaning and provides sign-off.
 
 ## Release reference
 

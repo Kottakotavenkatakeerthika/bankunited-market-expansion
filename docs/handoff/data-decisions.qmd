@@ -31,7 +31,7 @@ Source: How Our Data Works, November 16, data-v0.6, commit 231281b, with Novembe
 
 **If it changed:** Zero-filling would score metros with gaps, such as Connecticut's, as weak instead of leaving them unranked.
 
-**Limitation:** Every model has to handle blanks on purpose; 6 metros have a partial score in scoring v0.4: Connecticut's 5 and Eagle Pass, TX. Examples: Connecticut's BEA values before 2024, uninsured deposits at banks under $1 billion.
+**Limitation:** Every model has to handle blanks on purpose; 6 metros have a partial score in scoring v0.5: Connecticut's 5 and Eagle Pass, TX. Examples: Connecticut's BEA values before 2024, uninsured deposits at banks under $1 billion.
 
 ## D3 Counties summed into metros
 **Rule:** Counts and dollars are summed from county to metro. Rates are computed after summing, never averaged across counties.
@@ -72,6 +72,8 @@ Source: How Our Data Works, November 16, data-v0.6, commit 231281b, with Novembe
 **Limitation:** A bank's lending needn't follow its deposits. Construction and multifamily loans have no size split, and smaller banks report the split only for June and December.
 
 **November 24 reconciliation:** Current Pillar 1 uses all C&I (LNCI) and CRE construction, multifamily and nonfarm nonresidential loans, including owner-occupied, all sizes, for both allocated and local-lender measures. D6 records the October 29 exclusion of multifamily in the historical data-layer decision; scoring does not read D6 over-$1m fields.
+
+**November 25 decision:** multifamily stays in Pillar 1's aggregate CRE (construction + multifamily + nonfarm nonresidential, all loan sizes), with no rerun. Akayiah Bell decided this in the team chat on November 25 (4:34 PM), after Matt D'Allaird's and Austin Edwards's review, and Elliot Leibowitz was informed. The HMDA multifamily and 5+ unit permit measures stay excluded. D6's October 29 exclusion applies only to the over-$1 million measures.
 
 ## D7 Commercial real estate by proxy
 **Rule:** Real estate (NAICS 531) and nonresidential building construction (NAICS 2362): establishments, jobs and payroll from CBP, with QCEW filling missing cells and all of 2024.

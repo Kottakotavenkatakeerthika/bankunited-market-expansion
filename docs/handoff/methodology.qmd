@@ -46,7 +46,7 @@ Owner: Matt D'Allaird. The pillar approximates middle-market commercial and indu
 | Local loans/deposits (`local_loans_to_deposits`) | 0% | Local lenders' C&I + CRE divided by deposits, June 2024 | Diagnostic only |
 | Middle-market share (`mm_share`) | 0% | 20–249 employee establishments divided by all establishments, CBP 2023 | Diagnostic only |
 
-Matt reports approximately 61 metros without local lenders; neutral fill applies to the local growth pair. His November 23 definition reports 321 complete Pillar 1 metros; 321 is reported as pre-neutral-fill coverage.
+Of the 387 scored metros, 61 have no local-lender C&I growth figure and 57 no local-lender CRE growth figure; a missing value counts as the 50th percentile (neutral fill). Only 55 of the 61 have no local lender at all. Before the neutral fill, 321 metros have all six weighted Pillar 1 measures, matching Matt's November 23 definition.
 
 ### Lending segmentation
 
