@@ -83,14 +83,14 @@ Deposits exclude bookings at main offices and home-banking offices, so headquart
 - Fit & Feasibility is available as filters (distance, industry fit); a combined Fit score is not built.
 - Measure weights on a pillar page change that page only; the overall ranking uses the official measure weights.
 - Pillar-weight sliders cannot adjust one another; the weights entered are rescaled to 100%, the same rule as the scoring code.
-- The Map uses Azure Maps, which needs internet and can be turned off by an organization's Power BI settings.
+- The Map uses Azure Maps, which needs internet and a Power BI sign-in, and can be turned off by an organization's Power BI settings.
 - Weights are not fitted to outcomes. BankUnited asked for open 0–100 weights with no guardrails (11/17), and the six scenario weight sets are starting points.
 - The Charlotte result is a pre-entry ranking test, not proof that the entry will succeed.
 
 ## How to open
 
 1. Install Power BI Desktop (Windows, free).
-2. Download `BankUnited_Market_Opportunity_Engine_v1.0.pbix` and open it. The data is included; no connection or sign-in is needed (only the Map's background needs internet). The file opens at the baseline: pillar weights 25 each, population minimum 250,000, all other filters off.
+2. Download BankUnited_Market_Opportunity_Engine_v1.0.pbix and open it. The data is included, so no data connection is needed. The Map page needs internet and a Power BI sign-in (it uses Azure Maps); every other page works without signing in. The file opens at the baseline: pillar weights 25 each, population minimum 250,000, all other filters off.
 3. Start on the Overview page and use the navigation bar at the top (in Power BI Desktop, hold Ctrl and click). Pick a metro in any "Selected metro" dropdown (type to search) and the other pages follow. Change pillar weights on Overview (they also update the Map and Filters) and the filters on the Filters page (they also update Overview, the Map and Rank by Measure). Market Profile, Compare, the pillar pages and Scenarios show the official baseline.
 4. To reset, set all four weights to 25 and the Filters page back to its defaults, or close the file without saving and reopen it.
 
