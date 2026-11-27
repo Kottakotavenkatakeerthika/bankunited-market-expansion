@@ -36,7 +36,7 @@ All ten tasks (U1–U10) passed on November 26 on main `30e64ad` (pull request 1
 
 ### Regression on a test copy (November 27)
 
-Main at `b30fb60` (after pull request 136), merged with pull requests 130 and 145 (this book), 144 and 146: 313 tests passed; 198 data checks passed, 0 failed, 18 warnings. Rerunning the scoring reproduced every committed score file; only the run dates changed.
+Main at `b30fb60` (after pull request 136), merged with pull requests 130 and 145 (this book), 144 and 146: 313 tests passed; 198 data checks passed, 0 failed, 18 warnings. Rerunning the scoring reproduced every committed score file; only the run dates changed. At the freeze, main at `c707f8e`, with pull requests 130 and 144–150 merged (pull request 148 added the sensitivity script and 7 tests), passes 320 tests; the data checks are unchanged at 198 passed, 0 failed, 18 warnings.
 
 ## Earlier release history
 

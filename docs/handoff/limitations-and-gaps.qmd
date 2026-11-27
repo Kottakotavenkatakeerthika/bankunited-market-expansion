@@ -27,4 +27,4 @@ title: "Open gaps and known limitations"
 
 ## Evidence caution
 
-The current results (313 tests; 198 data checks passed, 0 failed, 18 warnings) validate data-v0.7 and scoring v0.5 in the repository. They do not by themselves establish sponsor acceptance.
+The current results (320 tests; 198 data checks passed, 0 failed, 18 warnings) validate data-v0.7 and scoring v0.5 in the repository. They do not by themselves establish sponsor acceptance.

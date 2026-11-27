@@ -7,7 +7,7 @@ title: "Final review and acceptance"
 | Review area | Owners | Evidence | Status |
 |---|---|---|---|
 | Data acquisition and pipeline | Austin Edwards, Bhavana Vasireddy | data-v0.7 (pull request 134, reviewed by Bhavana); clean-clone rerun (Bhavana, November 18–19); 198 data checks passed, 0 failed, 18 warnings | Complete |
-| Scoring and scenarios | Matt D'Allaird, Jainesh Lad, Evan De Guzman | Scoring v0.5 (pull request 140, reviewed by Austin, November 24); final sensitivity, 23–25 of the top 25 (Matt, November 25) | Complete; the sensitivity file and script are due before the freeze |
+| Scoring and scenarios | Matt D'Allaird, Jainesh Lad, Evan De Guzman | Scoring v0.5 (pull request 140, reviewed by Austin, November 24); final sensitivity, 23–25 of the top 25 (Matt, November 25) | Complete; the sensitivity script and its output are in the repository (pull request 148, November 27) |
 | Dashboard | Sonia G. Chavelas Gonzalez | Dashboard v1.0 (pull request 141, approved by Bhavana, November 25); v1.0 user test, 10 of 10 (November 26, pull request 146) | Complete |
 | Runbook | Austin Edwards | Section reviews by Bhavana, Matt and Akayiah Bell; merged November 27 (pull request 136) | Complete |
 | Integration and release | Venkata Keerthika Kottakota | Dashboard export, clean-machine check and release tag after the November 27 freeze | In progress |

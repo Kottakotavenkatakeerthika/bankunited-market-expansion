@@ -139,7 +139,7 @@ Market attractiveness and eligibility are separate. Optional fit filters use str
 | Evidence | Current disposition |
 |---|---|
 | Data release | [data-v0.7](https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/releases/tag/data-v0.7) |
-| Automated tests | 313 passed on main 546f659 (Austin, November 24) |
+| Automated tests | 313 passed on main 546f659 (Austin, November 24); 320 at the November 27 freeze, after pull request 148 |
 | Data checks | 198 passed; 0 failed; 18 warnings reported by Austin (November 24) |
 | Clean-clone rerun | Bhavana Vasireddy, clean-clone step log, November 10–12, integrated-v0.2 (historical evidence) |
 | Score changes | Austin reports none from data-v0.7 |
@@ -148,7 +148,7 @@ Data-v0.7 adds `msa_industry_year` and `us_industry_year` (BLS QCEW industry est
 
 ## Metric sensitivity
 
-Matt D’Allaird’s final scoring v0.5 sensitivity analysis, confirmed November 25, retained 23–25 of the original top 25 markets when individual measures were removed. Similarity ranged from 0.989 to 0.999; the largest single-measure movement was 26 places (middle-market growth), and the maximum movement under ±25% weight changes was 13 places. Repository drop-measure scenarios are separate: 23–24 on main and 22–24 on the v0.5 branch (Austin, November 24). This supports broad top-market robustness, not invariant individual ranks. Pillar 3 nominal overall weight is 5% per measure; Pillar 4 is 3.125% per measure, before pillar percentile transformation.
+Matt D’Allaird’s final scoring v0.5 sensitivity analysis, confirmed November 25, retained 23–25 of the original top 25 markets when individual measures were removed. Similarity ranged from 0.989 to 0.999; the largest single-measure movement was 26 places (middle-market growth), and the maximum movement under ±25% weight changes was 13 places. Repository drop-measure scenarios are separate: 23–24 on main and 22–24 on the v0.5 branch (Austin, November 24). This supports broad top-market robustness, not invariant individual ranks. Pillar 3 nominal overall weight is 5% per measure; Pillar 4 is 3.125% per measure, before pillar percentile transformation. The analysis is now in the repository: `python -m src.pillar_sensitivity` (pull request 148) reproduces these figures in `outputs/sensitivity/pillar_metric_sensitivity.csv`.
 
 ## Assumptions, limitations and governance
 
