@@ -1,0 +1,42 @@
+---
+title: "Data fact-check (November 17)"
+---
+
+## Austin’s source-confirmed fact-check
+
+Every figure in How Our Data Works, including the D1–D15 decision log, was checked against main at commit 231281b (data-v0.6) on November 16; the score figures, the test count and the rows marked November 17 were rechecked against main at 4145dfa (scoring v0.4) on November 17.
+
+| Figure | Value | How checked |
+|:--|:--|:--|
+| Tests | 297 passed | Ran: pytest on main at 4145dfa, November 17, Python 3.13.18 with the pinned packages |
+| Data checks | 167 passed, 0 failed, 16 warnings | Ran: the checks on the committed tables, without rewriting the report; rerun on 4145dfa on November 17 with the same result |
+| The 16 warnings | 13 mostly empty columns, 3 bank-ID groups | Ran: the same run |
+| Releases | Six, data-v0.1 to data-v0.6 | Read: the repo's tags |
+| Download log | 706 files | Ran: counted `data/manifest.csv` |
+| Table sizes | `msa_year` 3,930 × 58; `msa_year_history` 1,965 × 5; `msa_naics_year` 67,487 × 7; `bank_msa_year` 331,879 × 21; `bank_quarter` 240,330 × 62 (47.5 MB) | Ran: opened each Parquet file |
+| Counties and metros | 1,252 counties in 393 metros | Ran: counted the crosswalk |
+| Ranks | 190 ranked; 381 complete, 191 of them under 250,000; 6 partial; Puerto Rico's 6 not scored; Charlotte 19th | Ran: `python -m src.scoring.run` on main at 4145dfa, November 17, which reproduces the committed scores; with the old blank rule the same code reproduces the pre-#128 scores (176 ranked, Charlotte 17th) |
+| Industry sectors missing | 95 metros (mining 69, agriculture 25, utilities 11, management of companies 4); the sectors left out hold at most 1.02% of a metro's jobs (median 0.07%) | Ran: `msa_naics_year` for 2023 against `msa_year`'s all-industry totals, November 17 |
+| Charlotte deposits, 2024 | $457.3 billion; 84% at main offices; 99.7% of those at Bank of America and Truist | Ran: `msa_year` and `bank_msa_year`; within 0.1% of FDIC's figure (spot check) |
+| Charlotte concentration, 2024 | HHI 5,391 against 1,975; top three 94% against 62% | Ran: `msa_year` |
+| Home-banking offices | San Antonio 2024: 991, or 3,713 with main offices alone left out; 629 metro-years change | 991 ran from `msa_year`; 3,713 and 629 read from the data dictionary |
+| BEA combined areas | Washington 2023 GDP $708.16 billion against $501.25 billion; 12 metros change | Ran: compared the data-v0.3 and data-v0.4 tables |
+| Connecticut coverage | Unemployment every year; population from 2020; CBP 2022 and 2023; deposits from 2023; BEA, QCEW and CRA 2024 only | Ran: counted values in `msa_year` |
+| Peer set | 126 organizations, 168 banks, 101 with a ticker | Ran: `peer_organizations.csv` |
+| BankUnited's assets | $34.86 billion at June 30, 2026 | Ran: `bank_quarter`; matches FDIC (spot check) |
+| Certificates | 15 moved between RSSD IDs, 2015 to 2026 | Ran: `bank_quarter` |
+| Top holders | Agree for 98.6% of 37,204 bank-years; 93.7% in 2015 | Ran: `bank_msa_year` against `bank_quarter` |
+| Charlotte establishments, 2023 | 71,411, the same as Census's metro file | Ran: `msa_year` against the spot check |
+| Access keys | The code reads FDIC, FRED and BEA keys and the user agent; the BLS and Census keys are never read | Read: every setting read in `src/` |
+| CRA threshold and coverage | $1.564 billion for 2024; reporters hold 77.6% of small business loans outstanding | Read: [FFIEC's 2024 fact sheet](https://www.ffiec.gov/data/cra/findings-from-2024-data-fact-sheet) |
+| Map points | A median 6.7 miles from population centers; 7 metros over 50 | Read: the data dictionary (Austin's 11/12 check), not rerun |
+| ML's 500-mile filter | Detroit 503.1 miles (from New York), El Paso 508.1 (from Dallas); 69 metros kept from ranking | Ran: a separate distance calculation on the Gazetteer points, matching the Adjacency output on main at 4145dfa, November 17 |
+| BankUnited markets in the Fit filters | 13: the 10 branch markets in SOD 2024 plus the Atlanta, Charlotte and Houston offices | Ran: `msa_year` for 2024; Read: `src/market_attractiveness.py` for the offices and their entry dates, November 17 |
+| QCEW against CBP | Charlotte 2023: 11% and 38% higher | Read: the data dictionary |
+| 2013 income dip | 108 of 382 metros | Read: the data dictionary (Austin's 10/28 check) |
+| CBP 2024 | No planned release date | Read: `docs/refresh_cadence.md` (Census's page as of 9/16) |
+| Spread estimate | Over 95% correlated with payroll and deposits | Read: Matt's 10/26 message, not rechecked |
+| Decisions and dates | B1, B4, B7, B8, B9, B10, B14, B16 | Read: the Blockers sheet of Implementation Plan 11-12 v4 |
+| File-based design | Elliot, 11/6, on the design making the tool easier to run inside the bank | Read: his 11/6 email |
+
+Source: the Fact-check section of *How Our Data Works* (data-v0.6, November 16), with the November 17 scoring v0.4 changes in `reference/how-our-data-works-v0.4-changes.md`. This records Austin's reported execution evidence; retain original logs for independent review.

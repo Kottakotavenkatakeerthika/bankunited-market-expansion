@@ -1,0 +1,107 @@
+---
+title: "Release validation and clean-clone evidence"
+---
+
+## Current release
+
+The current dashboard version is v1.0. Charlotte ranks 15th–18th across strategy scenarios. The final scoring v0.5 metric sensitivity analysis retains 23–25 of the original top 25 markets (Matt D’Allaird, final figures communicated November 25). Dashboard v1.0 passed its user test on November 26 (see Pre-freeze checks below); the historical dashboard tests further down do not apply to v1.0.
+
+Scoring v0.5 with data-v0.7 ranks Charlotte #18 of 190 (88.82; displayed as 88.8). The scoring configuration and saved outputs reflect PR #140. The scoring run uses an industry filter minimum of 0 and exports both raw share and percentile.
+
+| Validation evidence | Result |
+|---|---|
+| Main validation commit | `546f659` |
+| Data-v0.7 tag commit | `4597975` |
+| Automated tests | 313 passed |
+| Data checks | 198 passed, 0 failed, 18 warnings |
+| Exit code | 0 |
+
+Source: Austin Edwards, November 24 rerun on main `546f659`. The data-v0.7 rebuild ran on `55f7061` (the PR #122 merge); its tables and checks report were committed in `455efa2` and merged as `4597975`, where the tag points. The main validation run is not a clean-clone test of the final frozen release.
+
+### Saved scoring output evidence
+
+Saved scoring outputs dated November 24 in main snapshot `d4ff27c7` confirm Charlotte #18 of 190 (88.82, displayed as 88.8). Sources: `outputs/final_scores/market_attractiveness_scores.csv`, `outputs/final_scores/market_attractiveness_run.json` and `config/settings.toml`. The configured local-lender growth cap is 191%. Austin’s 313-test and 198-check validation applies to `546f659`, not the later snapshot.
+
+### Dashboard v1.0 embedded-data verification
+
+On November 25, Sonia G. Chavelas Gonzalez reported comparing the embedded data in `BankUnited_Market_Opportunity_Engine_v1.0.pbix` (scoring v0.5, data-v0.7) against the score outputs on main at `d4ff27c` after PR #140. All compared files were identical. Charlotte ranks #18 of 190 (88.8), Chicago #96 and New York #151. The industry percentile filter defaults to 0, and raw share is available as an option. This owner-reported comparison establishes embedded-data parity for the compared files; it does not constitute a full dashboard functional test or frozen-release clean-clone validation.
+
+## Pre-freeze checks (November 26–27)
+
+These checks ran before the November 27 code freeze. The frozen-release validation (the clean-machine check and the tests and checks on the release tag) runs after the freeze and is reported separately.
+
+### Dashboard v1.0 user test (T69 section 1c)
+
+All ten tasks (U1–U10) passed on November 26 on main `30e64ad` (pull request 146; Austin Edwards, standing in for Venkata Keerthika Kottakota): Market Profile (Charlotte #18 of 190, 88.8), Compare, Rank by Measure, the Overview pillar sliders, the population, distance and industry-fit filters (including excluding current markets), the Map, the Scenarios page, and all 13 pages loading. The Map needs a Power BI sign-in in Power BI Desktop, not just internet (task U8 passed after signing in).
+
+### Regression on a test copy (November 27)
+
+Main at `b30fb60` (after pull request 136), merged with pull requests 130 and 145 (this book), 144 and 146: 313 tests passed; 198 data checks passed, 0 failed, 18 warnings. Rerunning the scoring reproduced every committed score file; only the run dates changed.
+
+## Earlier release history
+
+### November 18–19 clean-clone rerun
+
+Bhavana Vasireddy’s November 18–19 clean-clone rerun at `079a2e4` is documented in `docs/handoff/clean_clone_step_log_079a2e4.md`: 298 tests passed, 167 checks passed, 0 failed, 16 warnings; raw rebuild approximately 33 minutes; scores reproduced (Charlotte #19 of 190, 88.43). Dashboard v0.9 was tested separately at `7254f1a` (U1–U10). This is historical evidence, not validation of scoring v0.5.
+
+
+### Clean-clone test: step log (T75, feeds T69)
+
+Tester: Bhavana Vasireddy
+Release tested: tag `integrated-v0.2` (per Austin, on the PR #100 merge commit 3c48fd5)
+Machine: fresh Windows folder `C:\clean_clone_test`, Python 3.14.5, git 2.55.0.windows.5
+Dates: 11/10/2026 (first run), 11/11/2026 (full rebuild), 11/12/2026 (dashboard)
+Rule followed: the README only; no files from my own project folder and no data copied in, except the 30 CRA files and my own keys as Austin's 11/10 email described.
+
+## Result against the four pass criteria
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | The environment installs from the documented requirements | PASS |
+| 2 | The data build finishes with all checks passing | PASS (full rebuild from raw data: 163 passed, 0 failed, 16 warnings; no processed table changed) |
+| 3 | The scoring run reproduces the v0.2 scores | PASS (Charlotte #16 of 287, score 88.4; the rewritten scores file is identical to the committed one) |
+| 4 | The dashboard opens and shows Charlotte at #16 of 287 (88.4) | PASS |
+
+## Step log
+
+| # | Step | Result |
+|---|---|---|
+| 1 | Made an empty folder `C:\clean_clone_test` and cloned the tag: `git clone --branch integrated-v0.2 ...` | OK |
+| 2 | `git describe --tags` | prints `integrated-v0.2` |
+| 3 | Listed the clone: README.md, requirements.txt, .env.example, pytest.ini, folders app, dashboard, data, docs, notebooks, outputs, plan, src, tests, weights | OK |
+| 4 | `python --version`, `git --version` | Python 3.14.5, git 2.55.0.windows.5 (README says "Python 3.11 or newer") |
+| 5 | Read README.md (5,571 bytes) | OK; gaps noted below |
+| 6 | `python -m venv .venv` and `.venv\Scripts\activate` | OK |
+| 7 | `pip install -r requirements.txt` | OK, no errors (pandas, numpy, pyarrow, duckdb, scikit-learn, requests, openpyxl, python-dotenv, pytest) |
+| 8 | `copy .env.example .env` (README says `cp`, which is not a Windows command) | OK with the Windows command |
+| 9 | `python -m pytest` | 222 passed in 28 s |
+| 10 | `python -m src.checks` on the committed tables | 163 passed, 0 failed, 16 warnings |
+| 11 | Looked for scoring and dashboard steps in README, src, docs, notebooks, dashboard and outputs | Not in the main README; the run commands are in comments at the top of src/market_attractiveness.py and src/compare_scenarios.py; dashboard/README.md exists but is not linked |
+| 12 | `python -m src.market_attractiveness --show-weights` | OK: 27 measures, 25% per pillar |
+| 13 | Copied the committed scores file, then ran `python -m src.market_attractiveness` | OK: 287 of 393 MSAs scored; Charlotte rank 16, score 88.4 (range 14 to 19); top 5 Austin, Raleigh, Phoenix, Nashville, Indianapolis |
+| 14 | `fc` of the rewritten scores file against the committed copy | no differences encountered |
+| 15 | Keys (11/11): reused my FDIC, FRED and BEA keys, signed up for a BLS key (arrived by email), set HTTP_USER_AGENT to my name and email, left RAW_DATA_DIR empty | `.env` is not shown by `git status` (ignored) |
+| 16 | Copied the cra (10 files) and cra_bank (20 files) folders from the Drive archive data-v0.5 into data/raw/cra and data/raw/cra_bank | OK (Drive gives a timestamped zip with the real folder one level down) |
+| 17 | `python -m src.run_pipeline` (full rebuild) | Finished; about 20 minutes (my estimate, not timed) |
+| 18 | `python -m src.checks` after the rebuild | 163 passed, 0 failed, 16 warnings |
+| 19 | `python -m pytest` after the rebuild | 222 passed in 33 s |
+| 20 | `git status --short` and `git diff --stat` after the rebuild | No data/processed parquet file changed. Only data/manifest.csv (new pull times; 679 insertions, 674 deletions), data/processed/checks_report.md and outputs/final_scores/market_attractiveness_run.json changed, which a normal run rewrites |
+| 21 | Installed Power BI Desktop from the Microsoft Store (free, no sign-in) | OK |
+| 22 | Opened dashboard/BankUnited_Market_Opportunity_Engine_v0.7.pbix | Opens with 8 pages (Summary, Market Profile, P1 Lending, P2 Deposits, P3 Competition, P4 Market Quality, Scenarios, Method & Status) |
+| 23 | Summary page | Charlotte #16 of 287, Attractiveness Score 88.4, #14 to #16 across the 5 strategy scenarios, 287 metros ranked; row 16 of the ranking table is Charlotte-Concord-Gastonia (88.4) |
+
+File opened for criterion 4: `dashboard/BankUnited_Market_Opportunity_Engine_v0.7.pbix`. The dashboard README names `BankUnited_Market_Opportunity_Engine.pbix` (gap 7).
+
+### README gaps observed in integrated-v0.2 (historical)
+
+1. The main README has no steps for the scoring run or the dashboard, and does not link dashboard/README.md.
+2. `cp .env.example .env` does not work in Windows Command Prompt (use `copy`).
+3. API keys: the README does not say which keys are required. Only FDIC has a signup link; FRED, BEA and BLS do not. HTTP_USER_AGENT needs a name and email.
+4. The raw data folder is not explained for a fresh machine, and the README suggests pointing RAW_DATA_DIR at the shared Drive folder, which would write into the shared folder.
+5. `--skip-ingest` cannot work on a fresh clone, because the interim files are not committed.
+6. requirements.txt has no Jupyter packages, so the pillar notebooks cannot be opened on a fresh install, and Power BI Desktop is not mentioned.
+7. dashboard/README.md says to download BankUnited_Market_Opportunity_Engine.pbix, but the file is named ..._v0.7.pbix, and it says the scores came from the branch final-score-gate, not from the tag.
+8. At this tag, docs/methodology.md, docs/technical_handoff.md, notebooks 01_ to 03_, src/bankunited_fit.py and src/entry_scenarios.py are empty files.
+9. outputs/pillar_scores has no pillar4_run.json, while pillars 1 to 3 each have one.
+
+Notes from the rerun for the README fixes: Drive packs each folder as a timestamped zip with the real folder one level down; a normal run rewrites manifest.csv, checks_report.md and market_attractiveness_run.json, so git status is never clean after a run; the four keys are separate signups and the BLS key arrives by email.

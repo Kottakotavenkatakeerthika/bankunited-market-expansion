@@ -1,0 +1,17 @@
+---
+title: "Start here"
+---
+
+This book is the technical and sponsor handoff for the BankUnited Market Opportunity Engine: scoring v0.5, data-v0.7 and dashboard v1.0, as frozen for the final release on November 27, 2026.
+
+**Current data release:** `data-v0.7`, published November 23, 2026. The release reports 198 data checks passed, 0 failed, 18 warnings, and 313 automated tests.
+
+**Historical reference:** `integrated-v0.2` — previously reported commit `3c48fd512e9a0bf9b43a2ec5755c7145bee9833e`. This is retained for historical traceability and is not the current data release.
+
+**Navigation:** Read the scope chapter first, then the technical handoff and its runbook (`docs/runbook.md`), the data and methodology chapters, the validation evidence and the acceptance record.
+
+**Source of truth:** Code, tests, data, scores and the `.pbix` file are in the repository. This book documents them; it contains no executable product artifacts.
+
+**Evidence:** The source documents for this book are kept with it in `docs/handoff/`.
+
+**Handoff status:** All 14 chapters render to HTML and PDF. BankUnited's review and acceptance follow: sponsor testing starts November 30, and the final presentation is December 4.

@@ -1,0 +1,173 @@
+---
+title: "Methodology and assumptions — T65"
+---
+
+> **November 24 release reconciliation:** Scoring v0.5 with data-v0.7 ranks Charlotte #18 of 190 (88.82; displayed as 88.8). The scoring configuration and saved outputs reflect PR #140. The scoring run uses an industry filter minimum of 0 and exports both raw share and percentile.
+
+
+**Revision:** November 24, 2026  
+**Documentation owner:** Varun Sawant  
+**Baseline:** scoring v0.5; Power BI dashboard v1.0; data-v0.7.
+
+## Purpose and ranking universe
+
+The Market Attractiveness model prioritizes metropolitan markets for commercial banking research. It is a comparative decision-support index, not a forecast of profitability, credit losses or market-entry success. The baseline assigns equal weight to commercial lending, deposits and treasury, competition and market quality. Power BI is the sponsor-facing interface.
+
+| Population | Metros |
+|---|---:|
+| Pipeline coverage | 393 |
+| Scoring universe (50 states and DC) | 387 |
+| Fully scored | 381 |
+| Fully scored below population floor | 191 |
+| Ranked | 190 |
+| Partial (five Connecticut metros and Eagle Pass, TX) | 6 |
+| Unscored Puerto Rico metros | 6 |
+
+The pipeline universe includes Puerto Rico; source coverage gaps prevent scoring its six metros. Complete scores and a population of at least 250,000 are required for baseline ranking. The population floor can be disabled by setting it to zero. Charlotte ranks **18th of 190**, score **88.8** (88.82 unrounded). The 176-ranked / Charlotte #17 v0.3 result and 287-ranked / Charlotte #16 MVP result are historical, not current benchmarks. Austin confirmed the metro counts November 24.
+
+## Scoring method
+
+For each metric, rank metros with observed values in attractiveness order, using average ranks for ties. The oriented percentile is 100 × (average rank − 1) / (number of observed metros − 1), with rank ordered so that higher percentiles are more attractive. Lower-is-better metrics reverse the raw ordering. Pillar scores combine metric percentiles using normalized configured weights; the final index combines pillar percentiles using normalized pillar weights (25% each in the baseline). Complete scores require all positively weighted inputs after configured gap treatment. Available-data scores rescale weights over observed metrics and must not be confused with complete ranked scores. The local-lender growth pair receives a neutral 50th percentile where the configured fill applies. Zero-weight metrics are diagnostic, not contributors to the baseline.
+
+The authoritative implementation is `src/scoring/`, `src/market_attractiveness.py`, `config/settings.toml` and `weights/baseline.toml`. Relative weights are normalized; the eight Pillar 2 weights of 10 each therefore correspond to 12.5% each. The score is a relative index rather than a probability. Changes in peer coverage or weights may affect rank even when a metro's raw metrics are unchanged.
+
+## Pillar 1 — Commercial lending
+
+Owner: Matt D'Allaird. The pillar approximates middle-market commercial and industrial (C&I) and commercial real estate (CRE) credit opportunities using public lending and business-activity proxies. All weighted metrics are higher-is-better.
+
+| Metric / configuration key | Weight | Definition and source | Limitation |
+|---|---:|---|---|
+| Allocated loan growth (`allocated_loan_growth`) | 20% | 2019–24 CAGR of bank C&I + CRE allocated by local share of adjusted deposits; Call Reports and FDIC SOD | Deposit footprint proxies loan geography; mergers and office-only lenders distort allocation |
+| Middle-market establishments (`mm_establishments`) | 20% | CBP 2023 establishments with 20–249 employees | Establishments rather than firms; no revenue test; 250–499 band absent |
+| Middle-market growth (`mm_growth`) | 20% | 2018–23 CAGR of same establishment count; CBP | Publication lag |
+| CRE payroll growth (`cre_payroll_growth`) | 20% | 2018–23 payroll CAGR, NAICS 531 and 2362; CBP | Activity proxy; includes residential lessors and nominal wage effects |
+| Local C&I growth (`local_ci_growth`) | 10% | Same-bank 2019–24 C&I CAGR for banks with at least 50% of domestic reported deposits in metro; growth capped at the fifth-highest observed value (191%), per Elliot Leibowitz, email, November 24, 2026, 10:04 AM | Bank-wide balances proxy local activity; sparse lender populations |
+| Local CRE growth (`local_cre_growth`) | 10% | Same local-lender rule applied to CRE balances | Same limitations as local C&I |
+| Local loans/deposits (`local_loans_to_deposits`) | 0% | Local lenders' C&I + CRE divided by deposits, June 2024 | Diagnostic only |
+| Middle-market share (`mm_share`) | 0% | 20–249 employee establishments divided by all establishments, CBP 2023 | Diagnostic only |
+
+Of the 387 scored metros, 61 have no local-lender C&I growth figure and 57 no local-lender CRE growth figure; a missing value counts as the 50th percentile (neutral fill). Only 55 of the 61 have no local lender at all. Before the neutral fill, 321 metros have all six weighted Pillar 1 measures, matching Matt's November 23 definition.
+
+### Lending segmentation
+
+Current Pillar 1 uses all C&I (LNCI) and CRE construction, multifamily and nonfarm nonresidential loans, including owner-occupied, all sizes, for both allocated and local-lender measures. D6 records the October 29 exclusion of multifamily in the historical data-layer decision; scoring does not read D6 over-$1m fields.
+
+C&I follows Call Report LNCI (`call_ci_loans_usd`); CRE combines construction (LNRECONS), multifamily (LNREMULT), and nonfarm nonresidential (LNRENRES), including owner-occupied property. These are regulatory balance categories and do not map directly to BankUnited's management segments. All loan sizes are included; owner-occupied CRE is included and all loan sizes are retained, as confirmed November 24. Residential and national specialty platforms are excluded from this local opportunity framework. CRA small-business lending is not a Pillar 1 input because small-ticket lending is not a suitable proxy for the target franchise; CRA remains relevant for separate fit/whitespace analysis.
+
+**Multifamily test (November 25):** the published scores include multifamily in CRE, as the team decided on November 25. A rerun of scoring v0.5 on main without multifamily moves 141 of the 190 ranks (19 by more than five places): Charlotte from 18th to 17th (88.95), Chicago from 96th to 91st, and New York stays 151st. The top five (in order) and the top 25 markets stay the same, and seven BankUnited markets stay in the top 20 (Naples drops out and Dallas comes in). Source: Austin Edwards, rerun on main, November 25 and 26, 2026.
+
+## Pillar 2 — Deposits and treasury
+
+Owner: Matt D'Allaird. The pillar estimates potential operating-deposit demand using deposit depth, growth, payroll and household-income signals. All eight weighted measures are higher-is-better.
+
+| Metric / configuration key | Weight | Definition and source | Limitation |
+|---|---:|---|---|
+| `deposits_per_capita` | 12.5% | Adjusted June 2024 SOD deposits / Census population | Retail and commercial combined |
+| `deposit_growth` | 12.5% | Adjusted deposit CAGR, 2019–24 | Pandemic surge and later outflows |
+| `deposits_per_branch` | 12.5% | Adjusted deposits / branches, excluding main offices, 2024 | Proxy for account mix; home-banking offices can remain in denominator |
+| `wage_bill` | 12.5% | QCEW total wages, 2024 | Includes public payroll; scale effect |
+| `wage_bill_growth` | 12.5% | QCEW wage CAGR, 2019–24 | Nominal growth |
+| `payroll_per_establishment` | 12.5% | CBP payroll / establishments, 2023 | Large employers can dominate |
+| `income_per_capita` | 12.5% | BEA personal income / population, 2024 | Household proxy; no cost-of-living adjustment |
+| `income_growth` | 12.5% | BEA personal income CAGR, 2019–24 | Nominal growth |
+| `incumbent_nib_share` | 0% | Local adjusted-deposit-weighted bank-wide noninterest-bearing share, Q2 2024; at least 50% matching coverage | Not a local funding ratio |
+| `incumbent_uninsured_share` | 0% | Analogous uninsured deposit share; Call Report RCON5597 for $1B+ banks, complement of insured share for smaller banks | Diagnostic; bank-wide proxy |
+
+Main-office and FDIC service-type-13 home-banking booked deposits are excluded from adjusted deposit amounts in Pillars 1 and 2. The reported-deposit local-lender qualification in Pillar 1 is an intentional exception. Ordinary branches may still carry booked deposits. Matt reports 382 complete Pillar 2 metros. His October 28 analysis found 13 metros moved more than ten score points after booked deposits were removed; this is historical sensitivity evidence.
+
+## Pillar 3 — Competition and entry windows
+
+This pillar evaluates how concentrated local deposits are, how crowded the banking market is and whether established market leaders are losing deposit share. Five equally weighted measures assess potential entry opportunities. Lower concentration, fewer competitors and branches relative to deposits, and falling share among the original three largest holding companies receive higher scores. The measures describe deposit-market competition, not direct commercial lending rivalry.
+
+## Metric definitions
+
+| Metric | Key | Weight | Definition |
+|---|---|---:|---|
+| Deposit concentration (HHI) | `deposit_hhi` | 20% | Sum of squared holding-company percentage shares of adjusted local deposits. |
+| Top-three deposit share | `top3_share` | 20% | Combined share of the three largest holding companies. |
+| Competitors per $1B | `competitors_per_billion` | 20% | Holding companies with local deposits divided by local deposits in billions. |
+| Full-service branches per $1B | `branches_per_billion` | 20% | Full-service branch count divided by local deposits in billions. |
+| Three-year leader share change | `leader_share_change` | 20% | Combined June 2024 share minus June 2021 share of the same three June 2021 leaders. |
+
+All five measures are lower-is-better. FDIC SOD / bank_msa_year, June 2024; leader change June 2021–2024. Baseline excludes main-office and home-banking booked deposits; affiliated banks count once.
+
+## Scoring and coverage
+
+Percentile = 100 × (average rank − 1) / (count − 1), after direction adjustment. Complete scores require all weighted measures; available-data scores rescale observed weights. 382/387 complete; five Connecticut metros lack leader change (80% coverage). Pillar percentile contributes 25% overall. Competition × growth is 0% baseline and 80% in its dedicated sensitivity scenario.
+
+## Limitations
+
+Deposit structure is not commercial lending rivalry. Mergers can distort leader share; branch counts omit digital presence and SOD misses nonbanks. Low competition can reflect weak demand.
+
+Source: Jainesh Lad, Nov 24, 2026; owner-reported main 4597975 (data-v0.7), `src/scoring/pillar3.py`, `weights/baseline.toml`, `config/settings.toml`. Not independently rerun.
+
+## Pillar 4 — Market quality and durability
+
+Owner confirmation: Evan, November 24, 2026. Eight implemented measures. Reported baseline weights are 12.5% within the pillar (3.125% overall) per measure.
+
+| Metric | Period | Calculation |
+|---|---|---|
+| GDP growth | 2019–2024 | (GDP 2024 / GDP 2019)^(1/5) − 1 |
+| GDP volatility | 2016–2024 | Sample SD of nine annual GDP growth rates (GDP y / GDP y−1 − 1) |
+| Unemployment level | 2024 | Annual unemployment percentage / 100 |
+| Unemployment volatility | 2015–2024 | Sample SD of ten annual unemployment rates expressed as decimals |
+| Industry HHI | 2023 CBP | Sum of squared category employment / squared total classified employment |
+| Establishment growth | 2018–2023 | (Establishments 2023 / Establishments 2018)^(1/5) − 1 |
+| Population growth | 2019–2024 | (Population 2024 / Population 2019)^(1/5) − 1 |
+| Net migration rate | 2024; population 2023–24 | Migration 2024 / average 2023–24 population × 1,000 |
+
+Industry HHI uses Census CBP, not QCEW. Population and migration use Census Population Estimates. Establishment growth represents net business formation. QCEW additions in data-v0.7 are supplementary. No new metric-level sensitivity results. References: `src/scoring/README.md`, `config/settings.toml`, `src/scoring/pillar4.py`, Pillar 4 notebook.
+
+Preferred directions: higher GDP, establishment and population growth and net migration; lower GDP volatility, unemployment level and volatility, and industry HHI (prior chapter). BEA GDP and BLS LAUS unemployment sources retained from prior chapter.
+
+## Industry suppression and rank change
+
+The v0.4 methodology uses published CBP sectors for industry concentration rather than leaving the entire measure missing whenever one sector is suppressed. HHI is the sum of squared employment shares; a lower value indicates diversification. The `industry_hhi_missing_sectors = "leave_out"` option does not recover missing raw observations. The `blank` option restores the earlier strict coverage rule. The reported suppression affects 95 metros, including 69 with mining suppression. Austin's November 17 sensitivity analysis reports a median omitted employment share of 0.07%, maximum approximately 1%, and maximum HHI change 1.6%. Across three alternative assumptions, all 190 metros remained ranked; no metro shifted more than three places and Charlotte ranged 18th–19th. These are historical sensitivity results, not general guarantees.
+
+The change permitted 14 additional metros above the size floor to rank, including Huntsville (#11) and Wilmington, NC (#14), moving Charlotte from #17 to #19. The default fit settings were not responsible. Retain the diagnostic exports for published/missing sectors, classified employment ratio and sectors omitted.
+
+## Fit, feasibility and scenarios
+
+In dashboard v1.0, Charlotte ranks 15th–18th across the strategy scenarios, compared with 18th in the balanced baseline (88.8). Source: final figures from Matt D’Allaird, communicated November 25.
+
+The Power BI v1.0 dashboard (`BankUnited_Market_Opportunity_Engine_v1.0.pbix`) uses scoring v0.5 and data-v0.7. Sonia G. Chavelas Gonzalez reported on November 25 that the embedded data files match the score outputs on main at `d4ff27c` after PR #140. Charlotte ranks 18th of 190 (88.8), Chicago 96th and New York 151st.
+
+Market attractiveness and eligibility are separate. Optional fit filters use straight-line distance to BankUnited markets, employment share in selected industries and exclusion of existing markets. The dashboard industry filter defaults to percentile 0, with raw share available as an option; distance and existing-market exclusion are off in the baseline. Filters change eligibility, not scores; the Adjacency scenario uses a 500-mile maximum. The 13-market footprint includes ten branch markets plus Atlanta, Charlotte and Houston office-only markets. Historical footprint logic excludes Atlanta before April 7, 2022 and Charlotte before July 17, 2025. An unpublished selected industry is unknown for the fit filter, unlike the available-sector treatment for HHI. The prior analysis identified 11 unknown selected-industry shares, with Huntsville the only otherwise above-floor metro. Detroit (503.1 miles) and El Paso (508.1 miles) illustrate sensitivity to the distance threshold. Distance is not drive time. Talent-led was removed and `no_fill_local_lender` replaced the prior fill scenario. Weight sliders support sensitivity exploration, not approved risk limits.
+
+## Evidence and reproducibility
+
+| Evidence | Current disposition |
+|---|---|
+| Data release | [data-v0.7](https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/releases/tag/data-v0.7) |
+| Automated tests | 313 passed on main 546f659 (Austin, November 24) |
+| Data checks | 198 passed; 0 failed; 18 warnings reported by Austin (November 24) |
+| Clean-clone rerun | Bhavana Vasireddy, clean-clone step log, November 10–12, integrated-v0.2 (historical evidence) |
+| Score changes | Austin reports none from data-v0.7 |
+
+Data-v0.7 adds `msa_industry_year` and `us_industry_year` (BLS QCEW industry establishments, employment and wages, 2015–24; Connecticut's five metros from 2024). These tables are not consumed by scoring, per Austin. County suppression can understate employment and wages; consult `bls_qcew_private_counties_suppressed_count`. The release also includes the Atlanta/FRED data dictionary trace and FDIC historical revision note (PR #135). Bhavana’s clean-clone evidence relates to integrated-v0.2, not the current release. Austin reported 313 passing tests on main 546f659. See [Evidence](evidence.qmd), [Validation](validation.qmd), [Data decisions](data-decisions.qmd) and [Fact checks](data-fact-check-v04.qmd). The operational runbook is `docs/runbook.md`.
+
+## Metric sensitivity
+
+Matt D’Allaird’s final scoring v0.5 sensitivity analysis, confirmed November 25, retained 23–25 of the original top 25 markets when individual measures were removed. Similarity ranged from 0.989 to 0.999; the largest single-measure movement was 26 places (middle-market growth), and the maximum movement under ±25% weight changes was 13 places. Repository drop-measure scenarios are separate: 23–24 on main and 22–24 on the v0.5 branch (Austin, November 24). This supports broad top-market robustness, not invariant individual ranks. Pillar 3 nominal overall weight is 5% per measure; Pillar 4 is 3.125% per measure, before pillar percentile transformation.
+
+## Assumptions, limitations and governance
+
+The model does not estimate local pricing, funding costs, margins or investment returns. Bank-level Call Reports and branch-level deposit allocations approximate local activity and omit office-only lending footprints. Nominal growth and size measures may overlap across pillars; Matt reports a 0.43 score/population correlation for further analysis in T84, not a causal result. Data vintages differ across sources; historical back-tests using revised data do not reproduce original publication-time information. CBP lags other sources. FDIC may revise historical quarters. Incomplete or filtered markets are not necessarily unattractive. Historical decisions are recorded in the D1–D15 register.
+
+## Source register
+
+- Jainesh Lad, Pillar 3 Metric Definitions, November 24; Evan De Guzman, November 24 email; Elliot Leibowitz, email, November 24, 2026, 10:04 AM; Austin Edwards, main validation 546f659, November 24.
+- [Reconciled data and ML decisions](data-decisions.qmd).
+
+- Matt D'Allaird, *Pillars 1 & 2 — Metric Definitions*, November 23, 2026 (owner-supplied document).
+- *Pillar 4 Definition*, owner-supplied document (date not stated).
+- [Original T65 chapter at 2c1bd5d](https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/blob/2c1bd5d/docs/handoff/methodology.qmd), November 17 draft and Austin's reported sensitivity evidence.
+- [Baseline configuration](https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/blob/main/weights/baseline.toml), inspected November 23; main reference.
+- Bhavana Vasireddy, clean_clone_step_log_integrated-v0.2.md, November 10–12.
+
+
+### Saved scoring output provenance
+
+Saved scoring outputs dated November 24 in main snapshot `d4ff27c7` confirm Charlotte #18 of 190 (88.82, displayed as 88.8). Sources: `outputs/final_scores/market_attractiveness_scores.csv`, `outputs/final_scores/market_attractiveness_run.json` and `config/settings.toml`. The configured local-lender growth cap is 191%. Austin’s 313-test and 198-check validation applies to `546f659`, not the later snapshot.
+
+Bhavana Vasireddy’s November 18–19 clean-clone rerun at `079a2e4` is documented in `docs/handoff/clean_clone_step_log_079a2e4.md`: 298 tests passed, 167 checks passed, 0 failed, 16 warnings; raw rebuild approximately 33 minutes; scores reproduced (Charlotte #19 of 190, 88.43). Dashboard v0.9 was tested separately at `7254f1a` (U1–U10). This is historical evidence, not validation of scoring v0.5.

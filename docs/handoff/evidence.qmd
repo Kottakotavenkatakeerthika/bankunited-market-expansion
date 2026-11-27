@@ -1,0 +1,50 @@
+---
+title: "Evidence and repository audit"
+---
+
+> **Document status:** Updated for the November 27 code freeze (scoring v0.5, data-v0.7, dashboard v1.0); historical repository comparisons retained.
+
+## BankUnited TR-03 repository audit — updated 2026-11-27
+
+## Conclusion
+
+**Release published; final handoff acceptance pending.** The final tagged release follows the November 27 code freeze. The data-v0.7 release adds two QCEW industry tables while leaving every other table byte-identical to the prior release. The new tables are not used by the scoring process, so no score changes resulted.
+
+## Current release evidence
+
+- **Release:** `data-v0.7`, published November 23, 2026.
+- **Release commit:** `4597975`, where the `data-v0.7` tag points (the PR #134 merge on main).
+- **New tables:** `msa_industry_year` (121,744 rows) and `us_industry_year` (320 rows), containing BLS QCEW industry data for 2015–2024.
+- **Data checks:** **198 passed, 0 failed, 18 warnings**, as reported for data-v0.7.
+- **Automated tests:** **313 tests**, as reported by the team.
+- **Scoring impact:** No score changes; the scoring process does not read the two newly added industry tables.
+- **Documentation updates:** The data dictionary traces Atlanta's 0.1% gap to FRED and notes that FDIC revises historical quarters.
+- **Scoring:** scoring v0.5 (pull request 140): Charlotte #18 of 190 (88.8).
+- **Dashboard:** v1.0 (pull request 141), with a 10-of-10 user test on November 26 (pull request 146).
+- **Runbook:** `docs/runbook.md` (pull request 136, merged November 27).
+
+## Historical evidence
+
+- Data-v0.6 reported 167 checks passed, 0 failed, and 16 warnings.
+- The earlier integrated-v0.2 clean-clone rebuild reported 163 checks passed, 0 failed, and 16 warnings.
+- The October 28, 2026 report recorded 161 passing checks.
+- Earlier test evidence reported 222 passing tests. These historical figures are retained for release traceability and are not the current data-v0.7 results.
+
+## Material gaps and limitations
+
+1. Raw inputs: the runbook documents the downloads, including the 30 FFIEC CRA files fetched through a browser; independent rebuild evidence is in the validation chapter.
+2. BLS suppresses some county-level data. Metro employment and wage totals may therefore be understated. The `bls_qcew_private_counties_suppressed_count` field identifies affected metros.
+3. This book is integrated and renders to HTML and PDF; what remains is the release tag after the freeze and sponsor acceptance.
+4. BankUnited downloads the final tagged release; InfoSec review in progress. The tag and its commit identify the delivered release.
+
+## Acceptance standard
+
+Data, ML and dashboard leads provide implementation evidence, normal and exception-case examples, and documented limitations. The integration lead verifies reproducibility and shared interfaces. The Documentation Lead consolidates the handoff, and the sponsor validates the decision meaning and provides sign-off.
+
+## Release reference
+
+- **Release:** `data-v0.7`
+- **Release commit:** `4597975` (tag `data-v0.7`)
+- **Data checks:** 198 passed, 0 failed, 18 warnings
+- **Automated tests:** 313 tests
+- **Release URL:** https://github.com/Kottakotavenkatakeerthika/bankunited-market-expansion/releases/tag/data-v0.7

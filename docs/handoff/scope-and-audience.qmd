@@ -1,0 +1,22 @@
+---
+title: "Audience, scope and deliverables"
+---
+
+
+## Intended readers
+
+- **BankUnited technical operators:** set up, rebuild data, rerun scoring and inspect/refresh the dashboard, subject to approved access.
+- **Business sponsors:** interpret market-attractiveness results, assumptions, limitations and decisions.
+- **Practicum reviewers:** assess reproducibility, methodology, evidence and scope.
+
+## Release boundary requiring approval
+
+The reviewed Power BI dashboard (v1.0) documents the **Market Attractiveness** score, with filters for population, distance and industry fit; a combined Fit score is not built. The repository's empty placeholders for an industry-fit module, entry scenarios and a Python app were removed on November 25 (pull request 142). Industry fit is the industry share filter in `src/scoring/fit.py`, entry scenarios remain a next step, and the Power BI dashboard is the delivered interface.
+
+## Delivery formats
+
+Quarto source (`.qmd`) is version-controlled; render a navigable HTML book and consolidated PDF. Retain the editable `.xlsx` tracker and `.pbix` dashboard separately. Do not publish bank-specific content publicly without authorization.
+
+## Completion standard (proposed, not yet accepted)
+
+Technical owners review their chapters; evidence links resolve; instructions work from a clean clone; exclusions and warnings are documented; sponsor reviewers accept the package or record exceptions.
