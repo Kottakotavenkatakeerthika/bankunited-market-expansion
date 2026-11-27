@@ -97,7 +97,7 @@ python -m pytest                             # tests for the pipeline code
 
 The checks write `data/processed/checks_report.md` and exit with code 1 if anything fails. Every run rewrites that report with a new run time, and a run that downloads anything updates the pull times in `data/manifest.csv`, so `git status` shows changes after a run even when no table changed. A scoring run does the same to the `_run.json` files under `outputs/`. `git restore data/manifest.csv data/processed/checks_report.md` drops the first two.
 
-Each source publishes on its own schedule. [Refresh cadence](docs/refresh_cadence.md) says when to rerun each one and what a refresh takes.
+Each source publishes on its own schedule. [Refresh cadence](docs/refresh_cadence.md) says when to rerun each one and what a refresh takes. The [runbook](docs/runbook.md) covers operating and maintaining the pipeline step by step: keys and secrets, a routine refresh, failed checks, adding a data year and troubleshooting.
 
 ## Scoring
 
