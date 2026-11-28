@@ -5,7 +5,7 @@ title: "Data and ML decisions — T65"
 > **November 24 release reconciliation:** Scoring v0.5 with data-v0.7 ranks Charlotte #18 of 190 (88.82; displayed as 88.8). The scoring configuration and saved outputs reflect PR #140. The scoring run uses an industry filter minimum of 0 and exports both raw share and percentile.
 
 
-Revision: November 24, 2026. D1–D15 preserve Austin’s November 16 rules with November 17 replacement entries D2, D4, D14, D15. Historical figures remain historical; current validation is data-v0.7 (313 tests; 198 checks passed, 0 failed, 18 warnings). M1–M10 are newly assigned documentation IDs, not original tracker IDs.
+Revision: November 24, 2026. D1–D15 preserve Austin’s November 16 rules with November 17 replacement entries D2, D4, D14, D15. Historical figures remain historical; current validation is data-v0.7 (320 tests at the November 27 freeze, 313 before pull request 148's sensitivity tests; 198 checks passed, 0 failed, 18 warnings). M1–M10 are newly assigned documentation IDs, not original tracker IDs.
 
 ## Austin Edwards — T65 decision register
 
@@ -277,11 +277,11 @@ Source: How Our Data Works, November 16, data-v0.6, commit 231281b, with Novembe
 
 ## M10 Sensitivity and release evidence
 
-**Rule:** Scoring v0.5 sensitivity retains 23–25 of the original top 25; 313 tests; 198 checks passed, 0 failed, 18 warnings.
+**Rule:** Scoring v0.5 sensitivity retains 23–25 of the original top 25; 320 tests at the freeze (313 before pull request 148); 198 checks passed, 0 failed, 18 warnings.
 
 **Why:** Document robustness and validation.
 
-**Evidence:** Matt’s final v0.5 sensitivity figures communicated November 25; Austin’s November 24 rerun on main 546f659
+**Evidence:** Matt’s final v0.5 sensitivity figures communicated November 25; Austin’s November 24 rerun on main 546f659; reproduced by `python -m src.pillar_sensitivity` (pull request 148), output `outputs/sensitivity/pillar_metric_sensitivity.csv`
 
 **Alternatives:** Alternative weights and removals
 
